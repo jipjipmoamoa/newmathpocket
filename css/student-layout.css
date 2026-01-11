@@ -1,0 +1,1052 @@
+
+/* 학생 관리 2단 레이아웃 */
+
+/* 헤더 행: 소카테고리 + 추가 버튼 */
+.student-header-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin: 0.5rem 0; /* 중카테고리와 가깝게 */
+    padding: 0.75rem 0;
+    border-bottom: 2px solid var(--border-color);
+    background: var(--bg-light);
+}
+
+/* 소카테고리 탭 */
+.student-status-tabs {
+    display: flex;
+    gap: 1rem;
+}
+
+.status-tab {
+    padding: 0.75rem 2rem;
+    background: none;
+    border: none;
+    border-bottom: 3px solid transparent;
+    cursor: pointer;
+    font-size: 1rem;
+    font-weight: 500;
+    color: var(--text-light);
+    transition: all 0.3s ease;
+}
+
+.status-tab:hover {
+    color: var(--primary-color);
+}
+
+.status-tab.active {
+    color: var(--primary-color);
+    border-bottom-color: var(--primary-color);
+}
+
+.two-column-layout {
+    display: grid;
+    grid-template-columns: 1fr 4fr;
+    gap: 1.5rem;
+    margin-top: 1.5rem;
+}
+
+/* 왼쪽 학생 목록 - 심플 아코디언 */
+.student-list-column {
+    background: var(--white);
+    border-radius: 8px;
+    padding: 1rem;
+    box-shadow: var(--shadow);
+    height: fit-content;
+    max-height: 70vh;
+    overflow-y: auto;
+}
+
+.accordion-group {
+    margin-bottom: 1rem;
+}
+
+/* 심플 헤더 (배경 없음, 글자만) */
+.accordion-header-simple {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 0;
+    margin-bottom: 0.5rem;
+}
+
+.group-title {
+    font-weight: 600;
+    font-size: 0.95rem;
+    color: #7B3F00; /* 대카테고리와 동일한 갈색 */
+}
+
+.student-count-simple {
+    font-size: 0.85rem;
+    color: #7F8C8D; /* 회색 글자 */
+    background: transparent;
+}
+
+/* 심플 컨텐츠 (항상 열림, 애니메이션 없음) */
+.accordion-content-simple {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+    padding-left: 0;
+}
+
+.student-list-items {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+
+.student-list-item {
+    padding: 0.5rem 1rem;
+    background: var(--bg-light);
+    border-radius: 4px;
+    cursor: pointer;
+    transition: none; /* 모든 애니메이션 제거 */
+    border-left: 3px solid transparent;
+}
+
+.student-list-item:hover {
+    background: #E8F5E9;
+    border-left-color: var(--primary-color);
+}
+
+.student-list-item.active {
+    background: #FFF3E0;
+    border-left-color: var(--primary-color);
+}
+
+.student-info-inline {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.student-name {
+    font-weight: 600;
+    color: var(--text-dark);
+    font-size: 0.95rem;
+}
+
+/* 필수 정보 미완료 학생 이름 빨간색 */
+.student-name.incomplete {
+    color: #dc3545;
+    font-weight: 700;
+}
+
+.student-school-inline {
+    font-size: 0.8rem;
+    color: var(--text-light);
+}
+
+/* 오른쪽 학생 상세 */
+.student-detail-column {
+    background: var(--white);
+    border-radius: 8px;
+    padding: 2rem;
+    box-shadow: var(--shadow);
+    min-height: 400px;
+}
+
+.student-detail-card {
+    height: 100%;
+}
+
+/* 새로운 헤더 스타일 */
+.student-detail-header-new {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding-bottom: 1.5rem;
+    border-bottom: 2px solid var(--border-color);
+    margin-bottom: 1rem;
+}
+
+.student-detail-header-new h3 {
+    font-size: 1.8rem;
+    color: var(--text-dark);
+}
+
+.student-name-input {
+    font-size: 1.8rem;
+    color: var(--text-dark);
+    font-weight: 600;
+    border: none;
+    border-bottom: 2px solid transparent;
+    padding: 0.25rem 0.5rem;
+    background: transparent;
+    transition: all 0.3s ease;
+    min-width: 200px;
+}
+
+.student-name-input:hover {
+    border-bottom-color: var(--border-color);
+    background: var(--bg-light);
+}
+
+.student-name-input:focus {
+    outline: none;
+    border-bottom-color: var(--primary-color);
+    background: var(--bg-light);
+}
+
+.header-controls {
+    display: flex;
+    gap: 1rem;
+    align-items: center;
+}
+
+/* 상태 토글 */
+.status-toggle {
+    cursor: pointer;
+}
+
+.status-badge {
+    padding: 0.5rem 1.5rem;
+    border-radius: 20px;
+    font-weight: 600;
+    font-size: 0.95rem;
+    transition: all 0.3s ease;
+}
+
+.status-active {
+    background: #4CAF50;
+    color: white;
+}
+
+.status-paused {
+    background: #FF9800;
+    color: white;
+}
+
+.status-inactive {
+    background: #9E9E9E;
+    color: white;
+}
+
+.status-badge:hover {
+    opacity: 0.8;
+    transform: scale(1.05);
+}
+
+/* 선생님 선택 드롭다운 */
+.teacher-select {
+    padding: 0.5rem 1rem;
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    font-size: 0.95rem;
+    min-width: 150px;
+    cursor: pointer;
+}
+
+.teacher-select:focus {
+    outline: none;
+    border-color: var(--primary-color);
+}
+
+/* 5칸 탭 */
+.detail-tabs {
+    display: flex;
+    gap: 0.5rem;
+    margin-bottom: 1.5rem;
+    border-bottom: 2px solid var(--border-color);
+}
+
+.detail-tab {
+    padding: 0.75rem 1.5rem;
+    background: none;
+    border: none;
+    border-bottom: 3px solid transparent;
+    cursor: pointer;
+    font-size: 0.95rem;
+    font-weight: 500;
+    color: var(--text-light);
+    transition: all 0.3s ease;
+}
+
+.detail-tab:hover {
+    color: var(--primary-color);
+}
+
+.detail-tab.active {
+    color: var(--primary-color);
+    border-bottom-color: var(--primary-color);
+}
+
+/* 탭 컨텐츠 */
+.tab-content {
+    min-height: 400px;
+}
+
+.tab-panel {
+    padding: 2rem;
+}
+
+/* 콤팩트 상세 정보 레이아웃 */
+.student-detail-body-new {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.detail-row-compact {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 0.75rem;
+}
+
+.detail-row-compact:has(.detail-group-compact:nth-child(3):last-child) {
+    grid-template-columns: repeat(3, 1fr);
+}
+
+.detail-row-compact:has(.detail-group-compact:nth-child(2):last-child) {
+    grid-template-columns: repeat(2, 1fr);
+}
+
+.detail-group-compact {
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+}
+
+.detail-group-full {
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+    grid-column: 1 / -1; /* 전체 너비 차지 */
+}
+
+.detail-group-compact label,
+.detail-group-full label {
+    font-weight: 600;
+    color: var(--text-light);
+    font-size: 0.85rem;
+}
+
+.detail-group-compact input,
+.detail-group-compact select,
+.detail-group-full textarea {
+    padding: 0.6rem;
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    font-size: 0.9rem;
+    transition: all 0.3s ease;
+}
+
+.detail-group-compact input:focus,
+.detail-group-compact select:focus,
+.detail-group-full textarea:focus {
+    outline: none;
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 3px rgba(255, 107, 53, 0.1);
+}
+
+.readonly-field {
+    background: var(--bg-light);
+    cursor: not-allowed;
+}
+
+.detail-group-compact input[readonly]:focus {
+    border-color: var(--border-color);
+    box-shadow: none;
+}
+
+/* 교재 표시 영역 */
+.books-display {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1rem;
+    padding: 1rem;
+    background: var(--bg-light);
+    border-radius: 8px;
+    margin: 1rem 0;
+}
+
+.book-item {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.book-item label {
+    font-weight: 600;
+    color: var(--text-light);
+    font-size: 0.85rem;
+}
+
+.book-value {
+    padding: 0.75rem;
+    background: white;
+    border-radius: 6px;
+    font-size: 0.9rem;
+    color: var(--text-dark);
+    min-height: 40px;
+}
+
+/* 교재 관리 표 */
+.books-table-container {
+    margin-top: 1rem;
+    overflow-x: auto;
+}
+
+.books-table {
+    width: 100%;
+    border-collapse: collapse;
+    background: var(--white);
+}
+
+.books-table thead {
+    background: var(--bg-light);
+}
+
+.books-table th {
+    padding: 0.75rem;
+    text-align: left;
+    font-weight: 600;
+    color: var(--text-dark);
+    border-bottom: 2px solid var(--border-color);
+}
+
+.books-table td {
+    padding: 0.75rem;
+    border-bottom: 1px solid var(--bg-light);
+}
+
+.books-table input {
+    width: 100%;
+    padding: 0.5rem;
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    font-size: 0.9rem;
+}
+
+.book-register-row {
+    background: #FFF8F0;
+}
+
+/* 스케줄 테이블 스타일 */
+.schedule-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 1rem;
+}
+
+.schedule-table thead {
+    background: var(--bg-light);
+}
+
+.schedule-table th {
+    padding: 0.7rem 0.5rem;
+    text-align: left;
+    font-weight: 600;
+    color: var(--text-dark);
+    border-bottom: 2px solid var(--border-color);
+    font-size: 0.9rem;
+}
+
+.schedule-table th:first-child {
+    width: 72px;
+}
+
+.schedule-table td {
+    padding: 1.2rem 0.5rem;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.schedule-table .day-label {
+    font-weight: 600;
+    color: var(--text-dark);
+    background: var(--bg-light);
+    width: 72px;
+    font-size: 0.9rem;
+}
+
+.schedule-table .checkbox-cell {
+    text-align: center;
+}
+
+.schedule-table input[type="checkbox"] {
+    width: 20px;
+    height: 20px;
+    cursor: pointer;
+    accent-color: var(--primary-color);
+}
+
+.schedule-table input[type="time"],
+.schedule-table input[type="number"],
+.schedule-table .time-input {
+    width: 100%;
+    padding: 0.5rem;
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    font-size: 0.9rem;
+}
+
+.schedule-table input[type="time"]:focus,
+.schedule-table input[type="number"]:focus,
+.schedule-table .time-input:focus {
+    outline: none;
+    border-color: var(--primary-color);
+}
+
+.schedule-table input[readonly] {
+    background: var(--bg-light);
+    color: var(--text-light);
+    cursor: not-allowed;
+}
+
+.schedule-note {
+    margin-top: 1.5rem;
+    padding: 1rem;
+    background: #E3F2FD;
+    border-left: 4px solid #2196F3;
+    border-radius: 4px;
+}
+
+.schedule-note p {
+    margin: 0;
+    color: #1976D2;
+    font-size: 0.9rem;
+}
+
+.schedule-note i {
+    margin-right: 0.5rem;
+}
+
+.schedule-note i {
+    margin-right: 0.5rem;
+}
+
+/* ========================================
+   데이터 테이블 스타일 (시험점수, 사용책, 상담내용)
+   ======================================== */
+
+.data-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 1rem;
+    table-layout: fixed !important;
+    border: 1px solid var(--border-color);
+}
+
+.data-table th,
+.data-table td {
+    border: 1px solid var(--border-color);
+    box-sizing: border-box;
+    overflow: hidden;
+    position: relative;
+}
+
+.data-table thead {
+    background: var(--bg-light);
+}
+
+.data-table th {
+    padding: 0.6rem 0.8rem;
+    text-align: left;
+    font-weight: 600;
+    color: var(--text-dark);
+    border-bottom: 2px solid var(--border-color);
+    white-space: nowrap;
+}
+
+/* 테이블 열 너비 조정 */
+.scores-table th:nth-child(1),  /* 시험 날짜 */
+.books-table th:nth-child(1),   /* 책 안내 날짜 */
+.consultation-table th:nth-child(1) {  /* 상담 날짜 */
+    width: 120px;
+    min-width: 120px;
+}
+
+.scores-table th:nth-child(2) {  /* 시험 종류 */
+    width: 140px;
+}
+
+.scores-table th:nth-child(3) {  /* 점수 */
+    width: 80px;
+}
+
+.books-table th:nth-child(2),  /* 선행개념 */
+.books-table th:nth-child(3),  /* 선행복습 */
+.books-table th:nth-child(4) {  /* 현행심화 */
+    width: 150px;
+}
+
+.consultation-table th:nth-child(2) {  /* 상담자 */
+    width: 100px;
+}
+
+.consultation-table th:nth-child(3) {  /* 상담내용 */
+    width: auto;
+}
+
+.data-table th:last-child {  /* 관리 열 */
+    width: 120px;
+    text-align: center;
+}
+
+.data-table td {
+    padding: 0.5rem 0.8rem;
+    border-bottom: 1px solid var(--border-color);
+    box-sizing: border-box;
+    overflow: hidden;
+}
+
+/* td 열 너비도 th와 동일하게 */
+.scores-table td:nth-child(1),
+.books-table td:nth-child(1),
+.consultation-table td:nth-child(1) {
+    width: 100px !important;
+    max-width: 100px !important;
+    min-width: 100px !important;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.scores-table td:nth-child(2) {
+    width: 140px;
+}
+
+.scores-table td:nth-child(3) {
+    width: 80px;
+}
+
+.books-table td:nth-child(2),
+.books-table td:nth-child(3),
+.books-table td:nth-child(4) {
+    width: 150px;
+}
+
+.consultation-table td:nth-child(2) {
+    width: 100px;
+}
+
+.data-table td:last-child {
+    width: 120px;
+    text-align: center;
+}
+
+.data-table .input-row {
+    background: #FFFBF0 !important;
+    border: 2px solid #FFD700 !important;
+    display: table-row !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    height: auto !important;
+}
+
+.data-table .input-row td {
+    padding: 0.4rem !important;
+    vertical-align: middle !important;
+    overflow: hidden !important;
+    white-space: nowrap !important;
+    height: 48px !important;
+    box-sizing: border-box !important;
+    border: 1px solid var(--border-color) !important;
+    text-align: center !important;
+}
+
+/* 입력 행의 td도 열 너비 제한 */
+.scores-table .input-row td:nth-child(1) {
+    width: 10% !important;
+    max-width: 100px !important;
+}
+
+.scores-table .input-row td:nth-child(2) {
+    width: 15% !important;
+    max-width: 120px !important;
+}
+
+.scores-table .input-row td:nth-child(3) {
+    width: 8% !important;
+    max-width: 80px !important;
+}
+
+.scores-table .input-row td:nth-child(4) {
+    width: 52% !important;
+    white-space: normal !important;
+}
+
+.scores-table .input-row td:nth-child(5) {
+    width: 15% !important;
+    max-width: 120px !important;
+}
+
+/* 사용책 테이블 입력 행 */
+.books-table .input-row td:nth-child(1) {
+    width: 10% !important;
+    max-width: 100px !important;
+}
+
+.books-table .input-row td:nth-child(2),
+.books-table .input-row td:nth-child(3),
+.books-table .input-row td:nth-child(4) {
+    width: 28% !important;
+    white-space: normal !important;
+}
+
+.books-table .input-row td:nth-child(5) {
+    width: 12% !important;
+    max-width: 120px !important;
+}
+
+/* 상담내용 테이블 입력 행 */
+.consultation-table .input-row td:nth-child(1) {
+    width: 12% !important;
+    max-width: 120px !important;
+}
+
+.consultation-table .input-row td:nth-child(2) {
+    width: 10% !important;
+    max-width: 100px !important;
+}
+
+.consultation-table .input-row td:nth-child(3) {
+    width: 63% !important;
+    white-space: normal !important;
+}
+
+.consultation-table .input-row td:nth-child(4) {
+    width: 15% !important;
+    max-width: 120px !important;
+}
+
+.data-table .input-row input,
+.data-table .input-row select {
+    width: 92% !important;
+    max-width: 92% !important;
+    padding: 0.4rem 0.3rem !important;
+    border: 1px solid var(--border-color) !important;
+    border-radius: 4px !important;
+    font-size: 0.85rem !important;
+    background: white !important;
+    box-sizing: border-box !important;
+    display: block !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    height: 38px !important;
+    line-height: 1.5 !important;
+    margin: 0 auto !important;
+    text-align: center !important;
+}
+
+/* 날짜 입력 칸 크기 - 셀 너비에 맞게 조정 */
+.data-table .input-row .date-input {
+    max-width: 92% !important;
+    width: 92% !important;
+    padding: 0.4rem 0.3rem !important;
+    font-size: 0.85rem !important;
+    height: 38px !important;
+    margin: 0 auto !important;
+    text-align: center !important;
+}
+
+/* 시험 종류 입력 칸 */
+.data-table .input-row .type-input {
+    max-width: 92% !important;
+}
+
+/* 점수 입력 칸 */
+.data-table .input-row .score-input {
+    max-width: 92% !important;
+    width: 92% !important;
+}
+
+/* 교재 입력 칸 */
+.data-table .input-row .book-input {
+    max-width: 92% !important;
+}
+
+/* 오답 내용 및 상담 내용 입력 칸 */
+.data-table .input-row .notes-input,
+.data-table .input-row .content-input {
+    max-width: 92% !important;
+}
+
+/* 상담자 선택 박스 */
+.data-table .input-row .person-select {
+    max-width: 92% !important;
+    width: 92% !important;
+}
+
+.data-table .input-row select.person-select {
+    cursor: pointer;
+    background-color: white;
+}
+
+.data-table .input-row input:focus,
+.data-table .input-row select:focus {
+    outline: none;
+    border-color: var(--primary-color);
+}
+
+.data-table .empty-row {
+    text-align: center;
+    color: var(--text-light);
+    padding: 2rem;
+}
+
+/* 시험점수 테이블 열 폭 조정 */
+.scores-table th:nth-child(1), /* 시험 날짜 */
+.scores-table td:nth-child(1) {
+    width: 100px !important;
+    max-width: 100px !important;
+    min-width: 100px !important;
+}
+
+.scores-table th:nth-child(2), /* 시험 종류 */
+.scores-table td:nth-child(2) {
+    width: 15%;
+    min-width: 120px;
+}
+
+.scores-table th:nth-child(3), /* 점수 */
+.scores-table td:nth-child(3) {
+    width: 8%;
+    min-width: 70px;
+}
+
+.scores-table th:nth-child(4), /* 오답내용 */
+.scores-table td:nth-child(4) {
+    width: 44%; /* 52% → 44% (8% 감소) */
+}
+
+.scores-table th:nth-child(5), /* 관리 */
+.scores-table td:nth-child(5) {
+    width: 23%; /* 15% → 23% (8% 증가) */
+    min-width: 110px;
+}
+
+/* 사용책 테이블 열 폭 조정 */
+.books-table th:nth-child(1), /* 책 안내 날짜 */
+.books-table td:nth-child(1) {
+    width: 100px !important;
+    max-width: 100px !important;
+    min-width: 100px !important;
+}
+
+.books-table th:nth-child(2), /* 선행개념 */
+.books-table td:nth-child(2) {
+    width: 28.33%;  /* 25% → 28.33% (균등 확장) */
+}
+
+.books-table th:nth-child(3), /* 선행복습 */
+.books-table td:nth-child(3) {
+    width: 28.33%;  /* 25% → 28.33% (균등 확장) */
+}
+
+.books-table th:nth-child(4), /* 현행심화 */
+.books-table td:nth-child(4) {
+    width: 28.34%;  /* 25% → 28.34% (균등 확장) */
+}
+
+.books-table th:nth-child(5), /* 관리 */
+.books-table td:nth-child(5) {
+    width: 5%;      /* 15% → 5% (50% 축소) */
+    min-width: 55px;
+}
+
+/* 상담내용 테이블 열 폭 조정 */
+.consultation-table th:nth-child(1), /* 상담 날짜 */
+.consultation-table td:nth-child(1) {
+    width: 100px !important;
+    max-width: 100px !important;
+    min-width: 100px !important;
+}
+
+.consultation-table th:nth-child(2), /* 상담자 */
+.consultation-table td:nth-child(2) {
+    width: 10%;
+    min-width: 90px;
+}
+
+.consultation-table th:nth-child(3), /* 상담내용 */
+.consultation-table td:nth-child(3) {
+    width: 60%;
+}
+
+.consultation-table th:nth-child(4), /* 관리 */
+.consultation-table td:nth-child(4) {
+    width: 20%;
+    min-width: 110px;
+}
+
+/* 관리 버튼 크기 조정 */
+.btn-add,
+.btn-edit-sm,
+.btn-delete-sm {
+    font-size: 0.85rem;
+    padding: 0.5rem 0.8rem;
+    height: 36px;
+    line-height: 1.5;
+}
+
+/* 점수 색상 */
+.score-perfect {
+    color: #2196F3; /* 파란색: 100점 */
+    font-weight: 700;
+}
+
+.score-excellent {
+    color: #4CAF50; /* 초록색: 90점 이상 */
+    font-weight: 600;
+}
+
+.score-poor {
+    color: #F44336; /* 빨간색: 70점 이하 */
+    font-weight: 600;
+}
+
+/* 버튼 스타일 */
+.btn-add {
+    padding: 0.5rem 1rem;
+    background: var(--primary-color);
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 0.9rem;
+    transition: background 0.3s;
+}
+
+.btn-add:hover {
+    background: var(--primary-dark);
+}
+
+.btn-edit-sm,
+.btn-delete-sm {
+    padding: 0.4rem 0.8rem;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 0.85rem;
+    margin-right: 0.5rem;
+    transition: all 0.3s;
+}
+
+.btn-edit-sm {
+    background: #2196F3;
+    color: white;
+}
+
+.btn-edit-sm:hover {
+    background: #1976D2;
+}
+
+.btn-delete-sm {
+    background: #F44336;
+    color: white;
+}
+
+.btn-delete-sm:hover {
+    background: #D32F2F;
+}
+
+/* 상담자 토글 */
+.consul-person-toggle {
+    display: flex;
+    gap: 0.5rem;
+    cursor: pointer;
+}
+
+.person-option {
+    padding: 0.5rem 1rem;
+    border-radius: 4px;
+    background: transparent;
+    transition: all 0.3s;
+    font-size: 0.9rem;
+}
+
+.person-option.active[data-value="모"] {
+    color: var(--primary-color);
+    font-weight: 600;
+}
+
+.person-option.active[data-value="부"] {
+    color: #4CAF50;
+    font-weight: 600;
+}
+
+.person-option.active[data-value="가족"] {
+    color: #9C27B0;
+    font-weight: 600;
+}
+
+.person-option:not(.active) {
+    color: var(--text-light);
+    opacity: 0.5;
+}
+
+/* 상담자 배지 */
+.person-badge {
+    padding: 0.4rem 0.8rem;
+    border-radius: 12px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    background: transparent;
+}
+
+.person-badge.person-모 {
+    color: var(--primary-color);
+}
+
+.person-badge.person-부 {
+    color: #4CAF50;
+}
+
+.person-badge.person-가족 {
+    color: #9C27B0;
+}
+
+/* 반응형 */
+@media (max-width: 1024px) {
+    .two-column-layout {
+        grid-template-columns: 1fr;
+    }
+    
+    .student-list-column {
+        max-height: 300px;
+    }
+    
+    .detail-row-compact {
+        grid-template-columns: repeat(2, 1fr) !important;
+    }
+    
+    .books-display {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 768px) {
+    .detail-row-compact {
+        grid-template-columns: 1fr !important;
+    }
+    
+    .student-detail-header-new {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 1rem;
+    }
+    
+    .header-controls {
+        width: 100%;
+        flex-direction: column;
+    }
+    
+    .teacher-select {
+        width: 100%;
+    }
+    
+    .detail-tabs {
+        overflow-x: auto;
+        flex-wrap: nowrap;
+    }
+    
+    .student-header-row {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 1rem;
+    }
+}

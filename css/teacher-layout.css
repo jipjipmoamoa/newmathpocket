@@ -1,0 +1,136 @@
+/* 선생님 관리 레이아웃 */
+
+/* 상태 배지 스타일 */
+.status-badge {
+    padding: 0.35rem 0.75rem;
+    border-radius: 12px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: inline-block;
+}
+
+.status-badge.status-active {
+    background: #4CAF50;
+    color: white;
+}
+
+.status-badge.status-inactive {
+    background: #D3D3D3;
+    color: #666;
+}
+
+.status-badge:hover {
+    opacity: 0.8;
+    transform: scale(1.05);
+}
+
+/* 선생님 등록 행 스타일 */
+.teacher-register-row {
+    background-color: #FFF8F0 !important;
+}
+
+.teacher-register-row input {
+    background: var(--white);
+}
+
+/* 담당 학생 그리드 (4단 배열) */
+.teacher-students-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 1.5rem;
+    margin-top: 1rem;
+}
+
+/* 선생님 카드 */
+.teacher-student-card {
+    background: var(--white);
+    border-radius: 8px;
+    padding: 1.5rem;
+    box-shadow: var(--shadow);
+    border-left: 4px solid var(--primary-color);
+}
+
+.teacher-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding-bottom: 1rem;
+    border-bottom: 2px solid var(--bg-light);
+    margin-bottom: 1rem;
+}
+
+.teacher-card-header h4 {
+    font-size: 1.1rem;
+    color: var(--text-dark);
+    margin: 0;
+}
+
+.student-count {
+    background: var(--primary-color);
+    color: var(--white);
+    padding: 0.25rem 0.75rem;
+    border-radius: 12px;
+    font-size: 0.85rem;
+    font-weight: 600;
+}
+
+.teacher-card-body {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+/* 학생 미니 아이템 */
+.student-mini-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.75rem;
+    background: var(--bg-light);
+    border-radius: 6px;
+    transition: all 0.3s ease;
+}
+
+.student-mini-item:hover {
+    background: #FFF3E0;
+}
+
+.student-mini-item .student-name {
+    font-weight: 600;
+    color: var(--text-dark);
+}
+
+.student-mini-item .student-info {
+    font-size: 0.85rem;
+    color: var(--text-light);
+}
+
+.text-muted {
+    color: var(--text-light);
+    text-align: center;
+    padding: 1rem;
+    font-style: italic;
+}
+
+/* 반응형 - 3단 */
+@media (max-width: 1400px) {
+    .teacher-students-grid {
+        grid-template-columns: repeat(3, 1fr);
+    }
+}
+
+/* 반응형 - 2단 */
+@media (max-width: 1024px) {
+    .teacher-students-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+/* 반응형 - 1단 */
+@media (max-width: 768px) {
+    .teacher-students-grid {
+        grid-template-columns: 1fr;
+    }
+}

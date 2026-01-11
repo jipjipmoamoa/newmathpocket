@@ -1,0 +1,327 @@
+/* ===== 탭 테이블 공통 스타일 ===== */
+
+.data-table {
+    width: 100%;
+    border-collapse: collapse;
+    table-layout: fixed;
+    background: white;
+}
+
+.data-table thead {
+    background: #f8f9fa;
+    border-bottom: 2px solid #dee2e6;
+}
+
+.data-table th {
+    padding: 1rem;
+    text-align: center;
+    font-weight: 600;
+    color: #495057;
+    border: 1px solid #dee2e6;
+}
+
+.data-table td {
+    padding: 0.8rem;
+    text-align: center;
+    border: 1px solid #dee2e6;
+    vertical-align: middle;
+}
+
+/* ===== 입력 행 스타일 (2행) ===== */
+
+.data-table .input-row {
+    background: #fffbf0 !important;
+}
+
+.data-table .input-row td {
+    padding: 0.5rem !important;
+    text-align: center !important;
+    vertical-align: middle !important;
+}
+
+/* ===== 입력 필드 공통 스타일 ===== */
+
+.input-field {
+    width: 96%;
+    max-width: 96%;
+    padding: 0.5rem;
+    border: 1px solid #ced4da;
+    border-radius: 4px;
+    font-size: 0.9rem;
+    text-align: center;
+    box-sizing: border-box;
+    background: white;
+    margin: 0 auto;
+    display: block;
+}
+
+.input-field:focus {
+    outline: none;
+    border-color: #FF6B35;
+    box-shadow: 0 0 0 2px rgba(255, 107, 53, 0.1);
+}
+
+.input-field::placeholder {
+    color: #adb5bd;
+    text-align: center;
+}
+
+/* ===== 버튼 스타일 ===== */
+
+.btn-register {
+    padding: 0.5rem 1rem;
+    background: #FF6B35;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    font-size: 0.9rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.btn-register:hover {
+    background: #e55a28;
+}
+
+.btn-edit,
+.btn-delete {
+    padding: 0.4rem 0.6rem;
+    border: none;
+    border-radius: 4px;
+    font-size: 0.85rem;
+    cursor: pointer;
+    margin: 0 0.2rem;
+    transition: all 0.2s;
+}
+
+.btn-edit {
+    background: #28a745;
+    color: white;
+}
+
+.btn-edit:hover {
+    background: #218838;
+}
+
+.btn-delete {
+    background: #dc3545;
+    color: white;
+}
+
+.btn-delete:hover {
+    background: #c82333;
+}
+
+/* ===== 빈 메시지 ===== */
+
+.empty-message {
+    padding: 2rem !important;
+    text-align: center !important;
+    color: #6c757d;
+    font-style: italic;
+}
+
+/* ===== 시험점수 테이블 열 너비 ===== */
+
+.scores-table th:nth-child(1),
+.scores-table td:nth-child(1) {
+    width: 12%;  /* 시험 날짜 */
+}
+
+.scores-table th:nth-child(2),
+.scores-table td:nth-child(2) {
+    width: 18%;  /* 시험명 */
+}
+
+.scores-table th:nth-child(3),
+.scores-table td:nth-child(3) {
+    width: 15%;  /* 시험 범위 */
+}
+
+.scores-table th:nth-child(4),
+.scores-table td:nth-child(4) {
+    width: 10%;  /* 점수 */
+}
+
+.scores-table th:nth-child(5),
+.scores-table td:nth-child(5) {
+    width: 35%;  /* 오답 내용 */
+}
+
+.scores-table th:nth-child(6),
+.scores-table td:nth-child(6) {
+    width: 10%;  /* 관리 */
+}
+
+/* 시험점수 테이블 관리 버튼 스타일 */
+.scores-table .btn-edit,
+.scores-table .btn-delete {
+    background: none;
+    border: none;
+    padding: 0.3rem;
+    margin: 0 0.2rem;
+    color: #FF6B35;
+    font-size: 1rem;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.scores-table .btn-edit:hover,
+.scores-table .btn-delete:hover {
+    transform: scale(1.2);
+    color: #e55a28;
+}
+
+/* ===== 사용책 테이블 열 너비 ===== */
+
+.books-table th:nth-child(1),
+.books-table td:nth-child(1) {
+    width: 10%;  /* 책 안내 날짜 (줄임) */
+}
+
+.books-table th:nth-child(2),
+.books-table td:nth-child(2) {
+    width: 26%;  /* 선행개념 */
+    text-align: left !important;  /* 왼쪽 정렬 */
+}
+
+.books-table th:nth-child(3),
+.books-table td:nth-child(3) {
+    width: 26%;  /* 선행복습 */
+    text-align: left !important;  /* 왼쪽 정렬 */
+}
+
+.books-table th:nth-child(4),
+.books-table td:nth-child(4) {
+    width: 26%;  /* 현행심화 */
+    text-align: left !important;  /* 왼쪽 정렬 */
+}
+
+.books-table th:nth-child(5),
+.books-table td:nth-child(5) {
+    width: 12%;  /* 관리 (늘림) */
+}
+
+/* 사용책 테이블 관리 버튼 스타일 */
+.books-table .btn-edit,
+.books-table .btn-delete {
+    background: transparent;
+    color: #FF6B35;
+    border: none;
+    padding: 0.3rem 0.5rem;
+    font-size: 0.85rem;
+    display: inline-block;
+    margin: 0 0.2rem;
+}
+
+.books-table .btn-edit:hover,
+.books-table .btn-delete:hover {
+    color: #e55a28;
+}
+
+/* 사용책 입력 필드 왼쪽 정렬 */
+.books-table .input-field {
+    text-align: left;
+}
+
+.books-table .input-field::placeholder {
+    text-align: left;
+}
+
+/* ===== 상담내용 테이블 열 너비 ===== */
+
+.consultation-table th:nth-child(1),
+.consultation-table td:nth-child(1) {
+    width: 15%;  /* 상담 날짜 */
+}
+
+.consultation-table th:nth-child(2),
+.consultation-table td:nth-child(2) {
+    width: 12%;  /* 상담자 */
+}
+
+.consultation-table th:nth-child(3),
+.consultation-table td:nth-child(3) {
+    width: 61%;  /* 상담내용 (줄임) */
+    text-align: left !important;  /* 왼쪽 정렬 */
+}
+
+.consultation-table th:nth-child(4),
+.consultation-table td:nth-child(4) {
+    width: 12%;  /* 관리 (늘림) */
+}
+
+/* 상담내용 입력 필드 왼쪽 정렬 */
+.consultation-table td:nth-child(3) .input-field {
+    text-align: left;
+}
+
+.consultation-table td:nth-child(3) .input-field::placeholder {
+    text-align: left;
+}
+
+/* 상담내용 테이블 관리 버튼 스타일 */
+.consultation-table .btn-edit,
+.consultation-table .btn-delete {
+    background: transparent;
+    color: #FF6B35;
+    border: none;
+    padding: 0.3rem 0.5rem;
+    font-size: 0.85rem;
+    display: inline-block;
+}
+
+.consultation-table .btn-edit:hover,
+.consultation-table .btn-delete:hover {
+    color: #e55a28;
+}
+
+/* ===== 점수별 색상 ===== */
+
+.score-red {
+    color: #dc3545;  /* 빨강: 70점 이하 */
+    font-weight: 600;
+}
+
+.score-green {
+    color: #28a745;  /* 초록: 90-99점 */
+    font-weight: 600;
+}
+
+.score-blue {
+    color: #007bff;  /* 파랑: 100점 */
+    font-weight: 700;
+}
+
+/* ===== 데이터 행 호버 효과 ===== */
+
+.data-table tbody tr:not(.input-row):hover {
+    background: #f8f9fa;
+}
+
+/* ===== 반응형 디자인 ===== */
+
+@media (max-width: 768px) {
+    .data-table th,
+    .data-table td {
+        padding: 0.5rem;
+        font-size: 0.85rem;
+    }
+    
+    .input-field {
+        font-size: 0.85rem;
+        padding: 0.4rem;
+    }
+    
+    .btn-register {
+        font-size: 0.85rem;
+        padding: 0.4rem 0.8rem;
+    }
+    
+    .btn-edit,
+    .btn-delete {
+        font-size: 0.75rem;
+        padding: 0.3rem 0.5rem;
+    }
+}

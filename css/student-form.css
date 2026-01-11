@@ -1,0 +1,103 @@
+/* 학생 추가 폼 스타일 */
+
+.student-form-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1.5rem;
+    border-bottom: 2px solid var(--border-color);
+    background: white;
+}
+
+.header-left {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    flex: 1;
+    justify-content: flex-start;
+}
+
+.student-name-input {
+    width: 250px;
+    padding: 0.85rem 1.2rem;
+    font-size: 1.4rem;
+    font-weight: 700;
+    border: 2px solid var(--border-color);
+    border-radius: 8px;
+    transition: border-color 0.3s ease;
+}
+
+.student-name-input:focus {
+    outline: none;
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 3px rgba(255, 107, 53, 0.1);
+}
+
+.student-name-input::placeholder {
+    color: #999;
+    font-weight: 600;
+}
+
+/* 상태 토글 버튼 (클릭 방식) */
+.status-toggle-btn {
+    padding: 0.75rem 2rem;
+    background: #4CAF50;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 1rem;
+    font-weight: 600;
+    transition: all 0.3s ease;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    min-width: 100px;
+}
+
+.status-toggle-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+}
+
+.status-toggle-btn:active {
+    transform: translateY(0);
+}
+
+.status-toggle-btn.status-active {
+    background: #4CAF50;
+}
+
+.status-toggle-btn.status-inactive {
+    background: #FF9800;
+}
+
+.status-toggle-btn.status-withdrawn {
+    background: #F44336;
+}
+
+/* 선생님 선택 드롭다운 */
+.teacher-select {
+    padding: 0.75rem 1rem;
+    font-size: 0.95rem;
+    border: 2px solid var(--border-color);
+    border-radius: 8px;
+    background: white;
+    cursor: pointer;
+    transition: border-color 0.3s ease;
+    min-width: 180px;
+}
+
+.teacher-select:focus {
+    outline: none;
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 3px rgba(255, 107, 53, 0.1);
+}
+
+.teacher-select option {
+    padding: 0.5rem;
+}
+
+/* 헤더 컨트롤 버튼 */
+.header-controls {
+    display: flex;
+    gap: 0.5rem;
+}

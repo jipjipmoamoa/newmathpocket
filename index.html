@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>매쓰포켓 - 학원 관리 시스템</title>
+    <link rel="stylesheet" href="css/style.css?v=8.8.6">
+    <link rel="stylesheet" href="css/student-layout.css?v=8.8.6">
+    <link rel="stylesheet" href="css/student-form.css?v=8.8.6">
+    <link rel="stylesheet" href="css/teacher-layout.css?v=8.8.6">
+    <link rel="stylesheet" href="css/attendance.css?v=8.8.6">
+    <link rel="stylesheet" href="css/tabs-new.css?v=8.8.6">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <!-- 헤더 -->
+    <header class="header">
+        <div class="header-container">
+            <!-- 로고 -->
+            <div class="logo-container" onclick="showPage('attendance-check')" style="cursor: pointer;">
+                <img src="images/logo.png" alt="매쓰포켓 로고" class="logo">
+            </div>
+            
+            <!-- 로그인 영역 -->
+            <div class="login-area" id="loginArea">
+                <div class="login-form" id="loginForm">
+                    <input type="text" id="username" placeholder="아이디" autocomplete="username">
+                    <input type="password" id="password" placeholder="비밀번호" autocomplete="current-password">
+                    <button onclick="login()" class="btn-login">로그인</button>
+                </div>
+                <div class="logout-area" id="logoutArea" style="display: none;">
+                    <div class="current-date" id="currentDate"></div>
+                    <div class="logout-row">
+                        <span class="welcome-text">관리자님</span>
+                        <button onclick="logout()" class="btn-logout">로그아웃</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- 메인 네비게이션 -->
+    <nav class="main-nav">
+        <ul class="main-menu" id="mainMenu">
+            <li class="menu-item" data-menu="members">
+                <a href="#" onclick="toggleSubMenu(event, 'members')">
+                    <i class="fas fa-users"></i> 회원 관리
+                </a>
+            </li>
+            <li class="menu-item" data-menu="attendance">
+                <a href="#" onclick="toggleSubMenu(event, 'attendance')">
+                    <i class="fas fa-calendar-check"></i> 출석 관리
+                </a>
+            </li>
+            <li class="menu-item" data-menu="schedule">
+                <a href="#" onclick="toggleSubMenu(event, 'schedule')">
+                    <i class="fas fa-calendar-alt"></i> 스케줄표
+                </a>
+            </li>
+            <li class="menu-item" data-menu="tuition">
+                <a href="#" onclick="toggleSubMenu(event, 'tuition')">
+                    <i class="fas fa-won-sign"></i> 원비관리
+                </a>
+            </li>
+            <li class="menu-item" data-menu="curriculum">
+                <a href="#" onclick="showPage('curriculum')">
+                    <i class="fas fa-book"></i> 교육과정
+                </a>
+            </li>
+            <li class="menu-item" data-menu="settings">
+                <a href="#" onclick="showPage('settings')">
+                    <i class="fas fa-cog"></i> 설정
+                </a>
+            </li>
+        </ul>
+    </nav>
+
+    <!-- 서브 메뉴 -->
+    <div class="sub-menu-container" id="subMenuContainer" style="display: none;">
+        <ul class="sub-menu" id="subMenu"></ul>
+    </div>
+
+    <!-- 메인 컨텐츠 -->
+    <main class="main-content" id="mainContent">
+        <div class="welcome-section">
+            <h1>매쓰포켓 학원 관리 시스템</h1>
+            <p>학원 운영을 위한 통합 관리 시스템입니다.</p>
+            <div class="feature-cards">
+                <div class="feature-card">
+                    <i class="fas fa-users"></i>
+                    <h3>회원 관리</h3>
+                    <p>학생과 선생님 정보를 체계적으로 관리하세요</p>
+                </div>
+                <div class="feature-card">
+                    <i class="fas fa-calendar-check"></i>
+                    <h3>출석 관리</h3>
+                    <p>일일 출석 체크와 출결 현황을 한눈에</p>
+                </div>
+                <div class="feature-card">
+                    <i class="fas fa-won-sign"></i>
+                    <h3>원비 관리</h3>
+                    <p>학생별/월별 원비 납부 현황 관리</p>
+                </div>
+                <div class="feature-card">
+                    <i class="fas fa-calendar-alt"></i>
+                    <h3>스케줄 관리</h3>
+                    <p>월간 수업 일정과 이벤트 계획</p>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- 담당학생 선택 모달 -->
+    <div id="assignStudentsModal" class="modal" style="display: none;">
+        <div class="modal-content" style="max-width: 600px;">
+            <div class="modal-header">
+                <h3>담당 학생 선택</h3>
+                <button class="modal-close" onclick="closeAssignStudentsModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="students-selection-list" id="studentsSelectionList">
+                    <p>로딩 중...</p>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeAssignStudentsModal()">취소</button>
+                <button class="btn btn-primary" onclick="saveAssignedStudents()">저장</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/api.js?v=8.8.6"></script>
+    <script src="js/auth.js?v=8.8.6"></script>
+    <script src="js/time-formatter.js?v=8.8.6"></script>
+    <script src="js/phone-formatter.js?v=8.8.6"></script>
+    <script src="js/date-formatter.js?v=8.8.6"></script>
+    <script src="js/tab-formatters.js?v=8.8.6"></script>
+    <script src="js/navigation.js?v=8.8.6"></script>
+    <script src="js/tab-renderers-new.js?v=8.8.6"></script>
+    <script src="js/tab-crud-new.js?v=8.8.6"></script>
+    <script src="js/members.js?v=8.8.6"></script>
+    <script src="js/upgrade-students.js?v=8.8.6"></script>
+    <script src="js/attendance.js?v=8.8.6"></script>
+    <script src="js/tuition.js?v=8.8.6"></script>
+    <script src="js/schedule.js?v=8.8.6"></script>
+    <script src="js/curriculum.js?v=8.8.6"></script>
+    <script src="js/settings.js?v=8.8.6"></script>
+    <script src="js/main.js?v=8.8.6"></script>
+</body>
+</html>
