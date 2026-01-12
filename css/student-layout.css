@@ -52,9 +52,10 @@
     border-radius: 8px;
     padding: 1rem;
     box-shadow: var(--shadow);
-    height: fit-content;
-    max-height: 70vh;
-    overflow-y: auto;
+     height: auto;
+    max-height: none;
+    overflow-y: visible;
+
 }
 
 .accordion-group {
