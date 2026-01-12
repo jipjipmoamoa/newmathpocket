@@ -22,15 +22,14 @@ function renderScoresTab(student) {
         return dateB.localeCompare(dateA);
     });
     
-    return `
+     return `
         <div class="tab-panel">
             <table class="data-table scores-table">
                 <thead>
                     <tr>
-                        <th>시험 날짜</th>
                         <th>시험명</th>
-                        <th>시험 범위</th>
                         <th>점수</th>
+                        <th>시험 범위</th>
                         <th>오답 내용</th>
                         <th>관리</th>
                     </tr>
@@ -38,22 +37,20 @@ function renderScoresTab(student) {
                 <tbody>
                     <!-- 입력 행 (2행) -->
                     <tr class="input-row">
-                        <td><input type="text" id="new-score-date-${student.id}" placeholder="2511" class="input-field"></td>
-                        <td><input type="text" id="new-score-name-${student.id}" placeholder="학원 단원평가" class="input-field"></td>
-                        <td><input type="text" id="new-score-range-${student.id}" placeholder="중111" class="input-field"></td>
+                        <td><input type="text" id="new-score-name-${student.id}" placeholder="11중" class="input-field"></td>
                         <td><input type="text" id="new-score-value-${student.id}" placeholder="점수" class="input-field"></td>
+                        <td><input type="text" id="new-score-range-${student.id}" placeholder="중111" class="input-field"></td>
                         <td><input type="text" id="new-score-notes-${student.id}" placeholder="오답 내용" class="input-field"></td>
                         <td><button class="btn-register" onclick="addScore('${student.id}')">등록</button></td>
                     </tr>
                     
                     <!-- 데이터 행 (3행부터, 최신순) -->
-                    ${scores.length === 0 ? '<tr><td colspan="6" class="empty-message">등록된 시험점수가 없습니다</td></tr>' : ''}
+                    ${scores.length === 0 ? '<tr><td colspan="5" class="empty-message">등록된 시험점수가 없습니다</td></tr>' : ''}
                     ${scores.map(score => `
                         <tr>
-                            <td>${score.date || '-'}</td>
                             <td>${score.name || '-'}</td>
-                            <td>${score.range || '-'}</td>
                             <td>${formatScoreWithColor(score.value || '0')}</td>
+                            <td>${score.range || '-'}</td>
                             <td>${score.notes || '-'}</td>
                             <td>
                                 <button class="btn-edit" onclick="editScore('${student.id}', '${score.id}')"><i class="fas fa-pencil-alt"></i></button>
@@ -65,7 +62,7 @@ function renderScoresTab(student) {
             </table>
         </div>
     `;
-}
+
 
 // ===== 사용책 탭 렌더링 =====
 
