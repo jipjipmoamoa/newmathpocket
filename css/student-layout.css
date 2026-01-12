@@ -112,9 +112,10 @@
 }
 
 .student-list-item.active {
-    background: #FFFACD;
+    background: #FFE4B5;
     border-left-color: var(--primary-color);
 }
+
 
 .student-list-item.active .student-name {
     font-weight: 700;
