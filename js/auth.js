@@ -6,15 +6,32 @@ const Auth = {
     },
     
     // 로그인
+       // 로그인
     async login(username, password) {
         try {
             // 설정에서 관리자 정보 가져오기
             const result = await API.getList('settings');
-            if (!result.data || result.data.length === 0) {
+            console.log('Settings API response:', result);
+            
+            // Supabase는 배열을 직접 반환합니다
+            let settings;
+            if (Array.isArray(result)) {
+                // 배열인 경우
+                if (result.length === 0) {
+                    throw new Error('관리자 설정을 찾을 수 없습니다');
+                }
+                settings = result[0];
+            } else if (result.data && Array.isArray(result.data)) {
+                // {data: []} 형식인 경우
+                if (result.data.length === 0) {
+                    throw new Error('관리자 설정을 찾을 수 없습니다');
+                }
+                settings = result.data[0];
+            } else {
                 throw new Error('관리자 설정을 찾을 수 없습니다');
             }
             
-            const settings = result.data[0];
+            console.log('Settings data:', settings);
             
             // 인증 확인
             if (settings.admin_username === username && settings.admin_password === password) {
@@ -29,6 +46,7 @@ const Auth = {
             throw error;
         }
     },
+
     
     // 로그아웃
     logout() {
