@@ -155,7 +155,8 @@
 }
 
 .attendance-table th {
-    padding: 1rem;
+      padding: 0.5rem;
+
     text-align: left;
     font-weight: 600;
     color: #495057;
@@ -173,7 +174,8 @@
 }
 
 .attendance-table td {
-    padding: 1rem;
+    padding: 0.5rem;
+
     color: #495057;
 }
 
