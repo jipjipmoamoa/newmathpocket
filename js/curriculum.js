@@ -130,10 +130,11 @@ function renderSchoolType(schoolType, containerId, grades) {
 function renderSemester(schoolType, grade, semester) {
     const units = curriculumData.filter(u => 
         u.school_type === schoolType && 
-        u.grade === grade && 
+        String(u.grade) === String(grade) && 
         u.semester === semester &&
         !u.parent_id
     ).sort((a, b) => (a.order || 0) - (b.order || 0));
+
     
     const containerId = `semester-${schoolType}-${grade}-${semester}`;
     
