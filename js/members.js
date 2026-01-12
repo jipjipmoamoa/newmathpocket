@@ -2629,10 +2629,23 @@ function renderAllMembersByGrade(students) {
         );
         
         sortedStudents.forEach((student, index) => {
-            // 최신 교재 정보 가져오기
-            const books = student.books || [];
+            // 최근 교재 정보 가져오기
+            let books = student.books || [];
+            // books가 문자열이면 JSON 파싱
+            if (typeof books === 'string') {
+                try {
+                    books = JSON.parse(books);
+                } catch (e) {
+                    books = [];
+                }
+            }
+            // books가 배열이 아니면 빈 배열로 초기화
+            if (!Array.isArray(books)) {
+                books = [];
+            }
             const latestBook = books.length > 0 
                 ? books.sort((a, b) => (b.date || 0) - (a.date || 0))[0]
+
                 : {};
             
             // 첫 번째 학생 행에만 분류 표시 (rowspan)
