@@ -142,7 +142,10 @@ function renderSemester(schoolType, grade, semester) {
         <div class="semester-wrapper">
             <div class="semester-header">
                 <span class="semester-title">${semester}</span>
-                <button class="btn-icon-orange" onclick="showInlineInput('${containerId}', 'major', '${schoolType}', ${grade}, '${semester}', null)" title="대단원 추가">
+                ${isEditMode ? `<button class="btn-icon-orange" onclick="showInlineInput('${containerId}', 'major', '${schoolType}', ${grade}, '${semester}', null)" title="대단원 추가">
+                    <i class="fas fa-plus"></i>
+                </button>` : ''}
+
                     <i class="fas fa-plus"></i>
                 </button>
             </div>
@@ -193,27 +196,33 @@ function renderUnit(unit, level, number) {
             <div class="unit-header" onclick="toggleUnit('${unit.id}')">
                 <span class="unit-number">${numberDisplay}</span>
                 <span class="unit-name">${unit.name}</span>
-                <div class="unit-actions" onclick="event.stopPropagation()">
+                ${isEditMode ? `<div class="unit-actions" onclick="event.stopPropagation()">` : ''}
     `;
     
-    // 대단원과 중단원에만 하위 항목 추가 버튼 표시
-    if (level !== 'minor') {
-        const nextLevel = level === 'major' ? 'middle' : 'minor';
-        html += `<button class="btn-icon-orange" onclick="showInlineInputChild('${unit.id}', '${nextLevel}')" title="하위 항목 추가">
-            <i class="fas fa-plus"></i>
-        </button>`;
+    // 수정 모드일 때만 버튼 표시
+    if (isEditMode) {
+        // 대단원과 중단원에만 하위 항목 추가 버튼 표시
+        if (level !== 'minor') {
+            const nextLevel = level === 'major' ? 'middle' : 'minor';
+            html += `<button class="btn-icon-orange" onclick="showInlineInputChild('${unit.id}', '${nextLevel}')" title="하위 항목 추가">
+                <i class="fas fa-plus"></i>
+            </button>`;
+        }
+        
+        html += `
+                        <button class="btn-icon-orange" onclick="editUnitInline('${unit.id}')" title="수정">
+                            <i class="fas fa-pencil-alt"></i>
+                        </button>
+                        <button class="btn-icon-orange" onclick="deleteUnit('${unit.id}')" title="삭제">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>`;
     }
     
     html += `
-                    <button class="btn-icon-orange" onclick="editUnitInline('${unit.id}')" title="수정">
-                        <i class="fas fa-pencil-alt"></i>
-                    </button>
-                    <button class="btn-icon-orange" onclick="deleteUnit('${unit.id}')" title="삭제">
-                        <i class="fas fa-times"></i>
-                    </button>
-                </div>
             </div>
     `;
+
     
     // 하위 항목이 있고 펼쳐진 상태면 표시
     if (children.length > 0 && isExpanded) {
