@@ -223,17 +223,20 @@ function renderUnit(unit, level, number) {
 
 
     
-    // 하위 항목이 있고 펼쳐진 상태면 표시
-    if (children.length > 0 && isExpanded) {
+    // 펼쳐진 상태면 하위 항목 컨테이너 표시 (하위 항목이 없어도 표시)
+    if (isExpanded) {
         html += `<div class="unit-children" id="children-${unit.id}">`;
-        const nextLevel = level === 'major' ? 'middle' : 'minor';
-        children.forEach((child, index) => {
-            // 자식 단원의 level을 DB에서 가져온 값 또는 계산된 값 사용
-            const childLevel = child.level || nextLevel;
-            html += renderUnit(child, childLevel, index + 1);
-        });
+        if (children.length > 0) {
+            const nextLevel = level === 'major' ? 'middle' : 'minor';
+            children.forEach((child, index) => {
+                // 자식 단원의 level을 DB에서 가져온 값 또는 계산된 값 사용
+                const childLevel = child.level || nextLevel;
+                html += renderUnit(child, childLevel, index + 1);
+            });
+        }
         html += `</div>`;
     }
+
 
     
     html += `</div>`;
