@@ -201,7 +201,8 @@ async function loadAttendanceData() {
     try {
         // 학생 목록 로드
         const studentsResponse = await API.getList('students', { limit: 1000 });
-        const allStudents = studentsResponse.data || [];
+        // API 응답이 배열이면 그대로, 객체면 data 속성 사용
+        const allStudents = Array.isArray(studentsResponse) ? studentsResponse : (studentsResponse.data || []);
         
         console.log('전체 학생 수:', allStudents.length);
         console.log('재원생 수:', allStudents.filter(s => s.status === '재원').length);
@@ -293,7 +294,7 @@ async function loadAttendanceData() {
         
         // 선택된 날짜의 출석 기록 로드
         const attendanceResponse = await API.getList('attendance', { limit: 1000 });
-        const allAttendance = attendanceResponse.data || [];
+        const allAttendance = Array.isArray(attendanceResponse) ? attendanceResponse : (attendanceResponse.data || []);
         
         todayAttendanceRecords = allAttendance.filter(record => record.date === selectedDate);
         
@@ -797,7 +798,6 @@ function addMinutesToTime(time, minutes) {
     
     return `${String(newHour).padStart(2, '0')}:${String(newMin).padStart(2, '0')}`;
 }
-
 // 출석 저장
 async function saveAttendance(studentId) {
     const row = document.querySelector(`tr[data-student-id="${studentId}"]`);
@@ -1312,7 +1312,7 @@ async function renderMonthlyCalendar() {
 async function loadMonthAttendance(year, month) {
     try {
         const response = await API.getList('attendance', { limit: 1000 });
-        const allAttendance = response.data || [];
+        const allAttendance = Array.isArray(response) ? response : (response.data || []);
         
         // 해당 월의 데이터만 필터링
         const monthStart = `${year}-${String(month + 1).padStart(2, '0')}-01`;
@@ -1385,7 +1385,8 @@ async function renderAttendanceStats(year, month) {
     try {
         // 학생 목록 로드
         const response = await API.getList('students', { limit: 1000 });
-        const allStudents = response.data || [];
+        // API 응답이 배열이면 그대로, 객체면 data 속성 사용
+        const allStudents = Array.isArray(response) ? response : (response.data || []);
         
         // 재원생만 필터링 (항상 표시)
         const activeStudents = allStudents.filter(student => student.status === '재원');
@@ -1463,7 +1464,6 @@ async function renderAttendanceStats(year, month) {
         container.innerHTML = '<p style="text-align: center; color: #f44336;">통계를 불러오는데 실패했습니다.</p>';
     }
 }
-
 // 학생이 해당 월에 활동했는지 확인
 function checkStudentActiveInMonth(student, year, month) {
     if (!student.withdrawal_date) return false;
@@ -2131,7 +2131,8 @@ async function renderViewAttendanceStats(year, month) {
     try {
         // 학생 목록 로드
         const response = await API.getList('students', { limit: 1000 });
-        const allStudents = response.data || [];
+        // API 응답이 배열이면 그대로, 객체면 data 속성 사용
+        const allStudents = Array.isArray(response) ? response : (response.data || []);
         
         // 재원생만 필터링
         const activeStudents = allStudents.filter(student => student.status === '재원');
@@ -2227,7 +2228,7 @@ async function loadAttendanceViewCalendar() {
     try {
         // 해당 월의 출석 기록 로드
         const response = await API.getList('attendance', { limit: 1000 });
-        let allAttendance = response.data || [];
+        let allAttendance = Array.isArray(response) ? response : (response.data || []);
         
         // 해당 월 필터링
         const monthStart = `${year}-${String(month).padStart(2, '0')}-01`;
