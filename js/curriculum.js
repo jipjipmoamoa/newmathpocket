@@ -142,14 +142,12 @@ function renderSemester(schoolType, grade, semester) {
         <div class="semester-wrapper">
             <div class="semester-header">
                 <span class="semester-title">${semester}</span>
-                ${isEditMode ? `<button class="btn-icon-orange" onclick="showInlineInput('${containerId}', 'major', '${schoolType}', ${grade}, '${semester}', null)" title="대단원 추가">
+                   ${isEditMode ? `<button class="btn-icon-orange" onclick="showInlineInput('${containerId}', 'major', '${schoolType}', ${grade}, '${semester}', null)" title="대단원 추가">
                     <i class="fas fa-plus"></i>
                 </button>` : ''}
-
-                    <i class="fas fa-plus"></i>
-                </button>
             </div>
             <div class="units-container" id="${containerId}">
+
     `;
     
     units.forEach((unit, index) => {
@@ -222,6 +220,7 @@ function renderUnit(unit, level, number) {
     html += `
             </div>
     `;
+
 
     
     // 하위 항목이 있고 펼쳐진 상태면 표시
