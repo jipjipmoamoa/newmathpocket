@@ -3,13 +3,14 @@
 async function addScore(studentId) {
     console.log('[addScore] 호출됨 - studentId:', studentId);
     
-    const user = JSON.parse(localStorage.getItem('currentUser'));
-    if (!user) {
+    // Auth 모듈을 사용한 로그인 확인
+    if (!Auth.isLoggedIn()) {
         alert('로그인이 필요합니다.');
         return;
     }
     
     console.log('[addScore] 로그인 확인 완료');
+
     
     // 입력값 가져오기
     const dateInput = document.getElementById(`new-score-date-${studentId}`).value.trim();
@@ -173,11 +174,12 @@ async function deleteScore(studentId, scoreId) {
 // ===== 사용책 등록 함수 =====
 
 async function addBook(studentId) {
-    const user = JSON.parse(localStorage.getItem('currentUser'));
-    if (!user) {
+    // Auth 모듈을 사용한 로그인 확인
+    if (!Auth.isLoggedIn()) {
         alert('로그인이 필요합니다.');
         return;
     }
+
     
     // 입력값 가져오기
     const dateInput = document.getElementById(`new-book-date-${studentId}`).value.trim();
@@ -309,11 +311,12 @@ async function deleteBook(studentId, bookId) {
 // ===== 상담내용 등록 함수 =====
 
 async function addConsultation(studentId) {
-    const user = JSON.parse(localStorage.getItem('currentUser'));
-    if (!user) {
+    // Auth 모듈을 사용한 로그인 확인
+    if (!Auth.isLoggedIn()) {
         alert('로그인이 필요합니다.');
         return;
     }
+
     
     // 입력값 가져오기
     const dateInput = document.getElementById(`new-consul-date-${studentId}`).value.trim();
