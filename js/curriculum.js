@@ -68,7 +68,8 @@ function toggleEditMode() {
 async function loadCurriculumData() {
     try {
         const result = await API.getList('curriculum_units', { limit: 1000 });
-        curriculumData = result.data || [];
+        curriculumData = Array.isArray(result) ? result : (result.data || []);
+
         
         renderCurriculum();
     } catch (error) {
