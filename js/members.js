@@ -140,7 +140,8 @@ async function loadStudents() {
         console.log('[loadStudents] 학생 데이터 로드 시작...');
         const result = await API.getList('students', { limit: 1000 });
         console.log('[loadStudents] API 응답:', result);
-        allStudents = result.data || [];
+        allStudents = Array.isArray(result) ? result : (result.data || []);
+
         console.log('[loadStudents] 로드된 학생 수:', allStudents.length);
         
         // 디버깅: 각 학생의 이름과 상태 출력
@@ -2119,7 +2120,8 @@ let allTeachers = [];
 
 async function loadTeachers() {
     try {
-        const result = await API.getList('teachers', { limit: 1000 });
+        allTeachers = Array.isArray(result) ? result : (result.data || []);
+;
         allTeachers = result.data || [];
         renderTeachers(allTeachers);
     } catch (error) {
