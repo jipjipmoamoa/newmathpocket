@@ -391,8 +391,9 @@ async function showStudentForm(studentId = null) {
     // 선생님 목록 가져오기 (재직 중인 선생님만)
     let teachers = [];
     try {
-        const teachersResult = await API.getList('teachers', { limit: 1000 });
-        teachers = teachersResult.data.filter(t => t.status === '재직') || [];
+const teachersResult = await API.getList('teachers', { limit: 1000 });
+teachers = Array.isArray(teachersResult) ? teachersResult.filter(t => (t.status || '재직') === '재직') : (teachersResult.data || []).filter(t => (t.status || '재직') === '재직');
+
     } catch (error) {
         console.error('선생님 정보 로드 실패:', error);
     }
