@@ -2268,12 +2268,24 @@ async function renderTeacherStudentsGrid(teachers) {
     
     // 학생 목록 로드 (담당 선생님 정보 포함)
     try {
+           console.log('[renderTeacherStudentsGrid] 학생 로드 시작');
         const studentsResult = await API.getList('students', { limit: 1000 });
-        const students = studentsResult.data || [];
+        console.log('[renderTeacherStudentsGrid] API 응답:', studentsResult);
+        const students = Array.isArray(studentsResult) ? studentsResult : (studentsResult.data || []);
+        console.log('[renderTeacherStudentsGrid] 학생 배열:', students.length, '명');
+
         
         grid.innerHTML = teachers.map(teacher => {
             // 해당 선생님이 담당하는 학생들 필터링
-            const teacherStudents = students.filter(s => s.teacher_id === teacher.id);
+                    console.log(`[renderTeacherStudentsGrid] ${teacher.name} 필터링 시작, teacher.id="${teacher.id}"`);
+            const teacherStudents = students.filter(s => {
+                if (s.teacher_id === teacher.id) {
+                    console.log(`  ✅ ${s.name} 매칭됨`);
+                }
+                return s.teacher_id === teacher.id;
+            });
+            console.log(`[renderTeacherStudentsGrid] ${teacher.name} 매칭된 학생: ${teacherStudents.length}명`);
+
             
             // 학교 → 학년 → 가나다순 정렬
             const sortedStudents = teacherStudents.sort((a, b) => {
