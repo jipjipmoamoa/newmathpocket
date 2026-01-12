@@ -2564,10 +2564,13 @@ async function loadAllMembers() {
 
         
         renderAllMembersByGrade(activeStudents);
-    } catch (error) {
+      } catch (error) {
+        console.error('[loadAllMembers] 에러 발생:', error);
+        console.error('[loadAllMembers] 에러 스택:', error.stack);
         document.getElementById('membersByGrade').innerHTML = 
-            '<p class="text-center">데이터를 불러오는데 실패했습니다</p>';
+            '<p class="text-center">데이터를 불러오는데 실패했습니다: ' + error.message + '</p>';
     }
+
 }
 
 // 학교/학년별로 그룹화하여 렌더링 (단일 테이블)
