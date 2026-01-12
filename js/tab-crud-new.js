@@ -12,14 +12,14 @@ async function addScore(studentId) {
     console.log('[addScore] 로그인 확인 완료');
 
     
-    // 입력값 가져오기
-    const dateInput = document.getElementById(`new-score-date-${studentId}`).value.trim();
+     // 입력값 가져오기
     const nameInput = document.getElementById(`new-score-name-${studentId}`).value.trim();
     const rangeInput = document.getElementById(`new-score-range-${studentId}`).value.trim();
     const valueInput = document.getElementById(`new-score-value-${studentId}`).value.trim();
     const notesInput = document.getElementById(`new-score-notes-${studentId}`).value.trim();
     
-    console.log('[addScore] 입력값:', { dateInput, nameInput, rangeInput, valueInput, notesInput });
+    console.log('[addScore] 입력값:', { nameInput, rangeInput, valueInput, notesInput });
+
     
      // 필수 입력 검증
     if (!nameInput) {
@@ -35,8 +35,9 @@ async function addScore(studentId) {
     
       console.log('[addScore] 입력 검증 통과');
     
-    // 날짜 포맷 변환 (비어있으면 오늘 날짜)
-    const formattedDate = dateInput ? formatDateInput(dateInput) : new Date().toISOString().split('T')[0];
+    // 날짜는 빈 문자열로 설정 (날짜 입력란 제거됨)
+    const formattedDate = '';
+
 
     
     // 시험명 자동 변환
@@ -94,16 +95,16 @@ async function addScore(studentId) {
             scores: JSON.stringify(scores)
         });
         
-        console.log('[addScore] DB 업데이트 완료');
+             console.log('[addScore] DB 업데이트 완료');
         
         // 입력 필드 초기화
-        document.getElementById(`new-score-date-${studentId}`).value = '';
         document.getElementById(`new-score-name-${studentId}`).value = '';
         document.getElementById(`new-score-range-${studentId}`).value = '';
         document.getElementById(`new-score-value-${studentId}`).value = '';
         document.getElementById(`new-score-notes-${studentId}`).value = '';
         
         console.log('[addScore] 입력 필드 초기화 완료');
+
         
         // allStudents 배열 업데이트 (학생 데이터 갱신)
         const studentIndex = allStudents.findIndex(s => s.id === studentId);
