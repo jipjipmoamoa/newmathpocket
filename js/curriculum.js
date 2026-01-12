@@ -487,9 +487,105 @@ function cancelInlineInput() {
 
 // 단원 인라인 수정
 function editUnitInline(unitId) {
-    // TODO: 인라인 수정 기능 구현
-    Utils.showAlert('수정 기능은 추후 구현 예정입니다.');
+    if (!Auth.isLoggedIn()) {
+        Utils.showAlert('로그인이 필요합니다.');
+        return;
+    }
+    
+    const unit = curriculumData.find(u => u.id === unitId);
+    if (!unit) return;
+    
+    // 기존 입력창이 있으면 제거
+    const existingInput = document.querySelector('.inline-edit-row');
+    if (existingInput) {
+        existingInput.remove();
+    }
+    
+    // 단원 헤더 찾기
+    const unitElement = document.getElementById(`unit-${unitId}`);
+    if (!unitElement) return;
+    
+    const unitHeader = unitElement.querySelector('.unit-header');
+    if (!unitHeader) return;
+    
+    // 기존 내용 숨기기
+    const unitNumber = unitHeader.querySelector('.unit-number');
+    const unitName = unitHeader.querySelector('.unit-name');
+    const unitActions = unitHeader.querySelector('.unit-actions');
+    
+    const originalName = unitName.textContent;
+    
+    // 편집 UI 생성
+    unitName.innerHTML = `
+        <input type="text" 
+               class="inline-input" 
+               value="${originalName}"
+               id="editInput-${unitId}"
+               style="width: 100%; padding: 0.25rem; border: 1px solid #ddd; border-radius: 4px;"
+               onkeypress="if(event.key==='Enter'){event.preventDefault();saveUnitEdit('${unitId}');}">
+    `;
+    
+    if (unitActions) {
+        unitActions.innerHTML = `
+            <button class="btn-icon-orange" onclick="saveUnitEdit('${unitId}')" title="저장">
+                <i class="fas fa-check"></i>
+            </button>
+            <button class="btn-icon-orange" onclick="cancelUnitEdit('${unitId}', '${originalName.replace(/'/g, "\\'")}', this)" title="취소">
+                <i class="fas fa-times"></i>
+            </button>
+        `;
+    }
+    
+    // 입력창에 포커스
+    document.getElementById(`editInput-${unitId}`).focus();
+    document.getElementById(`editInput-${unitId}`).select();
 }
+
+// 단원 수정 저장
+async function saveUnitEdit(unitId) {
+    const input = document.getElementById(`editInput-${unitId}`);
+    if (!input) return;
+    
+    const newName = input.value.trim();
+    if (!newName) {
+        Utils.showAlert('단원명을 입력해주세요.');
+        input.focus();
+        return;
+    }
+    
+    try {
+        // 스크롤 위치 저장
+        const scrollPos = window.pageYOffset || document.documentElement.scrollTop;
+        
+        await API.update('curriculum_units', unitId, { name: newName });
+        
+        // 데이터 다시 로드
+        await loadCurriculumData();
+        
+        // 스크롤 위치 복원
+        window.scrollTo(0, scrollPos);
+        
+    } catch (error) {
+        console.error('단원 수정 실패:', error);
+        Utils.showAlert('단원 수정에 실패했습니다.');
+    }
+}
+
+// 단원 수정 취소
+function cancelUnitEdit(unitId, originalName, buttonElement) {
+    const unit = curriculumData.find(u => u.id === unitId);
+    if (!unit) return;
+    
+    // 스크롤 위치 저장
+    const scrollPos = window.pageYOffset || document.documentElement.scrollTop;
+    
+    // 렌더링 다시
+    renderCurriculum();
+    
+    // 스크롤 위치 복원
+    window.scrollTo(0, scrollPos);
+}
+
 
 // 단원 삭제
 async function deleteUnit(unitId) {
