@@ -43,6 +43,11 @@ const API = {
     // POST - 생성
     async create(table, data) {
         try {
+            // id 필드 제거 (Supabase가 자동 생성)
+            const { id, ...cleanData } = data;
+            
+            console.log('Creating data:', cleanData);
+            
             const response = await fetch(`${this.baseURL}/${table}`, {
                 method: 'POST',
                 headers: {
@@ -51,9 +56,15 @@ const API = {
                     'Content-Type': 'application/json',
                     'Prefer': 'return=representation'
                 },
-                body: JSON.stringify(data)
+                body: JSON.stringify(cleanData)
             });
-            if (!response.ok) throw new Error('데이터 생성 실패');
+            
+            if (!response.ok) {
+                const errorText = await response.text();
+                console.error('API error response:', errorText);
+                throw new Error(`데이터 생성 실패: ${errorText}`);
+            }
+            
             const result = await response.json();
             return result[0];
         } catch (error) {
@@ -61,6 +72,7 @@ const API = {
             throw error;
         }
     },
+
     
     // PUT - 전체 업데이트
     async update(table, id, data) {
