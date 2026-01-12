@@ -1116,10 +1116,12 @@ tbody tr:hover {
 
 
 /* 중단원 스타일 */
+/* 중단원 스타일 */
 .unit-middle {
-    padding-left: 0;
+    padding-left: 1.5rem;
     margin-left: 0;
 }
+
 
 
 .unit-middle .unit-number {
@@ -1142,8 +1144,9 @@ tbody tr:hover {
 /* 소단원 스타일 */
 .unit-minor {
     padding-left: 0;
-    margin-left: 2.5rem;
+    margin-left: 4rem;
 }
+
 
 .unit-minor .unit-number {
     min-width: 1.5rem;
