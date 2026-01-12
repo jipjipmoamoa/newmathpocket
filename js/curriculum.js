@@ -272,9 +272,9 @@ function showInlineInput(containerId, level, schoolType, grade, semester, parent
                    class="inline-input" 
                    placeholder="단원명을 입력하고 엔터를 누르세요" 
                    id="inlineInput"
-                   onkeypress="handleInlineInputKeyPress(event, '${level}', '${schoolType}', ${grade}, '${semester}', ${parentId})"
+                   onkeypress="handleInlineInputKeyPress(event, '${level}', '${schoolType}', '${grade}', '${semester}', ${parentId})"
                    autofocus>
-            <button class="btn-icon-orange" onclick="saveInlineUnit('${level}', '${schoolType}', ${grade}, '${semester}', ${parentId})" title="저장">
+            <button class="btn-icon-orange" onclick="saveInlineUnit('${level}', '${schoolType}', '${grade}', '${semester}', ${parentId})" title="저장">
                 <i class="fas fa-check"></i>
             </button>
             <button class="btn-icon-orange" onclick="cancelInlineInput()" title="취소">
