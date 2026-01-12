@@ -2327,7 +2327,8 @@ async function quickAddTeacher() {
             phone: phone,
             work_hours: workHours,
             subject: '수학',
-            hire_date: Utils.today(),
+           hire_date: Date.now(),  // 밀리초 타임스탬프
+
             status: '재직',  // 초기 상태 재직
             memo: ''
         };
