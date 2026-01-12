@@ -2120,10 +2120,12 @@ let allTeachers = [];
 
 async function loadTeachers() {
     try {
+async function loadTeachers() {
+    try {
+        const result = await API.getList('teachers', { limit: 1000 });
         allTeachers = Array.isArray(result) ? result : (result.data || []);
-;
-        allTeachers = result.data || [];
         renderTeachers(allTeachers);
+
     } catch (error) {
         document.getElementById('teachersTableBody').innerHTML = 
             '<tr><td colspan="5" class="text-center">데이터를 불러오는데 실패했습니다</td></tr>';
