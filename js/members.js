@@ -2706,8 +2706,87 @@ function searchAllMembers() {
 
 // 전체 회원 인쇄
 function printAllMembers() {
-    window.print();
+    // 인쇄용 스타일 동적 추가
+    const printStyle = document.createElement('style');
+    printStyle.id = 'dynamic-print-style';
+    printStyle.textContent = `
+        @media print {
+            @page {
+                size: landscape !important;
+                margin: 1cm;
+            }
+            
+            /* 불필요한 요소 숨기기 */
+            header, .main-nav, .sub-menu-container, .main-menu, .btn, .page-header, 
+            .modal, #assignStudentsModal {
+                display: none !important;
+            }
+            
+            body {
+                margin: 0;
+                padding: 0;
+                -webkit-print-color-adjust: exact !important;
+                print-color-adjust: exact !important;
+            }
+            
+            .page-container {
+                max-width: 100% !important;
+                padding: 0 !important;
+                margin: 0 !important;
+                box-shadow: none !important;
+            }
+            
+            #membersByGrade {
+                width: 100% !important;
+            }
+            
+            .all-members-table {
+                width: 100% !important;
+                box-shadow: none !important;
+                page-break-inside: auto !important;
+            }
+            
+            .all-members-table th,
+            .all-members-table td {
+                padding: 0.4rem 0.6rem !important;
+                font-size: 9pt !important;
+            }
+            
+            .all-members-table .category-cell {
+                background: #FFF8F0 !important;
+                -webkit-print-color-adjust: exact !important;
+                print-color-adjust: exact !important;
+            }
+            
+            .all-members-table thead {
+                background: #FFF8F0 !important;
+                color: #000000 !important;
+                -webkit-print-color-adjust: exact !important;
+                print-color-adjust: exact !important;
+            }
+        }
+    `;
+    
+    // 기존 동적 스타일 제거
+    const oldStyle = document.getElementById('dynamic-print-style');
+    if (oldStyle) {
+        oldStyle.remove();
+    }
+    
+    // 새 스타일 추가
+    document.head.appendChild(printStyle);
+    
+    // 인쇄 실행
+    setTimeout(() => {
+        window.print();
+        
+        // 인쇄 후 스타일 제거
+        setTimeout(() => {
+            printStyle.remove();
+        }, 1000);
+    }, 100);
 }
+
 
 // 전체 회원 필터
 function filterAllMembers() {
