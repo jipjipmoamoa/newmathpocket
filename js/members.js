@@ -2127,6 +2127,27 @@ async function showTeachersPage() {
                 </div>
             </div>
         </div>
+                
+        <!-- 담당학생 배정 모달 -->
+        <div class="modal" id="assignStudentsModal" style="display: none;">
+            <div class="modal-content" style="max-width: 600px;">
+                <div class="modal-header">
+                    <h3>담당 학생 배정</h3>
+                    <button class="modal-close" onclick="closeAssignStudentsModal()">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <p style="margin-bottom: 1rem; color: #666;">체크박스를 선택하여 담당 학생을 지정하세요.</p>
+                    <div id="studentsSelectionList">
+                        <p style="text-align: center; padding: 2rem;">로딩 중...</p>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn btn-secondary" onclick="closeAssignStudentsModal()">취소</button>
+                    <button class="btn btn-primary" onclick="saveAssignedStudents()">저장</button>
+                </div>
+            </div>
+        </div>
+
     `;
     
     loadTeachers();
