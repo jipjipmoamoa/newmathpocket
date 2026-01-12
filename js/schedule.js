@@ -108,12 +108,17 @@ async function loadWeeklySchedule() {
         console.log('[loadWeeklySchedule] 시작');
         
         // 학생 데이터 로드 (재원생만)
+            // 학생 데이터 로드 (재원생만)
         const studentsResult = await API.getList('students', { limit: 1000 });
         console.log('[loadWeeklySchedule] API 응답:', studentsResult);
-        console.log('[loadWeeklySchedule] 전체 학생 수:', studentsResult.data?.length);
         
-        let students = (studentsResult.data || []).filter(s => s.status === '재원');
+        // API 응답이 배열이면 그대로, 객체면 data 속성 사용
+        const allStudents = Array.isArray(studentsResult) ? studentsResult : (studentsResult.data || []);
+        console.log('[loadWeeklySchedule] 전체 학생 수:', allStudents.length);
+        
+        let students = allStudents.filter(s => s.status === '재원');
         console.log('[loadWeeklySchedule] 재원생 수:', students.length);
+
         
         // 각 학생의 상태 확인
         students.forEach(s => {
