@@ -2708,9 +2708,15 @@ async function showTeacherStudents(teacherId) {
     modal.style.display = 'flex';
     
     try {
-        // 재학생 목록 불러오기 (재원 상태만)
+         // 재학생 목록 불러오기 (재원 상태만)
+        console.log('[showTeacherStudents] 학생 로드 시작');
         const result = await API.getList('students', { limit: 1000 });
-        const activeStudents = (result.data || []).filter(s => s.status === '재원');
+        console.log('[showTeacherStudents] API 응답:', result);
+        const allStudentsForGrade = Array.isArray(result) ? result : (result.data || []);
+        console.log('[showTeacherStudents] 전체 학생 수:', allStudentsForGrade.length);
+        const activeStudents = allStudentsForGrade.filter(s => s.status === '재원');
+        console.log('[showTeacherStudents] 재원생 수:', activeStudents.length);
+
         
         // 선생님 정보 불러오기
         const teacher = allTeachers.find(t => t.id === teacherId);
