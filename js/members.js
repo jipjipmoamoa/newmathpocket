@@ -2553,9 +2553,15 @@ let allMembers = [];
 
 async function loadAllMembers() {
     try {
-        // 재원 학생만 가져오기
+          // 재원 학생만 가져오기
+        console.log('[loadAllMembers] 학생 로드 시작');
         const studentsResult = await API.getList('students', { limit: 1000 });
-        const activeStudents = (studentsResult.data || []).filter(s => s.status === '재원');
+        console.log('[loadAllMembers] API 응답:', studentsResult);
+        const allStudentsData = Array.isArray(studentsResult) ? studentsResult : (studentsResult.data || []);
+        console.log('[loadAllMembers] 전체 학생 수:', allStudentsData.length);
+        const activeStudents = allStudentsData.filter(s => s.status === '재원');
+        console.log('[loadAllMembers] 재원생 수:', activeStudents.length);
+
         
         renderAllMembersByGrade(activeStudents);
     } catch (error) {
