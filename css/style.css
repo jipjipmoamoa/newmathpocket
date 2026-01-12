@@ -1035,25 +1035,22 @@ tbody tr:hover {
 
 /* 단원 아이템 */
 .unit-item {
-    padding: 0.25rem;
-    margin-bottom: 0.25rem;
+    padding: 0.25rem 0.5rem;
+    margin-bottom: 0;
     border: none;
     border-radius: 0;
     background: white;
 }
 
 
+
 .unit-header {
     display: flex;
-    justify-content: space-between;
     align-items: center;
-    padding: 0.6rem 0.75rem;
-    background: white;
-    border: 1px solid var(--border-color);
-    border-radius: 4px;
     cursor: pointer;
-    transition: all 0.2s;
+    padding: 0.25rem;
 }
+
 
 .unit-header:hover {
     background: #FFFBF5;
@@ -1095,8 +1092,9 @@ tbody tr:hover {
 
 .unit-children {
     margin-left: 1.5rem;
-    margin-top: 0.25rem;
+    margin-top: 0;
 }
+
 
 
 /* 대단원 스타일 */
