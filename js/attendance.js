@@ -586,8 +586,8 @@ function renderAttendanceTable() {
                 </div>
             </td>
             <td>
-                <button class="btn-icon btn-edit display-mode" id="btn-edit-${student.id}" onclick="enterEditMode('${student.id}')" title="수정">✏️</button>
-                ${existingRecord ? `<button class="btn-icon btn-delete display-mode" id="btn-delete-${student.id}" onclick="deleteAttendance('${student.id}', '${existingRecord.id}')" style="margin-left: 0.5rem;" title="삭제">✕</button>` : ''}
+     <button class="btn-icon btn-edit display-mode" id="btn-edit-${student.id}" onclick="enterEditMode('${student.id}')" title="수정" style="background: white; border: none; color: #ff9800; font-size: 1.2em; cursor: pointer; padding: 0.3rem 0.5rem;">✏️</button>
+
                 <div class="edit-mode" id="edit-buttons-${student.id}" style="display: none;">
                     <button class="btn-save" onclick="saveAttendance('${student.id}')">저장</button>
                     <button class="btn-cancel" onclick="cancelEditMode('${student.id}')">취소</button>
