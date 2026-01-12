@@ -21,9 +21,9 @@ async function addScore(studentId) {
     
     console.log('[addScore] 입력값:', { dateInput, nameInput, rangeInput, valueInput, notesInput });
     
-    // 필수 입력 검증
-    if (!dateInput) {
-        alert('시험 날짜를 입력해주세요.');
+     // 필수 입력 검증
+    if (!nameInput) {
+        alert('시험명을 입력해주세요.');
         return;
     }
     
@@ -31,11 +31,13 @@ async function addScore(studentId) {
         alert('점수를 입력해주세요.');
         return;
     }
+
     
-    console.log('[addScore] 입력 검증 통과');
+      console.log('[addScore] 입력 검증 통과');
     
-    // 날짜 포맷 변환
-    const formattedDate = formatDateInput(dateInput);
+    // 날짜 포맷 변환 (비어있으면 오늘 날짜)
+    const formattedDate = dateInput ? formatDateInput(dateInput) : new Date().toISOString().split('T')[0];
+
     
     // 시험명 자동 변환
     const formattedName = formatExamName(nameInput);
@@ -45,12 +47,10 @@ async function addScore(studentId) {
     
     console.log('[addScore] 포맷 변환 완료:', { formattedDate, formattedName, formattedRange });
     
-    try {
-        // 학생 데이터 가져오기
+      try {
+        // 학생 데이터 가져오기 (allStudents에서 직접 찾기)
         console.log('[addScore] 학생 데이터 로드 시작...');
-        const response = await API.getList('students', { limit: 1000 });
-        const students = response.data || [];
-        const student = students.find(s => s.id === studentId);
+        const student = allStudents.find(s => s.id === studentId);
         
         if (!student) {
             alert('학생 정보를 찾을 수 없습니다.');
@@ -58,6 +58,7 @@ async function addScore(studentId) {
         }
         
         console.log('[addScore] 학생 정보 확인:', student.name);
+
         
         // 기존 scores 파싱
         let scores = [];
