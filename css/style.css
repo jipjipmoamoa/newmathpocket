@@ -1092,9 +1092,10 @@ tbody tr:hover {
 }
 
 .unit-children {
-    margin-left: 1.5rem;
-    margin-top: 0;
+    padding-left: 0;
+    padding-top: 0.25rem;
 }
+
 
 
 
@@ -1107,21 +1108,27 @@ tbody tr:hover {
 .unit-major .unit-number,
 .unit-major .unit-name {
     color: #000000;
-    font-weight: 700;
+    font-weight: 400;
     font-size: 0.95rem;
 }
+
 
 
 
 /* 중단원 스타일 */
 .unit-middle {
     padding-left: 0;
+    margin-left: 0;
 }
+
 
 .unit-middle .unit-number {
     min-width: 2.5rem;
     display: inline-block;
+    text-indent: 0;
+    margin-left: 0;
 }
+
 
 .unit-middle .unit-number,
 .unit-middle .unit-name {
@@ -1132,8 +1139,15 @@ tbody tr:hover {
 
 
 /* 소단원 스타일 */
+/* 소단원 스타일 */
 .unit-minor {
-    padding-left: 1rem;
+    padding-left: 0;
+    margin-left: 2.5rem;
+}
+
+.unit-minor .unit-number {
+    min-width: 1.5rem;
+    display: inline-block;
 }
 
 .unit-minor .unit-number,
@@ -1142,6 +1156,7 @@ tbody tr:hover {
     font-weight: 400;
     font-size: 0.85rem;
 }
+
 
 /* 인라인 입력 스타일 */
 .inline-input-row {
