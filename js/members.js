@@ -1893,19 +1893,28 @@ async function saveStudent(event) {
 }
 
 // 인라인 폼에서 학생 저장
+// 인라인 폼에서 학생 저장
 async function saveStudentFromForm() {
+    console.log('[saveStudentFromForm] 함수 시작');
+    
     if (!Auth.isLoggedIn()) {
+        console.log('[saveStudentFromForm] 로그인 안됨');
         alert('로그인이 필요합니다');
         return;
     }
     
+    console.log('[saveStudentFromForm] 로그인 확인됨');
     const name = document.getElementById('newStudentName').value.trim();
+    console.log('[saveStudentFromForm] 이름:', name);
     
     // 필수 항목: 이름만
     if (!name) {
+        console.log('[saveStudentFromForm] 이름 없음');
         alert('이름을 입력해주세요');
         return;
     }
+    
+    console.log('[saveStudentFromForm] 이름 확인 통과');
     
     const school = document.getElementById('newStudentSchool').value.trim();
     const parentPhone = document.getElementById('newStudentParentPhone').value.trim();
@@ -1950,8 +1959,12 @@ async function saveStudentFromForm() {
         schedule_updated_at: Date.now()  // 스케줄 등록 시간 기록
     };
     
+    console.log('[saveStudentFromForm] 저장할 데이터:', data);
+    
     try {
+        console.log('[saveStudentFromForm] API.create 호출 시작');
         const newStudent = await API.create('students', data);
+        console.log('[saveStudentFromForm] API.create 성공:', newStudent);
         alert('학생이 추가되었습니다');
         
         // 학생 목록 새로고침
@@ -1962,10 +1975,12 @@ async function saveStudentFromForm() {
             showStudentDetail(newStudent.id);
         }
     } catch (error) {
-        console.error('학생 추가 실패:', error);
-        alert('저장에 실패했습니다');
+        console.error('[saveStudentFromForm] 학생 추가 실패:', error);
+        console.error('[saveStudentFromForm] 에러 상세:', error.message, error.stack);
+        alert('저장에 실패했습니다: ' + error.message);
     }
 }
+
 
 // 학생 추가 폼 취소
 function cancelStudentForm() {
