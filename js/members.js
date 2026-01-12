@@ -140,8 +140,8 @@ async function loadStudents() {
         console.log('[loadStudents] 학생 데이터 로드 시작...');
         const result = await API.getList('students', { limit: 1000 });
         console.log('[loadStudents] API 응답:', result);
+        // Supabase는 배열을 직접 반환
         allStudents = Array.isArray(result) ? result : (result.data || []);
-
         console.log('[loadStudents] 로드된 학생 수:', allStudents.length);
         
         // 디버깅: 각 학생의 이름과 상태 출력
@@ -2120,12 +2120,10 @@ let allTeachers = [];
 
 async function loadTeachers() {
     try {
-async function loadTeachers() {
-    try {
         const result = await API.getList('teachers', { limit: 1000 });
+        // Supabase는 배열을 직접 반환
         allTeachers = Array.isArray(result) ? result : (result.data || []);
         renderTeachers(allTeachers);
-
     } catch (error) {
         document.getElementById('teachersTableBody').innerHTML = 
             '<tr><td colspan="5" class="text-center">데이터를 불러오는데 실패했습니다</td></tr>';
@@ -2331,8 +2329,7 @@ async function quickAddTeacher() {
             phone: phone,
             work_hours: workHours,
             subject: '수학',
-           hire_date: Date.now(),  // 밀리초 타임스탬프
-
+            hire_date: Date.now(),  // 밀리초 타임스탬프
             status: '재직',  // 초기 상태 재직
             memo: ''
         };
