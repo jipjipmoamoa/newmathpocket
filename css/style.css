@@ -1024,9 +1024,10 @@ tbody tr:hover {
 
 .semester-title {
     font-size: 0.9rem;
-    font-weight: 500;
-    color: var(--text-dark);
+    font-weight: 700;
+    color: #7B3F00;
 }
+
 
 .units-container {
     margin-top: 0.5rem;
