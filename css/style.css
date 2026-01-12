@@ -1098,6 +1098,11 @@ tbody tr:hover {
 
 
 /* 대단원 스타일 */
+.unit-major .unit-number {
+    min-width: 2.5rem;
+    display: inline-block;
+}
+
 .unit-major .unit-number,
 .unit-major .unit-name {
     color: var(--menu-brown);
@@ -1105,17 +1110,24 @@ tbody tr:hover {
     font-size: 0.95rem;
 }
 
+
 /* 중단원 스타일 */
 .unit-middle {
-    padding-left: 0.5rem;
+    padding-left: 0;
+}
+
+.unit-middle .unit-number {
+    min-width: 2.5rem;
+    display: inline-block;
 }
 
 .unit-middle .unit-number,
 .unit-middle .unit-name {
     color: #000000;
-    font-weight: 600;
+    font-weight: 400;
     font-size: 0.9rem;
 }
+
 
 /* 소단원 스타일 */
 .unit-minor {
