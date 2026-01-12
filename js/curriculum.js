@@ -160,10 +160,16 @@ function renderSemester(schoolType, grade, semester) {
 }
 
 // 단원 렌더링 (재귀적)
+// 단원 렌더링 (재귀적)
 function renderUnit(unit, level, number) {
     const isExpanded = expandedUnits.has(unit.id);
     const children = curriculumData.filter(u => u.parent_id === unit.id)
         .sort((a, b) => (a.order || 0) - (b.order || 0));
+    
+    // level이 숫자로 저장되어 있을 수 있으므로 문자열로 변환
+    if (typeof level === 'number') {
+        level = level === 1 ? 'major' : level === 2 ? 'middle' : 'minor';
+    }
     
     let numberDisplay = '';
     let className = 'unit-item';
@@ -178,6 +184,7 @@ function renderUnit(unit, level, number) {
         numberDisplay = getCircledNumber(number);
         className += ' unit-minor';
     }
+
     
     let html = `
         <div class="${className}" id="unit-${unit.id}">
@@ -211,10 +218,13 @@ function renderUnit(unit, level, number) {
         html += `<div class="unit-children" id="children-${unit.id}">`;
         const nextLevel = level === 'major' ? 'middle' : 'minor';
         children.forEach((child, index) => {
-            html += renderUnit(child, nextLevel, index + 1);
+            // 자식 단원의 level을 DB에서 가져온 값 또는 계산된 값 사용
+            const childLevel = child.level || nextLevel;
+            html += renderUnit(child, childLevel, index + 1);
         });
         html += `</div>`;
     }
+
     
     html += `</div>`;
     
@@ -360,24 +370,24 @@ async function saveInlineUnit(level, schoolType, grade, semester, parentId) {
     }
     
     // 같은 레벨에서 순서 계산
-    const siblings = curriculumData.filter(u => 
-        u.school_type === schoolType &&
-        u.grade === grade &&
-        u.semester === semester &&
-        u.parent_id === parentId
-    );
+    // 같은 레벨에서 순서 계산
+    const siblings = curriculumData.filter(u => u.parent_id === parentId);
     const order = siblings.length + 1;
     
+    // level을 숫자로 변환 (major=1, middle=2, minor=3)
+    const levelNumber = level === 'major' ? 1 : level === 'middle' ? 2 : level === 'minor' ? 3 : parseInt(level) || 1;
+    
     const data = {
-        school_type: schoolType,
-        grade: grade,
-        semester: semester,
+        school_type: parent.school_type,
+        grade: parent.grade,
+        semester: parent.semester,
         parent_id: parentId,
-        level: level,
+        level: levelNumber,
         name: name,
         content: '',
         order: order
     };
+
     
     try {
         await API.create('curriculum_units', data);
