@@ -431,7 +431,8 @@ async function saveInlineChildUnit(parentId, level) {
         grade: parent.grade,
         semester: parent.semester,
         parent_id: parentId,
-        level: level,
+level: level === 'major' ? 1 : level === 'middle' ? 2 : level === 'minor' ? 3 : parseInt(level) || 1,
+
         name: name,
         content: '',
         order: order
