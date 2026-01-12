@@ -41,7 +41,16 @@ function formatExamName(input) {
     
     const cleaned = input.trim();
     
-    // 패턴 매칭
+    // 패턴 매칭: "11중" -> "1-1 중간고사", "12기" -> "1-2 기말고사" 등
+    const pattern = /^(\d)(\d)(중|기)$/;
+    const match = cleaned.match(pattern);
+    if (match) {
+        const [, grade, semester, type] = match;
+        const examType = type === '중' ? '중간고사' : '기말고사';
+        return `${grade}-${semester} ${examType}`;
+    }
+    
+    // 기존 패턴
     if (cleaned === '1기') return '1학기 기말고사';
     if (cleaned === '2기') return '2학기 기말고사';
     if (cleaned === '1중') return '1학기 중간고사';
@@ -50,6 +59,7 @@ function formatExamName(input) {
     
     return cleaned; // 그 외에는 입력 그대로 반환
 }
+
 
 // ===== 시험범위 자동 변환 함수 =====
 
