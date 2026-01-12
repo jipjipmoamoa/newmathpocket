@@ -314,8 +314,10 @@ async function showStudentDetail(studentId) {
     // 선생님 목록 가져오기
     let teachers = [];
     try {
-        const teachersResult = await API.getList('teachers', { limit: 1000 });
-        teachers = teachersResult.data.filter(t => (t.status || '재직') === '재직') || [];
+          const teachersResult = await API.getList('teachers', { limit: 1000 });
+        const allTeachersData = Array.isArray(teachersResult) ? teachersResult : (teachersResult.data || []);
+        teachers = allTeachersData.filter(t => (t.status || '재직') === '재직');
+
         console.log('[showStudentDetail] 선생님 수:', teachers.length);
     } catch (error) {
         console.error('선생님 정보 로드 실패:', error);
