@@ -1105,10 +1105,11 @@ tbody tr:hover {
 
 .unit-major .unit-number,
 .unit-major .unit-name {
-    color: var(--menu-brown);
+    color: #000000;
     font-weight: 700;
     font-size: 0.95rem;
 }
+
 
 
 /* 중단원 스타일 */
@@ -1136,8 +1137,8 @@ tbody tr:hover {
 
 .unit-minor .unit-number,
 .unit-minor .unit-name {
-    color: #6c757d;
-    font-weight: 500;
+    color: #999999;
+    font-weight: 400;
     font-size: 0.85rem;
 }
 
