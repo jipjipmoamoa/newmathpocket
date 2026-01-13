@@ -245,8 +245,7 @@ async function processStudentAttendance(studentData, studentStatus) {
         check_out_time: '',
         status: '출석',
         absence_reason: '',
-        makeup_date: '',
-        is_external: studentStatus === 'unknown' // 정보 없는 학생 플래그
+        makeup_date: ''
     };
 
     try {
@@ -1906,7 +1905,6 @@ async function registerNewAttendance() {
     const status = document.getElementById('registerStatus').value;
     
     let studentData = null;
-    let isExternal = false;
     
     // 1. 드롭다운 확인
     if (studentSelect.value) {
@@ -1932,7 +1930,6 @@ async function registerNewAttendance() {
                     name: name,
                     status: 'unknown'
                 };
-                isExternal = true;
                 console.log(`[수동입력] 정보 없는 학생: ${name}`);
             }
         } catch (error) {
@@ -1957,8 +1954,7 @@ async function registerNewAttendance() {
         date: getSelectedDateString(),
         check_in_time: checkInTime,
         check_out_time: checkOutTime,
-        status: status || '출석',
-        is_external: isExternal
+        status: status || '출석'
     };
     
     // 퇴실 예정시간 자동 계산 (스케줄 기반)
@@ -1997,7 +1993,7 @@ async function registerNewAttendance() {
     
     try {
         await API.create('attendance', attendanceData);
-        alert(`${studentData.name} 출석이 등록되었습니다.${isExternal ? ' (정보 없는 학생 - 파란색 표시)' : ''}`);
+        alert(`${studentData.name} 출석이 등록되었습니다.`);
         
         // 입력 필드 초기화
         document.getElementById('registerStudentSelect').value = '';
