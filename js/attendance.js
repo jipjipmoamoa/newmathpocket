@@ -1533,10 +1533,10 @@ function renderScheduleItem(schedule) {
     const isExternal = schedule.is_external === true || schedule.is_external === 1;
     
     if (schedule.status === '결석') {
-        // 결석: "입실시간, 이름, (사유)" - 검정색 + 가로선
+        // 결석: "이름, 결석(사유)" - 검정색 + 가로선
         itemClass += ' absent';
         const reason = schedule.absence_reason ? `(${schedule.absence_reason})` : '';
-        content = `${schedule.check_in_time || '-'} ${schedule.student_name} ${reason}`;
+        content = `${schedule.student_name} 결석${reason}`;
     } else if (schedule.status === '보강') {
         // 보강: "입실시간, 이름, 퇴실시간 (결석날짜)" - 빨간색
         itemClass += ' makeup';
