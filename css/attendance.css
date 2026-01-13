@@ -280,7 +280,7 @@
 }
 
 .attendance-table td {
-    padding: 1rem;
+    padding: 0.5rem;
     color: #495057;
     text-align: center;
 }
@@ -593,15 +593,15 @@
 .schedule-list {
     display: flex;
     flex-direction: column;
-    gap: 0.3rem;
+    gap: 0.1rem;
 }
 
 /* 스케줄 아이템 기본 스타일 */
 .schedule-item {
     font-size: 0.75rem;
-    padding: 0.2rem 0.3rem;
+    padding: 0.1rem 0.2rem;
     border-radius: 3px;
-    line-height: 1.3;
+    line-height: 1.2;
     background: transparent;
 }
 
