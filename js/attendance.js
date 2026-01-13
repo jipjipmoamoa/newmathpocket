@@ -2604,6 +2604,26 @@ function printAttendanceView() {
         document.body.classList.remove('hide-stats-print');
     }
     
+    // 색상 인쇄 설정 안내 (한 번만 표시)
+    const hasSeenPrintGuide = localStorage.getItem('printColorGuideShown');
+    if (!hasSeenPrintGuide) {
+        const userConfirm = confirm(
+            '📌 색상 인쇄 설정 안내\n\n' +
+            '화면에 보이는 색상을 인쇄하려면 브라우저 설정이 필요합니다:\n\n' +
+            '✅ Chrome/Edge:\n' +
+            '   인쇄 미리보기 → "기타 설정" → "배경 그래픽" 체크\n\n' +
+            '✅ Safari:\n' +
+            '   인쇄 미리보기 → 하단 "Safari" → "배경 프린트" 체크\n\n' +
+            '✅ Firefox:\n' +
+            '   인쇄 미리보기 → "기타 설정" → "배경 인쇄" 체크\n\n' +
+            '이 메시지를 다시 보지 않으시겠습니까?\n(확인 = 다시 보지 않음 / 취소 = 다음에도 표시)'
+        );
+        
+        if (userConfirm) {
+            localStorage.setItem('printColorGuideShown', 'true');
+        }
+    }
+    
     // 인쇄 실행
     window.print();
     
