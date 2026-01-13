@@ -632,22 +632,6 @@
     font-weight: 500;
 }
 
-.schedule-item.absent {
-    background-color: #fff5f5;
-    color: #c92a2a;
-}
-
-.schedule-item.makeup {
-    background-color: #ffe8e8;
-    color: #f44336;
-    font-weight: 600;
-}
-
-.schedule-item.external {
-    color: #007bff;
-    font-weight: 500;
-}
-
 .schedule-strikethrough {
     text-decoration: line-through;
 }
