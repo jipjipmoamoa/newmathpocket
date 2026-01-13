@@ -228,8 +228,8 @@
 /* 1열 (이름) - 가로폭 확대 */
 .attendance-table th:nth-child(1),
 .attendance-table td:nth-child(1) {
-    width: 20%;
-    min-width: 150px;
+    width: 22%;
+    min-width: 160px;
 }
 
 /* 2-4열 (출석시간, 퇴실예정시간, 퇴실시간) - 가로폭 40% 축소 */
@@ -243,12 +243,18 @@
     min-width: 80px;
 }
 
-/* 5-6열 - 기본 */
+/* 5열 (재실시간) - 가로폭 40% 축소 */
 .attendance-table th:nth-child(5),
-.attendance-table td:nth-child(5),
+.attendance-table td:nth-child(5) {
+    width: 6%;
+    min-width: 60px;
+}
+
+/* 6열 (상태) - 가로폭 증가 */
 .attendance-table th:nth-child(6),
 .attendance-table td:nth-child(6) {
-    width: auto;
+    width: 10%;
+    min-width: 100px;
 }
 
 /* 7열 (관리) - 가로폭 2배로 */
@@ -377,7 +383,7 @@
     padding: 0.2rem;
     margin: 0 0.3rem;
     border: none;
-    background: none;
+    background: none !important;
     color: #FF6B35;
     font-size: 1.4rem;
     cursor: pointer;
@@ -388,6 +394,7 @@
 .btn-icon:hover {
     transform: scale(1.15);
     color: #e55a2b;
+    background: none !important;
 }
 
 /* 수정 버튼 - 펜 이모티콘 */
