@@ -582,6 +582,7 @@ function renderAttendanceTable() {
         
         const row = document.createElement('tr');
         row.dataset.studentId = student.id;
+        row.dataset.studentName = student.name;
         row.dataset.recordId = existingRecord ? existingRecord.id : '';
         row.dataset.scheduledDuration = scheduledDuration;
         
@@ -700,6 +701,7 @@ function renderAttendanceTable() {
             
             const row = document.createElement('tr');
             row.dataset.studentId = record.student_id || 'unknown';
+            row.dataset.studentName = record.student_name || '';
             row.dataset.recordId = record.id;
             
             row.innerHTML = `
@@ -982,9 +984,16 @@ async function saveAttendance(studentId) {
     const absenceReason = document.getElementById(`absence-reason-${studentId}`)?.value || '';
     const makeupDate = document.getElementById(`makeup-date-input-${studentId}`)?.value || '';
     
+    // 학생 이름 가져오기 (row에서 먼저 찾기)
+    let studentName = row.dataset.studentName || '';
+    
     // 스케줄에서 기본값 가져오기
     const student = attendanceStudents.find(s => s.id === studentId);
     if (student) {
+        if (!studentName) {
+            studentName = student.name;
+        }
+        
         let schedule = student.schedule;
         if (typeof schedule === 'string' && schedule.trim() !== '') {
             try {
@@ -1018,9 +1027,6 @@ async function saveAttendance(studentId) {
     if (!status) {
         status = '출석';
     }
-    
-    // 학생 이름 가져오기
-    const studentName = student ? student.name : '';
     
     const attendanceData = {
         student_id: studentId,
