@@ -1,17 +1,27 @@
 // 스케줄 관리 모듈
 
-// 학생별 고유 색상 (연한 파스텔톤)
+// 학생별 고유 색상 (20가지 파스텔톤 - 모두 다른 색)
 const studentColors = [
-    '#FFE5E5', // 연분홍
-    '#FFF4CC', // 연노랑
-    '#E5F5E5', // 연두
-    '#E5F2FF', // 연하늘
-    '#F0E5FF', // 연보라
-    '#FFE5F0', // 연핑크
-    '#E5FFE5', // 연민트
-    '#FFEEE5', // 연주황
-    '#F5F5F5', // 연회색
-    '#E5F9FF', // 연청록
+    '#FFE5E5', // 1. 연분홍
+    '#FFF4CC', // 2. 연노랑
+    '#E5F5E5', // 3. 연두
+    '#E5F2FF', // 4. 연하늘
+    '#F0E5FF', // 5. 연보라
+    '#FFE5F0', // 6. 연핑크
+    '#E5FFE5', // 7. 연민트
+    '#FFEEE5', // 8. 연주황
+    '#E5F9FF', // 9. 연청록
+    '#FFF0E5', // 10. 연피치
+    '#F5E5FF', // 11. 연라벤더
+    '#E5FFFF', // 12. 연시안
+    '#FFFFE5', // 13. 연레몬
+    '#FFE5FF', // 14. 연마젠타
+    '#E5FFF0', // 15. 연에메랄드
+    '#F0FFE5', // 16. 연라임
+    '#E5E5FF', // 17. 연퍼플
+    '#FFE5E0', // 18. 연코랄
+    '#E5F0FF', // 19. 연아이스
+    '#FFF5E5', // 20. 연아이보리
 ];
 
 let studentColorMap = {}; // 학생 ID -> 색상 매핑
@@ -143,12 +153,17 @@ async function loadWeeklySchedule() {
 
 // 학생들에게 고유 색상 할당
 function assignStudentColors(students) {
-    students.forEach((student, index) => {
+    // 학생 ID를 기준으로 정렬하여 항상 같은 색상을 유지
+    const sortedStudents = [...students].sort((a, b) => a.id.localeCompare(b.id));
+    
+    sortedStudents.forEach((student, index) => {
         if (!studentColorMap[student.id]) {
             studentColorMap[student.id] = studentColors[index % studentColors.length];
+            console.log(`[색상 할당] ${student.name} -> ${studentColors[index % studentColors.length]}`);
         }
     });
 }
+
 
 // 스케줄 데이터 구성
 function buildScheduleData(students) {
