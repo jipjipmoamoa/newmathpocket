@@ -1289,4 +1289,59 @@ input[type="date"] {
         -webkit-print-color-adjust: exact;
         print-color-adjust: exact;
     }
+    
+    /* 스케줄 아이템 기본 스타일 (인쇄용) */
+    .schedule-item {
+        background: transparent !important;
+    }
+    
+    /* 출석: 검정색 글자, 배경 없음 */
+    .schedule-item.attendance {
+        color: #000 !important;
+        background: transparent !important;
+    }
+    
+    /* 결석: 검정색 글자 + 가로선, 배경 없음 */
+    .schedule-item.absent {
+        color: #000 !important;
+        background: transparent !important;
+        text-decoration: line-through !important;
+    }
+    
+    /* 보강: 빨간색 글자, 배경 없음 */
+    .schedule-item.makeup {
+        color: #dc3545 !important;
+        background: transparent !important;
+        font-weight: 600 !important;
+    }
+    
+    /* 정보 없는 학생: 파란색 글자 */
+    .schedule-item.external {
+        color: #007bff !important;
+        background: transparent !important;
+        font-weight: 500 !important;
+    }
+    
+    /* 통계 테이블 스타일 (인쇄용) */
+    .stats-table th {
+        background-color: #f8f9fa !important;
+    }
+    
+    .stats-table .row-label {
+        background-color: #f8f9fa !important;
+    }
+    
+    /* 보강예정 행 (3행) - 흰색 배경 */
+    .stats-table tbody tr:nth-child(3) {
+        font-weight: 600 !important;
+        background-color: white !important;
+    }
+    
+    .stats-table tbody tr:nth-child(3) td {
+        background-color: white !important;
+    }
+    
+    .stats-table tbody tr:nth-child(3) td.row-label {
+        background-color: #f8f9fa !important;
+    }
 }
