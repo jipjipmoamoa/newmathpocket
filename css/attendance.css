@@ -25,29 +25,65 @@
     display: flex;
     justify-content: center;
     align-items: center;
-    gap: 1rem;
-    max-width: 600px;
+    gap: 0.8rem;
+    max-width: 900px;
     margin: 0 auto;
+    flex-wrap: wrap;
 }
 
-.attendance-number-input {
+/* 학생 드롭다운 */
+.student-dropdown {
     flex: 1;
+    min-width: 200px;
     padding: 1rem 1.5rem;
-    font-size: 1.5rem;
+    font-size: 1.2rem;
+    font-weight: 500;
+    border: 2px solid #dee2e6;
+    border-radius: 8px;
+    background: white;
+    cursor: pointer;
+}
+
+.student-dropdown:focus {
+    outline: none;
+    border-color: #FF6B35;
+    box-shadow: 0 0 0 3px rgba(255, 107, 53, 0.1);
+}
+
+/* 구분자 */
+.input-separator {
+    font-size: 1.1rem;
     font-weight: 600;
+    color: #6c757d;
+    padding: 0 0.5rem;
+}
+
+/* 직접입력 필드 */
+.manual-name-input {
+    flex: 1;
+    min-width: 200px;
+    padding: 1rem 1.5rem;
+    font-size: 1.2rem;
+    font-weight: 500;
     text-align: center;
     border: 2px solid #dee2e6;
     border-radius: 8px;
     background: white;
 }
 
-.attendance-number-input:focus {
+.manual-name-input:focus {
     outline: none;
-    border-color: #FF6B35;
-    box-shadow: 0 0 0 3px rgba(255, 107, 53, 0.1);
+    border-color: #28a745;
+    box-shadow: 0 0 0 3px rgba(40, 167, 69, 0.1);
+}
+
+.manual-name-input::placeholder {
+    color: #999;
+    font-weight: 400;
 }
 
 .attendance-number-input::placeholder {
+
     color: #adb5bd;
     font-size: 1.2rem;
 }
@@ -499,6 +535,13 @@
     font-weight: 600;
 }
 
+/* 정보 없는 학생: 파란색 글자 */
+.schedule-item.external {
+    color: #007bff;
+    background: transparent;
+    font-weight: 500;
+}
+
 .schedule-item.absent {
     background-color: #fff5f5;
     color: #c92a2a;
@@ -508,6 +551,11 @@
     background-color: #ffe8e8;
     color: #f44336;
     font-weight: 600;
+}
+
+.schedule-item.external {
+    color: #007bff;
+    font-weight: 500;
 }
 
 .schedule-strikethrough {
