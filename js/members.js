@@ -314,10 +314,8 @@ async function showStudentDetail(studentId) {
     // 선생님 목록 가져오기
     let teachers = [];
     try {
-          const teachersResult = await API.getList('teachers', { limit: 1000 });
-        const allTeachersData = Array.isArray(teachersResult) ? teachersResult : (teachersResult.data || []);
-        teachers = allTeachersData.filter(t => (t.status || '재직') === '재직');
-
+        const teachersResult = await API.getList('teachers', { limit: 1000 });
+        teachers = teachersResult.data.filter(t => (t.status || '재직') === '재직') || [];
         console.log('[showStudentDetail] 선생님 수:', teachers.length);
     } catch (error) {
         console.error('선생님 정보 로드 실패:', error);
@@ -393,9 +391,8 @@ async function showStudentForm(studentId = null) {
     // 선생님 목록 가져오기 (재직 중인 선생님만)
     let teachers = [];
     try {
-const teachersResult = await API.getList('teachers', { limit: 1000 });
-teachers = Array.isArray(teachersResult) ? teachersResult.filter(t => (t.status || '재직') === '재직') : (teachersResult.data || []).filter(t => (t.status || '재직') === '재직');
-
+        const teachersResult = await API.getList('teachers', { limit: 1000 });
+        teachers = teachersResult.data.filter(t => t.status === '재직') || [];
     } catch (error) {
         console.error('선생님 정보 로드 실패:', error);
     }
@@ -1392,18 +1389,8 @@ async function deleteConsultation(studentId, consulId) {
     }
 }
 
-// 수정 함수들 (placeholder)
-function editScore(studentId, scoreId) {
-    alert('수정 기능은 추후 구현 예정입니다');
-}
-
-function editBook(studentId, bookId) {
-    alert('수정 기능은 추후 구현 예정입니다');
-}
-
-function editConsultation(studentId, consulId) {
-    alert('수정 기능은 추후 구현 예정입니다');
-}
+// ===== 수정 함수들은 js/tab-crud-new.js에 구현되어 있습니다 =====
+// editScore(), editBook(), editConsultation()
 
 // 교재 추가 함수 제거 (이미 위에서 구현함)
 
@@ -1896,7 +1883,6 @@ async function saveStudent(event) {
 }
 
 // 인라인 폼에서 학생 저장
-// 인라인 폼에서 학생 저장
 async function saveStudentFromForm() {
     console.log('[saveStudentFromForm] 함수 시작');
     
@@ -1983,7 +1969,6 @@ async function saveStudentFromForm() {
         alert('저장에 실패했습니다: ' + error.message);
     }
 }
-
 
 // 학생 추가 폼 취소
 function cancelStudentForm() {
@@ -2127,27 +2112,6 @@ async function showTeachersPage() {
                 </div>
             </div>
         </div>
-                
-        <!-- 담당학생 배정 모달 -->
-        <div class="modal" id="assignStudentsModal" style="display: none;">
-            <div class="modal-content" style="max-width: 600px;">
-                <div class="modal-header">
-                    <h3>담당 학생 배정</h3>
-                    <button class="modal-close" onclick="closeAssignStudentsModal()">&times;</button>
-                </div>
-                <div class="modal-body">
-                    <p style="margin-bottom: 1rem; color: #666;">체크박스를 선택하여 담당 학생을 지정하세요.</p>
-                    <div id="studentsSelectionList">
-                        <p style="text-align: center; padding: 2rem;">로딩 중...</p>
-                    </div>
-                </div>
-                <div class="modal-footer">
-                    <button class="btn btn-secondary" onclick="closeAssignStudentsModal()">취소</button>
-                    <button class="btn btn-primary" onclick="saveAssignedStudents()">저장</button>
-                </div>
-            </div>
-        </div>
-
     `;
     
     loadTeachers();
@@ -2289,24 +2253,12 @@ async function renderTeacherStudentsGrid(teachers) {
     
     // 학생 목록 로드 (담당 선생님 정보 포함)
     try {
-           console.log('[renderTeacherStudentsGrid] 학생 로드 시작');
         const studentsResult = await API.getList('students', { limit: 1000 });
-        console.log('[renderTeacherStudentsGrid] API 응답:', studentsResult);
         const students = Array.isArray(studentsResult) ? studentsResult : (studentsResult.data || []);
-        console.log('[renderTeacherStudentsGrid] 학생 배열:', students.length, '명');
-
         
         grid.innerHTML = teachers.map(teacher => {
             // 해당 선생님이 담당하는 학생들 필터링
-                    console.log(`[renderTeacherStudentsGrid] ${teacher.name} 필터링 시작, teacher.id="${teacher.id}"`);
-            const teacherStudents = students.filter(s => {
-                if (s.teacher_id === teacher.id) {
-                    console.log(`  ✅ ${s.name} 매칭됨`);
-                }
-                return s.teacher_id === teacher.id;
-            });
-            console.log(`[renderTeacherStudentsGrid] ${teacher.name} 매칭된 학생: ${teacherStudents.length}명`);
-
+            const teacherStudents = students.filter(s => s.teacher_id === teacher.id);
             
             // 학교 → 학년 → 가나다순 정렬
             const sortedStudents = teacherStudents.sort((a, b) => {
@@ -2553,24 +2505,16 @@ let allMembers = [];
 
 async function loadAllMembers() {
     try {
-          // 재원 학생만 가져오기
-        console.log('[loadAllMembers] 학생 로드 시작');
+        // 재원 학생만 가져오기
         const studentsResult = await API.getList('students', { limit: 1000 });
-        console.log('[loadAllMembers] API 응답:', studentsResult);
         const allStudentsData = Array.isArray(studentsResult) ? studentsResult : (studentsResult.data || []);
-        console.log('[loadAllMembers] 전체 학생 수:', allStudentsData.length);
         const activeStudents = allStudentsData.filter(s => s.status === '재원');
-        console.log('[loadAllMembers] 재원생 수:', activeStudents.length);
-
         
         renderAllMembersByGrade(activeStudents);
-      } catch (error) {
-        console.error('[loadAllMembers] 에러 발생:', error);
-        console.error('[loadAllMembers] 에러 스택:', error.stack);
+    } catch (error) {
         document.getElementById('membersByGrade').innerHTML = 
-            '<p class="text-center">데이터를 불러오는데 실패했습니다: ' + error.message + '</p>';
+            '<p class="text-center">데이터를 불러오는데 실패했습니다</p>';
     }
-
 }
 
 // 학교/학년별로 그룹화하여 렌더링 (단일 테이블)
@@ -2629,23 +2573,10 @@ function renderAllMembersByGrade(students) {
         );
         
         sortedStudents.forEach((student, index) => {
-            // 최근 교재 정보 가져오기
-            let books = student.books || [];
-            // books가 문자열이면 JSON 파싱
-            if (typeof books === 'string') {
-                try {
-                    books = JSON.parse(books);
-                } catch (e) {
-                    books = [];
-                }
-            }
-            // books가 배열이 아니면 빈 배열로 초기화
-            if (!Array.isArray(books)) {
-                books = [];
-            }
+            // 최신 교재 정보 가져오기
+            const books = student.books || [];
             const latestBook = books.length > 0 
                 ? books.sort((a, b) => (b.date || 0) - (a.date || 0))[0]
-
                 : {};
             
             // 첫 번째 학생 행에만 분류 표시 (rowspan)
@@ -2787,7 +2718,6 @@ function printAllMembers() {
     }, 100);
 }
 
-
 // 전체 회원 필터
 function filterAllMembers() {
     searchAllMembers();
@@ -2809,15 +2739,10 @@ async function showTeacherStudents(teacherId) {
     modal.style.display = 'flex';
     
     try {
-         // 재학생 목록 불러오기 (재원 상태만)
-        console.log('[showTeacherStudents] 학생 로드 시작');
+        // 재학생 목록 불러오기 (재원 상태만)
         const result = await API.getList('students', { limit: 1000 });
-        console.log('[showTeacherStudents] API 응답:', result);
         const allStudentsForGrade = Array.isArray(result) ? result : (result.data || []);
-        console.log('[showTeacherStudents] 전체 학생 수:', allStudentsForGrade.length);
         const activeStudents = allStudentsForGrade.filter(s => s.status === '재원');
-        console.log('[showTeacherStudents] 재원생 수:', activeStudents.length);
-
         
         // 선생님 정보 불러오기
         const teacher = allTeachers.find(t => t.id === teacherId);
