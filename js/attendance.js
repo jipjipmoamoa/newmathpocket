@@ -173,7 +173,6 @@ async function processAttendanceByNumber(attendanceNumber) {
         const attendanceData = {
             student_id: student.id,
             student_name: student.name,
-            attendance_number: student.attendance_number,
             date: getSelectedDateString(),
             check_in_time: checkInTime,
             expected_out_time: expectedOutTime,
@@ -240,7 +239,6 @@ async function processStudentAttendance(studentData, studentStatus) {
     const attendanceData = {
         student_id: studentData.id || null,
         student_name: studentData.name,
-        attendance_number: studentData.attendance_number || '',
         date: getSelectedDateString(),
         check_in_time: checkInTime,
         expected_out_time: expectedOutTime,
@@ -1068,7 +1066,6 @@ async function registerAttendance() {
     const attendanceData = {
         student_id: studentId,
         student_name: student.name,
-        attendance_number: student.attendance_number,
         date: getSelectedDateString(),
         check_in_time: checkInTime,
         expected_out_time: expectedOutTime,
@@ -1933,7 +1930,6 @@ async function registerNewAttendance() {
                 studentData = {
                     id: null,
                     name: name,
-                    attendance_number: '',
                     status: 'unknown'
                 };
                 isExternal = true;
@@ -1958,7 +1954,6 @@ async function registerNewAttendance() {
     const attendanceData = {
         student_id: studentData.id,
         student_name: studentData.name,
-        attendance_number: studentData.attendance_number || '',
         date: getSelectedDateString(),
         check_in_time: checkInTime,
         check_out_time: checkOutTime,
