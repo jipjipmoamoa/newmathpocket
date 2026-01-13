@@ -557,8 +557,10 @@ function renderAttendanceTable() {
                 schedule = JSON.parse(schedule);
             } catch (e) {
                 console.error('스케줄 파싱 오류:', e);
-                return;
+                schedule = {};
             }
+        } else {
+            schedule = {};
         }
         
         // 선택된 날짜의 요일 확인
@@ -566,8 +568,10 @@ function renderAttendanceTable() {
         const dayKeys = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
         const selectedDayKey = dayKeys[dateObj.getDay()];
         
-        const daySchedule = schedule[selectedDayKey];
-        if (!daySchedule || !daySchedule.enabled) return;
+        const daySchedule = schedule[selectedDayKey] || {};
+        
+        // 스케줄이 없고 출석 기록도 없으면 표시 안함
+        if ((!daySchedule.enabled) && !existingRecord) return;
         
         // 기본값: 스케줄의 입실/퇴실 시간
         let checkInTime = daySchedule.checkIn || '';
@@ -671,6 +675,99 @@ function renderAttendanceTable() {
                 <div class="edit-mode" id="edit-buttons-${student.id}" style="display: none;">
                     <button class="btn-save" onclick="saveAttendance('${student.id}')">저장</button>
                     <button class="btn-cancel" onclick="cancelEditMode('${student.id}')">취소</button>
+                </div>
+            </td>
+        `;
+        
+        tbody.appendChild(row);
+    });
+    
+    // 스케줄이 없지만 출석 기록이 있는 학생 추가
+    const studentsWithSchedule = new Set(sortedStudents.map(s => s.id));
+    const recordsWithoutSchedule = todayAttendanceRecords.filter(record => !studentsWithSchedule.has(record.student_id));
+    
+    recordsWithoutSchedule.forEach(record => {
+        const row = document.createElement('tr');
+        row.dataset.studentId = record.student_id || 'unknown';
+        row.dataset.recordId = record.id;
+        
+        const checkInTime = record.check_in_time || '';
+        const expectedOutTime = record.expected_out_time || '';
+        const checkOutTime = record.check_out_time || '';
+        const status = record.status || '';
+        
+        let actualDuration = '';
+        if (checkInTime && checkOutTime) {
+            actualDuration = calculateDurationInMinutes(checkInTime, checkOutTime);
+        }
+        
+        let durationColor = '';
+        if (actualDuration) {
+            const scheduledDuration = 90; // 기본값
+            if (actualDuration >= scheduledDuration) {
+                durationColor = 'color: blue;';
+            } else if (actualDuration >= scheduledDuration * 0.8) {
+                durationColor = 'color: green;';
+            } else if (actualDuration >= scheduledDuration * 0.5) {
+                durationColor = 'color: orange;';
+            } else {
+                durationColor = 'color: red;';
+            }
+        }
+        
+        row.innerHTML = `
+            <td style="text-align: center;">${record.student_name || '-'}</td>
+            <td style="text-align: center;">
+                <div class="display-mode" id="display-checkin-${record.student_id}">
+                    ${checkInTime || '-'}
+                </div>
+                <input type="text" class="form-input edit-mode" id="edit-checkin-${record.student_id}" 
+                    value="${checkInTime}" 
+                    style="display: none;" 
+                    oninput="updateAttendanceField('${record.student_id}', 'check_in_time', this.value)">
+            </td>
+            <td style="text-align: center;">
+                <div class="display-mode" id="display-expected-${record.student_id}">
+                    ${expectedOutTime || '-'}
+                </div>
+                <input type="text" class="form-input edit-mode" id="edit-expected-${record.student_id}" 
+                    value="${expectedOutTime}" 
+                    readonly 
+                    style="display: none;">
+            </td>
+            <td style="text-align: center;">
+                <div class="display-mode" id="display-checkout-${record.student_id}">
+                    ${checkOutTime || '-'}
+                </div>
+                <input type="text" class="form-input edit-mode" id="edit-checkout-${record.student_id}" 
+                    value="${checkOutTime}" 
+                    style="display: none;" 
+                    oninput="updateAttendanceField('${record.student_id}', 'check_out_time', this.value)">
+            </td>
+            <td style="text-align: center; ${durationColor}">
+                ${actualDuration ? `${actualDuration}분` : '-'}
+            </td>
+            <td style="text-align: center;">
+                <div class="display-mode" id="display-status-${record.student_id}">
+                    ${status || '-'}
+                </div>
+                <div class="edit-mode" id="edit-status-container-${record.student_id}" style="display: none;">
+                    <select class="form-select" id="edit-status-${record.student_id}" onchange="updateAttendanceField('${record.student_id}', 'status', this.value)">
+                        <option value="">상태</option>
+                        <option value="출석" ${status === '출석' ? 'selected' : ''}>출석</option>
+                        <option value="결석" ${status === '결석' ? 'selected' : ''}>결석</option>
+                        <option value="보강" ${status === '보강' ? 'selected' : ''}>보강</option>
+                    </select>
+                </div>
+            </td>
+            <td style="text-align: center;">
+                <div class="display-mode" id="btn-edit-${record.student_id}">
+                    <button class="btn-icon btn-edit" onclick="enterEditMode('${record.student_id}')">✏️</button>
+                    <button class="btn-icon btn-delete" onclick="deleteAttendance('${record.id}')">❌</button>
+                </div>
+                <div class="edit-mode" id="edit-buttons-${record.student_id}" style="display: none;">
+                    <button class="btn-save" onclick="editAttendance('${record.id}', '${record.student_id}')">저장</button>
+                    <button class="btn-cancel" onclick="cancelEditMode('${record.student_id}')">취소</button>
                 </div>
             </td>
         `;
