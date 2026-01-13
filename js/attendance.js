@@ -512,92 +512,85 @@ function renderAttendanceTable() {
         return;
     }
     
-    // 3행부터: 각 학생의 스케줄을 기반으로 출석 행 생성 (출석시간 빠른 순으로 정렬)
-    const sortedStudents = attendanceStudents.slice().sort((a, b) => {
-        // 각 학생의 해당 날짜 스케줄 가져오기
+    // 3행부터: 모든 출석 기록을 입실시간 빠른 순으로 정렬
+    // 1. 스케줄이 있는 학생들의 출석 정보 수집
+    const allAttendanceRows = [];
+    
+    attendanceStudents.forEach(student => {
         const selectedDate = getSelectedDateString();
         const dateObj = new Date(selectedDate);
         const dayKeys = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
         const selectedDayKey = dayKeys[dateObj.getDay()];
         
-        let scheduleA = a.schedule;
-        let scheduleB = b.schedule;
-        
-        // 스케줄 파싱
-        if (typeof scheduleA === 'string' && scheduleA.trim() !== '') {
-            try { scheduleA = JSON.parse(scheduleA); } catch (e) { scheduleA = {}; }
-        }
-        if (typeof scheduleB === 'string' && scheduleB.trim() !== '') {
-            try { scheduleB = JSON.parse(scheduleB); } catch (e) { scheduleB = {}; }
-        }
-        
-        const dayScheduleA = scheduleA[selectedDayKey] || {};
-        const dayScheduleB = scheduleB[selectedDayKey] || {};
-        
-        // 출석 기록이 있으면 실제 출석시간 사용, 없으면 스케줄 시간 사용
-        const existingRecordA = todayAttendanceRecords.find(r => r.student_id === a.id);
-        const existingRecordB = todayAttendanceRecords.find(r => r.student_id === b.id);
-        
-        const checkInA = existingRecordA?.check_in_time || dayScheduleA.checkIn || '23:59';
-        const checkInB = existingRecordB?.check_in_time || dayScheduleB.checkIn || '23:59';
-        
-        return checkInA.localeCompare(checkInB);
-    });
-    
-    sortedStudents.forEach(student => {
-        const selectedDate = getSelectedDateString();
-        
-        // 해당 날짜의 출석 기록 찾기
-        const existingRecord = todayAttendanceRecords.find(r => r.student_id === student.id);
-        
-        // 학생의 스케줄 가져오기
         let schedule = student.schedule;
         if (typeof schedule === 'string' && schedule.trim() !== '') {
-            try {
-                schedule = JSON.parse(schedule);
-            } catch (e) {
-                console.error('스케줄 파싱 오류:', e);
-                schedule = {};
-            }
+            try { schedule = JSON.parse(schedule); } catch (e) { schedule = {}; }
         } else {
             schedule = {};
         }
         
-        // 선택된 날짜의 요일 확인
-        const dateObj = new Date(selectedDate);
-        const dayKeys = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
-        const selectedDayKey = dayKeys[dateObj.getDay()];
-        
         const daySchedule = schedule[selectedDayKey] || {};
+        const existingRecord = todayAttendanceRecords.find(r => r.student_id === student.id);
         
-        // 스케줄이 없고 출석 기록도 없으면 표시 안함
-        if ((!daySchedule.enabled) && !existingRecord) return;
-        
-        // 기본값: 스케줄의 입실/퇴실 시간
-        let checkInTime = daySchedule.checkIn || '';
-        let expectedOutTime = daySchedule.checkOut || '';
-        let checkOutTime = '';
-        let status = ''; // 상태는 비워둠
-        let actualDuration = '';
-        let scheduledDuration = parseInt(daySchedule.duration) || 90; // 스케줄의 재실시간(분)
-        
-        // 출석 기록이 있으면 실제 값 사용
-        let absenceReason = '';
-        let makeupDate = '';
-        
-        if (existingRecord) {
-            checkInTime = existingRecord.check_in_time || checkInTime;
-            expectedOutTime = existingRecord.expected_out_time || expectedOutTime;
-            checkOutTime = existingRecord.check_out_time || '';
-            status = existingRecord.status || '';
-            absenceReason = existingRecord.absence_reason || '';
-            makeupDate = existingRecord.makeup_date || '';
-            
-            // 재실시간 계산 (입실시간과 퇴실시간이 모두 있을 때)
-            if (checkInTime && checkOutTime) {
-                actualDuration = calculateDurationInMinutes(checkInTime, checkOutTime);
-            }
+        // 스케줄이 있거나 출석 기록이 있으면 추가
+        if (daySchedule.enabled || existingRecord) {
+            const checkInTime = existingRecord?.check_in_time || daySchedule.checkIn || '23:59';
+            allAttendanceRows.push({
+                type: 'scheduled',
+                student: student,
+                record: existingRecord,
+                daySchedule: daySchedule,
+                checkInTime: checkInTime
+            });
         }
+    });
+    
+    // 2. 스케줄이 없는 출석 기록 추가
+    const studentsWithSchedule = new Set(attendanceStudents.map(s => s.id));
+    todayAttendanceRecords.forEach(record => {
+        if (!studentsWithSchedule.has(record.student_id)) {
+            allAttendanceRows.push({
+                type: 'manual',
+                record: record,
+                checkInTime: record.check_in_time || '23:59'
+            });
+        }
+    });
+    
+    // 3. 입실시간 순으로 정렬
+    allAttendanceRows.sort((a, b) => a.checkInTime.localeCompare(b.checkInTime));
+    
+    // 4. 정렬된 행 렌더링
+    allAttendanceRows.forEach(item => {
+        if (item.type === 'scheduled') {
+            // 스케줄이 있는 학생
+            const student = item.student;
+            const existingRecord = item.record;
+            const daySchedule = item.daySchedule;
+            
+            // 기본값: 스케줄의 입실/퇴실 시간
+            let checkInTime = daySchedule.checkIn || '';
+            let expectedOutTime = daySchedule.checkOut || '';
+            let checkOutTime = '';
+            let status = '';
+            let actualDuration = '';
+            let scheduledDuration = parseInt(daySchedule.duration) || 90;
+            
+            let absenceReason = '';
+            let makeupDate = '';
+            
+            if (existingRecord) {
+                checkInTime = existingRecord.check_in_time || checkInTime;
+                expectedOutTime = existingRecord.expected_out_time || expectedOutTime;
+                checkOutTime = existingRecord.check_out_time || '';
+                status = existingRecord.status || '';
+                absenceReason = existingRecord.absence_reason || '';
+                makeupDate = existingRecord.makeup_date || '';
+                
+                if (checkInTime && checkOutTime) {
+                    actualDuration = calculateDurationInMinutes(checkInTime, checkOutTime);
+                }
+            }
         
         const row = document.createElement('tr');
         row.dataset.studentId = student.id;
@@ -680,99 +673,82 @@ function renderAttendanceTable() {
         `;
         
         tbody.appendChild(row);
-    });
-    
-    // 스케줄이 없지만 출석 기록이 있는 학생 추가
-    const studentsWithSchedule = new Set(sortedStudents.map(s => s.id));
-    const recordsWithoutSchedule = todayAttendanceRecords.filter(record => !studentsWithSchedule.has(record.student_id));
-    
-    recordsWithoutSchedule.forEach(record => {
-        const row = document.createElement('tr');
-        row.dataset.studentId = record.student_id || 'unknown';
-        row.dataset.recordId = record.id;
-        
-        const checkInTime = record.check_in_time || '';
-        const expectedOutTime = record.expected_out_time || '';
-        const checkOutTime = record.check_out_time || '';
-        const status = record.status || '';
-        
-        let actualDuration = '';
-        if (checkInTime && checkOutTime) {
-            actualDuration = calculateDurationInMinutes(checkInTime, checkOutTime);
-        }
-        
-        let durationColor = '';
-        if (actualDuration) {
-            const scheduledDuration = 90; // 기본값
-            if (actualDuration >= scheduledDuration) {
-                durationColor = 'color: blue;';
-            } else if (actualDuration >= scheduledDuration * 0.8) {
-                durationColor = 'color: green;';
-            } else if (actualDuration >= scheduledDuration * 0.5) {
-                durationColor = 'color: orange;';
-            } else {
-                durationColor = 'color: red;';
+        } else if (item.type === 'manual') {
+            // 스케줄이 없는 수동 등록
+            const record = item.record;
+            const checkInTime = record.check_in_time || '';
+            const expectedOutTime = record.expected_out_time || '';
+            const checkOutTime = record.check_out_time || '';
+            const status = record.status || '';
+            
+            let actualDuration = '';
+            if (checkInTime && checkOutTime) {
+                actualDuration = calculateDurationInMinutes(checkInTime, checkOutTime);
             }
+            
+            let durationColor = '';
+            if (actualDuration) {
+                const scheduledDuration = 90;
+                if (actualDuration < scheduledDuration) {
+                    durationColor = 'color: red; font-weight: bold;';
+                }
+            }
+            
+            // 상태별 색상
+            let statusColor = '';
+            let statusText = status || '';
+            if (status === '출석') {
+                statusColor = 'color: #4CAF50; font-weight: 600;';
+            } else if (status === '보강') {
+                statusColor = 'color: #f44336; font-weight: 600;';
+            } else if (status === '결석') {
+                statusColor = 'color: #000; font-weight: 600; text-decoration: line-through;';
+            }
+            
+            const row = document.createElement('tr');
+            row.dataset.studentId = record.student_id || 'unknown';
+            row.dataset.recordId = record.id;
+            
+            row.innerHTML = `
+                <td style="text-align: center;">${record.student_name || '-'}</td>
+                <td style="text-align: center;">
+                    <div class="display-mode" id="display-checkin-${record.student_id}">${checkInTime || '-'}</div>
+                    <input type="text" class="form-input edit-mode" id="edit-checkin-${record.student_id}" value="${checkInTime}" style="display: none;" 
+                        onblur="this.value = formatTimeInput(this.value)" />
+                </td>
+                <td style="text-align: center;">
+                    <div class="display-mode" id="display-expected-${record.student_id}">${expectedOutTime || '-'}</div>
+                    <input type="text" class="form-input edit-mode" id="edit-expected-${record.student_id}" value="${expectedOutTime}" readonly style="display: none;" />
+                </td>
+                <td style="text-align: center;">
+                    <div class="display-mode" id="display-checkout-${record.student_id}">${checkOutTime || '-'}</div>
+                    <input type="text" class="form-input edit-mode" id="edit-checkout-${record.student_id}" value="${checkOutTime}" style="display: none;" 
+                        onblur="this.value = formatTimeInput(this.value)" />
+                </td>
+                <td class="duration-display" style="${durationColor}">${actualDuration ? `${actualDuration}분` : '-'}</td>
+                <td style="text-align: center;">
+                    <span class="display-mode" id="display-status-${record.student_id}" style="${statusColor}">${statusText || '-'}</span>
+                    <div class="edit-mode" id="edit-status-container-${record.student_id}" style="display: none;">
+                        <select class="form-select" id="status-${record.student_id}" onchange="handleStatusChange('${record.student_id}')">
+                            <option value="" ${status === '' ? 'selected' : ''}></option>
+                            <option value="출석" ${status === '출석' ? 'selected' : ''}>출석</option>
+                            <option value="결석" ${status === '결석' ? 'selected' : ''}>결석</option>
+                            <option value="보강" ${status === '보강' ? 'selected' : ''}>보강</option>
+                        </select>
+                    </div>
+                </td>
+                <td style="text-align: center;">
+                    <button class="btn-icon btn-edit display-mode" id="btn-edit-${record.student_id}" onclick="enterEditMode('${record.student_id}')" title="수정"></button>
+                    <button class="btn-icon btn-delete display-mode" id="btn-delete-${record.student_id}" onclick="deleteAttendance('${record.student_id}', '${record.id}')" style="margin-left: 0.5rem;" title="삭제"></button>
+                    <div class="edit-mode" id="edit-buttons-${record.student_id}" style="display: none;">
+                        <button class="btn-save" onclick="saveAttendance('${record.student_id}')">저장</button>
+                        <button class="btn-cancel" onclick="cancelEditMode('${record.student_id}')">취소</button>
+                    </div>
+                </td>
+            `;
+            
+            tbody.appendChild(row);
         }
-        
-        row.innerHTML = `
-            <td style="text-align: center;">${record.student_name || '-'}</td>
-            <td style="text-align: center;">
-                <div class="display-mode" id="display-checkin-${record.student_id}">
-                    ${checkInTime || '-'}
-                </div>
-                <input type="text" class="form-input edit-mode" id="edit-checkin-${record.student_id}" 
-                    value="${checkInTime}" 
-                    style="display: none;" 
-                    oninput="updateAttendanceField('${record.student_id}', 'check_in_time', this.value)">
-            </td>
-            <td style="text-align: center;">
-                <div class="display-mode" id="display-expected-${record.student_id}">
-                    ${expectedOutTime || '-'}
-                </div>
-                <input type="text" class="form-input edit-mode" id="edit-expected-${record.student_id}" 
-                    value="${expectedOutTime}" 
-                    readonly 
-                    style="display: none;">
-            </td>
-            <td style="text-align: center;">
-                <div class="display-mode" id="display-checkout-${record.student_id}">
-                    ${checkOutTime || '-'}
-                </div>
-                <input type="text" class="form-input edit-mode" id="edit-checkout-${record.student_id}" 
-                    value="${checkOutTime}" 
-                    style="display: none;" 
-                    oninput="updateAttendanceField('${record.student_id}', 'check_out_time', this.value)">
-            </td>
-            <td style="text-align: center; ${durationColor}">
-                ${actualDuration ? `${actualDuration}분` : '-'}
-            </td>
-            <td style="text-align: center;">
-                <div class="display-mode" id="display-status-${record.student_id}">
-                    ${status || '-'}
-                </div>
-                <div class="edit-mode" id="edit-status-container-${record.student_id}" style="display: none;">
-                    <select class="form-select" id="edit-status-${record.student_id}" onchange="updateAttendanceField('${record.student_id}', 'status', this.value)">
-                        <option value="">상태</option>
-                        <option value="출석" ${status === '출석' ? 'selected' : ''}>출석</option>
-                        <option value="결석" ${status === '결석' ? 'selected' : ''}>결석</option>
-                        <option value="보강" ${status === '보강' ? 'selected' : ''}>보강</option>
-                    </select>
-                </div>
-            </td>
-            <td style="text-align: center;">
-                <div class="display-mode" id="btn-edit-${record.student_id}">
-                    <button class="btn-icon btn-edit" onclick="enterEditMode('${record.student_id}')">✏️</button>
-                    <button class="btn-icon btn-delete" onclick="deleteAttendance('${record.id}')">❌</button>
-                </div>
-                <div class="edit-mode" id="edit-buttons-${record.student_id}" style="display: none;">
-                    <button class="btn-save" onclick="editAttendance('${record.id}', '${record.student_id}')">저장</button>
-                    <button class="btn-cancel" onclick="cancelEditMode('${record.student_id}')">취소</button>
-                </div>
-            </td>
-        `;
-        
-        tbody.appendChild(row);
     });
 }
 
