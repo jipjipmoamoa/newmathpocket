@@ -704,6 +704,7 @@ input[type="date"] {
         size: portrait;
         margin: 1cm;
     }
+
     
     /* 헤더, 메뉴 숨기기 (네비게이션 제외) */
     header,
