@@ -1119,7 +1119,7 @@ input[type="date"] {
         padding: 2px !important;
         font-size: 8pt !important;
         background-color: #f0f0f0 !important;
-        border: 0.5px solid #999 !important;
+        border: 1px solid #dee2e6 !important;
         -webkit-print-color-adjust: exact;
         print-color-adjust: exact;
     }
@@ -1130,7 +1130,7 @@ input[type="date"] {
         min-height: 50px !important;
         max-height: 50px !important;
         vertical-align: top !important;
-        border: 0.5px solid #999 !important;
+        border: 1px solid #dee2e6 !important;
         overflow: hidden !important;
     }
     
@@ -1294,20 +1294,43 @@ input[type="date"] {
         print-color-adjust: exact;
     }
     
-    .stats-table tbody tr:nth-child(1) td,
-    .stats-table tbody tr:nth-child(2) td,
-    .stats-table tbody tr:nth-child(3) td {
-        background-color: white !important;
-    }
-    
-    .stats-table tbody tr:nth-child(4) th {
+    /* 4행 전체 - 연두색 */
+    .stats-table tbody tr:nth-child(4) th,
+    .stats-table tbody tr:nth-child(4) td {
         background-color: #f0faf4 !important; /* 중학생 - 연두색 */
         -webkit-print-color-adjust: exact;
         print-color-adjust: exact;
     }
     
-    .stats-table tbody tr:nth-child(7) th {
+    /* 7행 전체 - 연하늘색 */
+    .stats-table tbody tr:nth-child(7) th,
+    .stats-table tbody tr:nth-child(7) td {
         background-color: #f0f8ff !important; /* 고등학생 - 연하늘색 */
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+    }
+    
+    /* 1열(첫 열) 색상 지정 */
+    /* 2행 및 3행 - 연노랑 */
+    .stats-table tbody tr:nth-child(2) td:first-child,
+    .stats-table tbody tr:nth-child(3) td:first-child {
+        background-color: #fffef0 !important; /* 연노랑 */
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+    }
+    
+    /* 5행 및 6행 - 연두색 */
+    .stats-table tbody tr:nth-child(5) td:first-child,
+    .stats-table tbody tr:nth-child(6) td:first-child {
+        background-color: #f0faf4 !important; /* 연두색 */
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+    }
+    
+    /* 8행 및 9행 - 연하늘색 */
+    .stats-table tbody tr:nth-child(8) td:first-child,
+    .stats-table tbody tr:nth-child(9) td:first-child {
+        background-color: #f0f8ff !important; /* 연하늘색 */
         -webkit-print-color-adjust: exact;
         print-color-adjust: exact;
     }
