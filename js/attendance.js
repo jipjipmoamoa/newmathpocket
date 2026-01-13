@@ -40,7 +40,7 @@ async function showAttendanceCheckPage() {
             <!-- 2단: 출석 테이블 -->
             <div class="attendance-table-section">
                 <div class="table-header">
-                    <h2>출석 현황</h2>
+                    <h2>출석 현황 <span id="attendanceSummary" style="font-size: 0.9rem; color: #666; font-weight: normal;"></span></h2>
                     <div class="date-selector">
                         <button class="date-nav-btn" onclick="changeAttendanceDate(-1)" title="전날">◀</button>
                         <span class="calendar-icon" onclick="document.getElementById('attendanceDateInput').showPicker()">🗓️</span>
@@ -786,6 +786,31 @@ function renderAttendanceTable() {
         `;
         tbody.appendChild(emptyRow);
     }
+    
+    // 통계 계산 및 표시
+    let attendanceCount = 0;
+    let makeupCount = 0;
+    let absenceCount = 0;
+    
+    allAttendanceRows.forEach(item => {
+        if (item.type === 'scheduled') {
+            const status = item.record?.status || '';
+            if (status === '출석') attendanceCount++;
+            else if (status === '보강') makeupCount++;
+            else if (status === '결석') absenceCount++;
+        } else if (item.type === 'manual') {
+            const status = item.record?.status || '';
+            if (status === '출석') attendanceCount++;
+            else if (status === '보강') makeupCount++;
+            else if (status === '결석') absenceCount++;
+        }
+    });
+    
+    // 통계 표시
+    const summaryElement = document.getElementById('attendanceSummary');
+    if (summaryElement) {
+        summaryElement.textContent = `${attendanceCount}명(보강 ${makeupCount}명) / 결석 ${absenceCount}명`;
+    }
 }
 
 // 재실시간 계산 (분 단위로 반환)
@@ -1465,11 +1490,27 @@ async function renderMonthlyCalendar() {
                 let cellClass = 'calendar-cell';
                 if (isToday) cellClass += ' today';
                 
-                rowHTML += `<td class="${cellClass}">`;
-                rowHTML += `<div class="date-number">${currentDate}</div>`;
-                
                 // 상태가 확정된 출석이 있으면 언제든지 표시
                 const schedules = getSchedulesForDate(dateString);
+                
+                // 통계 계산
+                let attendanceCount = 0;
+                let makeupCount = 0;
+                let absenceCount = 0;
+                
+                schedules.forEach(schedule => {
+                    if (schedule.status === '출석') attendanceCount++;
+                    else if (schedule.status === '보강') makeupCount++;
+                    else if (schedule.status === '결석') absenceCount++;
+                });
+                
+                const statsText = schedules.length > 0 
+                    ? ` <strong>${attendanceCount}(${makeupCount})/${absenceCount}</strong>` 
+                    : '';
+                
+                rowHTML += `<td class="${cellClass}">`;
+                rowHTML += `<div class="date-number">${currentDate}${statsText}</div>`;
+                
                 if (schedules.length > 0) {
                     rowHTML += '<div class="schedule-list">';
                     schedules.forEach(schedule => {
@@ -1518,7 +1559,7 @@ async function loadMonthAttendance(year, month) {
     }
 }
 
-// 특정 날짜의 스케줄 가져오기 (상태가 확정된 출석만, 입실시간 빠른순 정렬)
+// 특정 날짜의 스케줄 가져오기 (상태가 확정된 출석만, 입실시간 빠른순 정렬, 중복 제거)
 function getSchedulesForDate(dateString) {
     const filtered = allMonthAttendance.filter(record => {
         const hasDate = record.date === dateString;
@@ -1528,21 +1569,43 @@ function getSchedulesForDate(dateString) {
         return hasDate && hasStatus;
     });
     
+    // 중복 제거: 같은 student_id가 있으면 가장 최신(updated_at 또는 created_at 기준) 기록만 유지
+    const uniqueMap = new Map();
+    filtered.forEach(record => {
+        const key = record.student_id || record.student_name; // student_id가 없으면 이름으로 구분
+        const existing = uniqueMap.get(key);
+        
+        if (!existing) {
+            uniqueMap.set(key, record);
+        } else {
+            // 최신 기록 유지 (updated_at 또는 created_at 비교)
+            const existingTime = existing.updated_at || existing.created_at || 0;
+            const recordTime = record.updated_at || record.created_at || 0;
+            
+            if (recordTime > existingTime) {
+                uniqueMap.set(key, record);
+            }
+        }
+    });
+    
+    // Map에서 배열로 변환
+    const uniqueRecords = Array.from(uniqueMap.values());
+    
     // 입실시간 빠른순 정렬
-    filtered.sort((a, b) => {
+    uniqueRecords.sort((a, b) => {
         const timeA = a.check_in_time || '23:59';
         const timeB = b.check_in_time || '23:59';
         return timeA.localeCompare(timeB);
     });
     
-    if (filtered.length > 0) {
-        console.log(`[getSchedulesForDate] ${dateString} 결과: ${filtered.length}개 (입실시간 빠른순)`);
-        filtered.forEach((record, index) => {
+    if (uniqueRecords.length > 0) {
+        console.log(`[getSchedulesForDate] ${dateString} 결과: ${uniqueRecords.length}개 (중복 제거, 입실시간 빠른순)`);
+        uniqueRecords.forEach((record, index) => {
             console.log(`  ${index + 1}. ${record.check_in_time} - ${record.student_name}, 상태: ${record.status}, 퇴실: ${record.check_out_time}`);
         });
     }
     
-    return filtered;
+    return uniqueRecords;
 }
 
 // 스케줄 아이템 렌더링
