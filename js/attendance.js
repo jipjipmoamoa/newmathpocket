@@ -484,12 +484,22 @@ function renderAttendanceTable() {
             onblur="this.value = formatTimeInput(this.value)" /></td>
         <td></td>
         <td>
-            <select id="registerStatus" class="form-select">
+            <select id="registerStatus" class="form-select" onchange="handleRegisterStatusChange()">
                 <option value="">상태</option>
                 <option value="출석">출석</option>
                 <option value="결석">결석</option>
                 <option value="보강">보강</option>
             </select>
+            <select id="registerAbsenceReason" class="form-select" style="display: none; margin-top: 5px;">
+                <option value="">사유 선택</option>
+                <option value="병결">병결</option>
+                <option value="학교">학교</option>
+                <option value="여행">여행</option>
+                <option value="기타">기타</option>
+            </select>
+            <div id="registerMakeupDate" style="display: none; margin-top: 5px;">
+                <input type="date" id="registerMakeupDateInput" class="form-input" style="width: 100%;" placeholder="보강 날짜" />
+            </div>
         </td>
         <td>
             <button class="btn-register" onclick="registerNewAttendance()">등록</button>
@@ -1095,7 +1105,29 @@ async function deleteAttendance(studentId, recordId) {
 // 6. 출석 등록
 // ============================================
 
-// 상태 변경 핸들러
+// 상태 변경 핸들러 (등록 행)
+function handleRegisterStatusChange() {
+    const statusSelect = document.getElementById('registerStatus');
+    const reasonSelect = document.getElementById('registerAbsenceReason');
+    const makeupDateDiv = document.getElementById('registerMakeupDate');
+    
+    if (!statusSelect) return;
+    
+    const status = statusSelect.value;
+    
+    if (status === '결석') {
+        if (reasonSelect) reasonSelect.style.display = 'block';
+        if (makeupDateDiv) makeupDateDiv.style.display = 'none';
+    } else if (status === '보강') {
+        if (reasonSelect) reasonSelect.style.display = 'none';
+        if (makeupDateDiv) makeupDateDiv.style.display = 'block';
+    } else {
+        if (reasonSelect) reasonSelect.style.display = 'none';
+        if (makeupDateDiv) makeupDateDiv.style.display = 'none';
+    }
+}
+
+// 상태 변경 핸들러 (기존 행)
 function handleStatusChange(studentId) {
     const statusSelect = document.getElementById(`status-${studentId}`);
     const reasonSelect = document.getElementById(`absence-reason-${studentId}`);
@@ -1979,6 +2011,8 @@ async function registerNewAttendance() {
     const checkInTime = document.getElementById('registerCheckInTime').value;
     const checkOutTime = document.getElementById('registerCheckOutTime').value;
     const status = document.getElementById('registerStatus').value;
+    const absenceReason = document.getElementById('registerAbsenceReason').value;
+    const makeupDate = document.getElementById('registerMakeupDateInput').value;
     
     let studentData = null;
     
@@ -2030,7 +2064,9 @@ async function registerNewAttendance() {
         date: getSelectedDateString(),
         check_in_time: checkInTime,
         check_out_time: checkOutTime,
-        status: status || '출석'
+        status: status || '출석',
+        absence_reason: absenceReason,
+        makeup_date: makeupDate
     };
     
     // 퇴실 예정시간 자동 계산 (스케줄 기반)
@@ -2078,6 +2114,12 @@ async function registerNewAttendance() {
         document.getElementById('registerExpectedOutTime').value = '';
         document.getElementById('registerCheckOutTime').value = '';
         document.getElementById('registerStatus').value = '';
+        document.getElementById('registerAbsenceReason').value = '';
+        document.getElementById('registerMakeupDateInput').value = '';
+        
+        // 결석/보강 필드 숨기기
+        document.getElementById('registerAbsenceReason').style.display = 'none';
+        document.getElementById('registerMakeupDate').style.display = 'none';
         
         // 데이터 다시 로드
         await loadAttendanceData();
