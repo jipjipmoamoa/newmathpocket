@@ -697,204 +697,81 @@ input[type="date"] {
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
-/* 인쇄 스타일 */
 @media print {
     /* 페이지 설정 - 세로 방향 */
     @page {
         size: portrait;
         margin: 1cm;
     }
-
     
-    /* 헤더, 메뉴 숨기기 (네비게이션 제외) */
+    /* 사이트 헤더/메뉴 숨기기 */
     header,
     .main-menu,
     .sub-menu-container {
         display: none !important;
     }
     
-    /* 인쇄 버튼만 숨기기 */
-    .print-btn {
+    /* 조회 컨트롤 및 버튼 숨기기 */
+    .view-controls,
+    .btn-month-nav,
+    button,
+    .btn,
+    input[type="checkbox"] {
         display: none !important;
     }
-
+    
+    /* 색상 및 배경 유지 */
+    * {
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+    }
     
     /* Body 설정 */
     body {
+        background: white;
         margin: 0;
         padding: 0;
-        background: white;
     }
     
-    /* 컨테이너 */
+    /* 컨테이너 설정 */
     .attendance-view-container {
-        padding: 0;
-        margin: 0;
-        max-width: 100%;
-        width: 100%;
+        padding: 0 !important;
+        margin: 0 !important;
+        max-width: 100% !important;
     }
     
-    /* 월별 출결현황 섹션 */
+    /* 달력 섹션 */
     .monthly-calendar-section {
-        margin: 0;
-        padding: 0;
-        box-shadow: none;
-        border-radius: 0;
-        background: white;
+        margin: 0 !important;
+        padding: 0 !important;
     }
     
-    /* 년/월 제목 */
+    /* 년/월 제목만 표시 */
     .calendar-header {
-        text-align: center;
-        margin-bottom: 1.5rem;
-        padding: 0;
-        display: flex;
-        justify-content: center;
-        align-items: center;
+        display: flex !important;
+        justify-content: center !important;
+        align-items: center !important;
+        margin-bottom: 1rem !important;
     }
     
     .calendar-header h3 {
-        font-size: 1.8rem;
-        color: #000;
-        margin: 0;
-        padding: 0;
-        font-weight: bold;
+        display: block !important;
+        font-size: 1.5rem !important;
+        font-weight: bold !important;
+        color: #000 !important;
+        margin: 0 !important;
     }
     
-    /* 달력 테이블 - 화면과 동일하게 */
+    /* 달력 테이블 */
     #viewMonthlyCalendarContainer {
-        margin-bottom: 2rem;
+        display: block !important;
+        margin-bottom: 1.5rem !important;
     }
     
-    .monthly-calendar {
-        width: 100%;
-        border-collapse: collapse;
-        margin-bottom: 0;
-        font-size: 0.9rem;
-        table-layout: fixed;
-    }
-    
-    .monthly-calendar th,
-    .monthly-calendar td {
-        border: 1px solid #dee2e6 !important;
-        padding: 0.6rem;
-        -webkit-print-color-adjust: exact;
-        print-color-adjust: exact;
-    }
-    
-    .monthly-calendar thead th {
-        background-color: #f8f9fa !important;
-        font-weight: 600;
-        text-align: center;
-        font-size: 0.9rem;
-        padding: 0.25rem;
-        -webkit-print-color-adjust: exact;
-        print-color-adjust: exact;
-    }
-    
-    .monthly-calendar .calendar-cell {
-        vertical-align: top;
-        min-height: 70px;
-        height: auto;
-    }
-    
-    .monthly-calendar .date-number {
-        font-weight: 600;
-        margin-bottom: 0.4rem;
-        font-size: 0.9rem;
-        color: #000;
-    }
-    
-    .monthly-calendar .schedule-item {
-        font-size: 0.75rem;
-        line-height: 1.3;
-        margin-bottom: 0.2rem;
-        padding: 0.1rem 0;
-        color: #000;
-    }
-    
-    .monthly-calendar .schedule-item.attendance {
-        color: #000;
-    }
-    
-    .monthly-calendar .schedule-item.absent {
-        color: #666;
-        text-decoration: line-through;
-    }
-    
-    .monthly-calendar .schedule-item.makeup {
-        color: #dc3545 !important;
-        font-weight: 600;
-        -webkit-print-color-adjust: exact;
-        print-color-adjust: exact;
-    }
-    
-    /* 통계 표 컨테이너 */
+    /* 통계표 */
     #viewAttendanceStatsContainer {
-        margin-top: 2rem;
-        page-break-before: auto;
-    }
-    
-    /* 통계 표 - 화면과 동일하게 */
-    .stats-table {
-        width: 100%;
-        border-collapse: collapse;
-        margin-bottom: 1.5rem;
-        font-size: 0.85rem;
-        page-break-inside: avoid;
-        table-layout: fixed;
-    }
-    
-    .stats-table th,
-    .stats-table td {
-        border: 1px solid #dee2e6 !important;
-        padding: 0.34rem;
-        text-align: center;
-        -webkit-print-color-adjust: exact;
-        print-color-adjust: exact;
-    }
-    
-    .stats-table th {
-        font-weight: 600;
-        -webkit-print-color-adjust: exact;
-        print-color-adjust: exact;
-    }
-    
-    /* 헤더 행 배경색 유지 */
-    .stats-table tr:nth-child(1) {
-        background-color: #fffef0 !important;
-        -webkit-print-color-adjust: exact;
-        print-color-adjust: exact;
-    }
-    
-    .stats-table tr:nth-child(5) {
-        background-color: #f0faf4 !important;
-        -webkit-print-color-adjust: exact;
-        print-color-adjust: exact;
-    }
-    
-    .stats-table tr:nth-child(9) {
-        background-color: #f0f8ff !important;
-        -webkit-print-color-adjust: exact;
-        print-color-adjust: exact;
-    }
-    
-    .stats-table .student-name {
-        font-weight: 600;
-        font-size: 0.85rem;
-        margin-bottom: 0.05rem;
-    }
-    
-    .stats-table .student-info {
-        font-size: 0.7rem;
-        color: #666;
-    }
-    
-    .stats-table .row-label {
-        font-weight: 600;
-        background-color: #f8f9fa !important;
-        -webkit-print-color-adjust: exact;
-        print-color-adjust: exact;
+        display: block !important;
+        page-break-before: auto !important;
     }
     
     /* 통계표 숨김 옵션 */
