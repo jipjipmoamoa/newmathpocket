@@ -4,4 +4,49 @@
         size: landscape;
         margin: 0.3cm;
     }
+    
+    /* 헤더와 필터 숨기기 */
+    .page-header {
+        display: none !important;
+    }
+    
+    /* 스케줄 테이블 스타일 */
+    .weekly-schedule-table {
+        width: 100% !important;
+        border-collapse: collapse !important;
+    }
+    
+    /* 시간 셀 높이 조정 */
+    .weekly-schedule-table tbody tr {
+        height: 40px !important; /* 기본 높이의 2배 */
+    }
+    
+    /* 학생 셀 패딩 조정 */
+    .weekly-schedule-table .student-cell {
+        padding: 0.5rem !important;
+        vertical-align: top !important;
+    }
+    
+    /* 학생 이름 폰트 크기 */
+    .weekly-schedule-table .student-cell > div:first-child {
+        font-size: 0.9rem !important;
+        font-weight: 600 !important;
+    }
+    
+    /* 시간 폰트 크기 */
+    .weekly-schedule-table .student-cell > div:last-child {
+        font-size: 0.75rem !important;
+        margin-top: 0.3rem !important;
+    }
+    
+    /* 빈 셀 높이 */
+    .weekly-schedule-table .empty-cell {
+        height: 40px !important;
+    }
+    
+    /* 테이블 경계선 */
+    .weekly-schedule-table td,
+    .weekly-schedule-table th {
+        border: 1px solid #ddd !important;
+    }
 }
