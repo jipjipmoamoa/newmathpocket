@@ -1036,3 +1036,193 @@ input[type="date"] {
         font-size: 0.75rem;
     }
 }
+
+/* ============================================
+   인쇄 스타일
+   ============================================ */
+@media print {
+    /* 기본 페이지 설정 */
+    @page {
+        size: A4 portrait;
+        margin: 10mm;
+    }
+    
+    /* 불필요한 요소 숨기기 */
+    body > *:not(.attendance-view-container) {
+        display: none !important;
+    }
+    
+    .view-controls,
+    .btn-month-nav,
+    button {
+        display: none !important;
+    }
+    
+    /* 컨테이너 여백 제거 */
+    .attendance-view-container {
+        max-width: 100%;
+        padding: 0;
+        margin: 0;
+    }
+    
+    .monthly-calendar-section {
+        padding: 0;
+        margin: 0;
+        page-break-inside: avoid;
+    }
+    
+    /* 제목 스타일 */
+    .calendar-header {
+        margin-bottom: 10px;
+        text-align: center;
+    }
+    
+    .calendar-header h3 {
+        font-size: 18pt;
+        margin: 0;
+        padding: 5px 0;
+    }
+    
+    /* 달력 테이블 최적화 */
+    .monthly-calendar {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 9pt;
+        page-break-inside: avoid;
+    }
+    
+    .monthly-calendar th {
+        padding: 4px;
+        font-size: 9pt;
+        background-color: #f8f9fa !important;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+    }
+    
+    .monthly-calendar td {
+        padding: 4px;
+        height: auto;
+        min-height: 60px;
+        vertical-align: top;
+        border: 1px solid #dee2e6 !important;
+    }
+    
+    .monthly-calendar .calendar-cell {
+        height: auto;
+        min-height: 60px;
+    }
+    
+    .date-number {
+        font-size: 10pt;
+        font-weight: 600;
+        margin-bottom: 3px;
+    }
+    
+    .schedule-list {
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+    }
+    
+    .schedule-item {
+        font-size: 7pt;
+        padding: 1px 3px;
+        line-height: 1.2;
+        border-radius: 2px;
+    }
+    
+    /* 상태별 색상 유지 */
+    .schedule-item.attendance {
+        color: #000 !important;
+        background: transparent !important;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+    }
+    
+    .schedule-item.absent {
+        color: #000 !important;
+        background: transparent !important;
+        text-decoration: line-through !important;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+    }
+    
+    .schedule-item.makeup {
+        color: #dc3545 !important;
+        background: transparent !important;
+        font-weight: 600 !important;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+    }
+    
+    .schedule-item.external {
+        color: #007bff !important;
+        background: transparent !important;
+        font-weight: 500 !important;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+    }
+    
+    /* 통계 테이블 최적화 */
+    #viewAttendanceStatsContainer {
+        margin-top: 15px;
+        page-break-before: avoid;
+        page-break-inside: avoid;
+    }
+    
+    /* 통계 숨김 옵션 */
+    body.hide-stats-print #viewAttendanceStatsContainer {
+        display: none !important;
+    }
+    
+    .stats-table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 8pt;
+        page-break-inside: avoid;
+    }
+    
+    .stats-table th {
+        padding: 3px;
+        font-size: 8pt;
+        border: 1px solid #dee2e6 !important;
+        background-color: #f8f9fa !important;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+    }
+    
+    .stats-table td {
+        padding: 3px;
+        font-size: 8pt;
+        border: 1px solid #dee2e6 !important;
+        text-align: center;
+    }
+    
+    .stats-table .student-name {
+        font-size: 8pt;
+        font-weight: 600;
+    }
+    
+    .stats-table .student-info {
+        font-size: 7pt;
+        color: #666;
+    }
+    
+    .stats-table .row-label {
+        font-weight: 600;
+        background-color: #f8f9fa !important;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+    }
+    
+    /* 페이지 나누기 방지 */
+    table, tr, td, th {
+        page-break-inside: avoid;
+    }
+    
+    /* 배경색 인쇄 강제 */
+    * {
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+    }
+}
