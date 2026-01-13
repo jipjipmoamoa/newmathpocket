@@ -22,20 +22,28 @@ async function showAttendanceCheckPage() {
     // 페이지 HTML 구조
     mainContent.innerHTML = `
         <div class="attendance-check-container">
-            <!-- 1단: 출결번호 입력 -->
+            <!-- 1단: 학생 선택 (드롭다운 또는 직접입력) -->
             <div class="attendance-input-section">
                 <div class="input-group">
+                    <select 
+                        id="studentDropdown" 
+                        class="student-dropdown"
+                        onchange="handleStudentDropdownChange()"
+                    >
+                        <option value="">재원생 선택...</option>
+                    </select>
+                    <span class="input-separator">또는</span>
                     <input 
                         type="text" 
-                        id="attendanceNumberInput" 
-                        class="attendance-number-input"
-                        placeholder="출결번호"
-                        maxlength="5"
-                        autofocus
+                        id="manualNameInput" 
+                        class="manual-name-input"
+                        placeholder="이름 직접 입력"
+                        maxlength="20"
                     />
-                    <button onclick="processAttendanceByNumberBtn()" class="btn-search">조회</button>
+                    <button onclick="processAttendanceManualBtn()" class="btn-search">조회</button>
                 </div>
             </div>
+
 
             <!-- 2단: 출석 테이블 -->
             <div class="attendance-table-section">
@@ -83,11 +91,16 @@ async function showAttendanceCheckPage() {
         </div>
     `;
 
-    // 이벤트 바인딩
-    const numberInput = document.getElementById('attendanceNumberInput');
-    if (numberInput) {
-        numberInput.addEventListener('keypress', handleAttendanceNumberKeypress);
+      // 이벤트 바인딩
+    const manualInput = document.getElementById('manualNameInput');
+    if (manualInput) {
+        manualInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                processAttendanceManualBtn();
+            }
+        });
     }
+
 
     const checkInInput = document.getElementById('registerCheckInTime');
     if (checkInInput) {
@@ -103,35 +116,134 @@ async function showAttendanceCheckPage() {
 
     // 데이터 로드
     await loadAttendanceData();
+    await loadStudentDropdown(); // 드롭다운 로드
     await renderMonthlyCalendar();
     
     console.log('=== 출석 체크 페이지 로드 완료 ===');
-}
+
 
 // ============================================
-// 2. 출결번호 입력 처리
+// 2. 학생 선택 처리 (드롭다운 + 직접입력)
 // ============================================
-function handleAttendanceNumberKeypress(e) {
-    if (e.key === 'Enter') {
-        processAttendanceByNumberBtn();
+
+// 재원생 드롭다운 로드
+async function loadStudentDropdown() {
+    try {
+        const result = await API.getList('students', { limit: 1000 });
+        const students = result.data || result;
+        
+        // 재원생만 필터링
+        const activeStudents = students.filter(s => s.status === '재원');
+        
+        // 이름순 정렬
+        activeStudents.sort((a, b) => (a.name || '').localeCompare(b.name || '', 'ko-KR'));
+        
+        const dropdown = document.getElementById('studentDropdown');
+        if (dropdown) {
+            // 기존 옵션 제거 (첫 번째 제외)
+            while (dropdown.options.length > 1) {
+                dropdown.remove(1);
+            }
+            
+            // 재원생 옵션 추가
+            activeStudents.forEach(student => {
+                const option = document.createElement('option');
+                option.value = student.id;
+                option.textContent = `${student.name}${student.attendance_number ? ' (' + student.attendance_number + ')' : ''}`;
+                option.dataset.studentData = JSON.stringify(student);
+                dropdown.appendChild(option);
+            });
+        }
+        
+        console.log(`[드롭다운] 재원생 ${activeStudents.length}명 로드 완료`);
+    } catch (error) {
+        console.error('재원생 로드 실패:', error);
     }
 }
 
-function processAttendanceByNumberBtn() {
-    const numberInput = document.getElementById('attendanceNumberInput');
-    const number = numberInput.value.trim();
+// 드롭다운 선택 처리
+function handleStudentDropdownChange() {
+    const dropdown = document.getElementById('studentDropdown');
+    const selectedOption = dropdown.options[dropdown.selectedIndex];
     
-    if (number.length < 4 || number.length > 5) {
-        alert('출결번호는 4-5자리입니다.');
+    if (!selectedOption || !selectedOption.value) {
         return;
     }
-
-    processAttendanceByNumber(number);
-    numberInput.value = '';
+    
+    // 직접입력 필드 초기화
+    const manualInput = document.getElementById('manualNameInput');
+    if (manualInput) {
+        manualInput.value = '';
+    }
+    
+    // 학생 데이터 파싱
+    try {
+        const studentData = JSON.parse(selectedOption.dataset.studentData);
+        console.log('[드롭다운 선택]', studentData.name);
+        
+        // 출석 처리
+        processStudentAttendance(studentData, 'active');
+        
+        // 드롭다운 초기화
+        dropdown.selectedIndex = 0;
+    } catch (error) {
+        console.error('학생 데이터 파싱 실패:', error);
+        alert('학생 정보를 불러오는데 실패했습니다.');
+    }
 }
 
-async function processAttendanceByNumber(attendanceNumber) {
-    console.log('출결번호 처리:', attendanceNumber);
+// 직접입력 처리
+async function processAttendanceManualBtn() {
+    const manualInput = document.getElementById('manualNameInput');
+    const name = manualInput.value.trim();
+    
+    if (!name) {
+        alert('이름을 입력해주세요.');
+        return;
+    }
+    
+    // 드롭다운 초기화
+    const dropdown = document.getElementById('studentDropdown');
+    if (dropdown) {
+        dropdown.selectedIndex = 0;
+    }
+    
+    console.log('[직접입력]', name);
+    
+    try {
+        // 1. 전체 학생 검색 (재원/휴원/퇴원 모두)
+        const result = await API.getList('students', { limit: 1000 });
+        const students = result.data || result;
+        
+        // 이름으로 검색
+        const foundStudent = students.find(s => s.name === name);
+        
+        if (foundStudent) {
+            // 학생 정보 있음
+            console.log(`[정보 발견] ${foundStudent.name} (${foundStudent.status})`);
+            processStudentAttendance(foundStudent, foundStudent.status);
+        } else {
+            // 학생 정보 없음 - 출결만 저장
+            console.log(`[정보 없음] ${name} - 출결만 저장`);
+            processStudentAttendance({ 
+                name: name, 
+                id: null, 
+                status: 'unknown' 
+            }, 'unknown');
+        }
+        
+        // 입력 필드 초기화
+        manualInput.value = '';
+        
+    } catch (error) {
+        console.error('학생 검색 실패:', error);
+        alert('학생 정보를 검색하는데 실패했습니다.');
+    }
+}
+
+// 통합 출석 처리 함수
+async function processStudentAttendance(studentData, studentStatus) {
+    console.log('출석 처리:', studentData.name, studentStatus);
     
     // 로그인 확인
     const currentUser = getCurrentUser();
@@ -140,20 +252,24 @@ async function processAttendanceByNumber(attendanceNumber) {
         return;
     }
 
-    // 해당 출결번호의 학생 찾기
-    const student = attendanceStudents.find(s => s.attendance_number === attendanceNumber);
-    
-    if (!student) {
-        alert('해당 출결번호의 학생을 찾을 수 없습니다.');
-        return;
-    }
-
-    // 이미 출석 체크되었는지 확인
-    const existingRecord = todayAttendanceRecords.find(r => r.student_id === student.id);
-    
-    if (existingRecord) {
-        alert(`${student.name} 학생은 이미 출석 체크되었습니다.`);
-        return;
+    // 이미 출석 체크되었는지 확인 (ID가 있는 경우만)
+    if (studentData.id) {
+        const existingRecord = todayAttendanceRecords.find(r => r.student_id === studentData.id);
+        
+        if (existingRecord) {
+            alert(`${studentData.name} 학생은 이미 출석 체크되었습니다.`);
+            return;
+        }
+    } else {
+        // ID가 없는 경우 이름으로 중복 체크
+        const existingRecord = todayAttendanceRecords.find(r => 
+            r.student_name === studentData.name && !r.student_id
+        );
+        
+        if (existingRecord) {
+            alert(`${studentData.name} 학생은 이미 출석 체크되었습니다.`);
+            return;
+        }
     }
 
     // 현재 시간
@@ -161,27 +277,37 @@ async function processAttendanceByNumber(attendanceNumber) {
     const checkInTime = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
     
     // 퇴실 예정 시간 계산
-    const schedule = getStudentTodaySchedule(student);
+    const schedule = studentData.id ? getStudentTodaySchedule(studentData) : null;
     const expectedOutTime = calculateExpectedTime(checkInTime, schedule ? schedule.duration : 90);
 
     // 출석 데이터 생성
     const attendanceData = {
-        student_id: student.id,
-        student_name: student.name,
-        attendance_number: student.attendance_number,
+        student_id: studentData.id || null,
+        student_name: studentData.name,
+        attendance_number: studentData.attendance_number || '',
         date: getSelectedDateString(),
         check_in_time: checkInTime,
         expected_out_time: expectedOutTime,
         check_out_time: '',
         status: '출석',
         absence_reason: '',
-        makeup_date: ''
+        makeup_date: '',
+        is_external: studentStatus === 'unknown' // 정보 없는 학생 플래그
     };
 
     try {
         const result = await API.create('attendance', attendanceData);
         console.log('출석 체크 성공:', result);
-        alert(`${student.name} 학생 출석 체크 완료`);
+        
+        // 상태별 메시지
+        let message = `${studentData.name} 학생 출석 체크 완료`;
+        if (studentStatus === 'unknown') {
+            message += ' (정보 없음 - 파란색 표시)';
+        } else if (studentStatus === '휴원' || studentStatus === '퇴원') {
+            message += ` (${studentStatus} 학생)`;
+        }
+        
+        alert(message);
         
         // 데이터 새로고침
         await loadAttendanceData();
@@ -191,6 +317,7 @@ async function processAttendanceByNumber(attendanceNumber) {
         alert('출석 체크에 실패했습니다.');
     }
 }
+
 
 // ============================================
 // 3. 데이터 로드
@@ -1355,6 +1482,9 @@ function renderScheduleItem(schedule) {
     let itemClass = 'schedule-item';
     let content = '';
     
+    // 정보 없는 학생 (is_external) 플래그 확인
+    const isExternal = schedule.is_external === true || schedule.is_external === 1;
+    
     if (schedule.status === '결석') {
         // 결석: "입실시간, 이름, (사유)" - 검정색 + 가로선
         itemClass += ' absent';
@@ -1366,13 +1496,14 @@ function renderScheduleItem(schedule) {
         const makeupDateStr = schedule.makeup_date ? ` (${schedule.makeup_date.substring(5).replace('-', '/')})` : '';
         content = `${schedule.check_in_time || '-'} ${schedule.student_name} ${schedule.check_out_time || '-'}${makeupDateStr}`;
     } else {
-        // 출석: "입실시간, 이름, 퇴실시간" - 검정색
-        itemClass += ' attendance';
+        // 출석: "입실시간, 이름, 퇴실시간" - 검정색 (또는 파란색)
+        itemClass += isExternal ? ' external' : ' attendance';
         content = `${schedule.check_in_time || '-'} ${schedule.student_name} ${schedule.check_out_time || '-'}`;
     }
     
     return `<div class="${itemClass}">${content}</div>`;
 }
+
 
 // ============================================
 // 학년별 출석 통계 표
