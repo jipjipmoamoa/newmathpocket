@@ -29,14 +29,17 @@
     
     /* 학생 이름 폰트 크기 */
     .weekly-schedule-table .student-cell > div:first-child {
-        font-size: 0.9rem !important;
+        font-size: 0.7rem !important;
         font-weight: 600 !important;
+        white-space: nowrap !important;
+        overflow: hidden !important;
+        text-overflow: ellipsis !important;
     }
     
     /* 시간 폰트 크기 */
     .weekly-schedule-table .student-cell > div:last-child {
-        font-size: 0.75rem !important;
-        margin-top: 0.3rem !important;
+        font-size: 0.6rem !important;
+        margin-top: 0.2rem !important;
     }
     
     /* 빈 셀 높이 */
