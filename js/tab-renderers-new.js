@@ -159,10 +159,10 @@ function renderConsultationTab(student) {
             <table class="data-table consultation-table">
                 <thead>
                     <tr>
-                        <th>상담 날짜</th>
-                        <th>상담자</th>
+                        <th style="width: 120px;">상담 날짜</th>
+                        <th style="width: 100px;">상담자</th>
                         <th>상담내용</th>
-                        <th>관리</th>
+                        <th style="width: 100px;">관리</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -183,12 +183,25 @@ function renderConsultationTab(student) {
                     <!-- 데이터 행 (3행부터, 최신순) -->
                     ${consultations.length === 0 ? '<tr><td colspan="4" class="empty-message">등록된 상담 내용이 없습니다</td></tr>' : ''}
                     ${consultations.map(consul => `
-                        <tr>
-                            <td>${consul.date || '-'}</td>
-                            <td>${consul.person || '-'}</td>
-                            <td>${consul.content || '-'}</td>
-                            <td>
-                                <button class="btn-edit" onclick="editConsultation('${student.id}', '${consul.id}')"><i class="fas fa-pencil-alt"></i></button>
+                        <tr id="consul-row-${consul.id}" class="data-row">
+                            <td class="consul-date-cell" data-consul-id="${consul.id}">
+                                <span class="display-value">${consul.date || '-'}</span>
+                                <input type="text" class="edit-input" value="${consul.date || ''}" style="display:none;">
+                            </td>
+                            <td class="consul-person-cell" data-consul-id="${consul.id}">
+                                <span class="display-value">${consul.person || '-'}</span>
+                                <select class="edit-input" style="display:none;">
+                                    <option value="모" ${consul.person === '모' ? 'selected' : ''}>모</option>
+                                    <option value="부" ${consul.person === '부' ? 'selected' : ''}>부</option>
+                                    <option value="가족" ${consul.person === '가족' ? 'selected' : ''}>가족</option>
+                                </select>
+                            </td>
+                            <td class="consul-content-cell" data-consul-id="${consul.id}">
+                                <span class="display-value">${consul.content || '-'}</span>
+                                <input type="text" class="edit-input" value="${consul.content || ''}" style="display:none;">
+                            </td>
+                            <td class="action-buttons">
+                                <button class="btn-edit" onclick="toggleEditConsultation('${student.id}', '${consul.id}')"><i class="fas fa-pencil-alt"></i></button>
                                 <button class="btn-delete" onclick="deleteConsultation('${student.id}', '${consul.id}')"><i class="fas fa-times"></i></button>
                             </td>
                         </tr>
