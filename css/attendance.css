@@ -705,18 +705,18 @@ input[type="date"] {
         margin: 1cm;
     }
     
-    /* 헤더, 메뉴, 버튼, 컨트롤 숨기기 */
+    /* 헤더, 메뉴 숨기기 (네비게이션 제외) */
     header,
     .main-menu,
-    .sub-menu-container,
-    .page-header,
-    .view-controls,
-    .btn-month-nav,
-    button,
-    .btn,
-    input[type="checkbox"] {
+    .sub-menu-container {
         display: none !important;
     }
+    
+    /* 인쇄 버튼만 숨기기 */
+    .print-btn {
+        display: none !important;
+    }
+
     
     /* Body 설정 */
     body {
