@@ -601,6 +601,11 @@ function renderAttendanceTable() {
         if (status === '출석') {
             statusColor = 'style="color: #4CAF50; font-weight: 600;"';
         } else if (status === '보강') {
+            // 보강 날짜 표시
+            if (makeupDate) {
+                const formattedDate = makeupDate.substring(5).replace('-', '/');
+                statusText = `보강(${formattedDate})`;
+            }
             statusColor = 'style="color: #f44336; font-weight: 600;"';
         } else if (status === '결석') {
             // 결석 사유 표시
@@ -691,6 +696,11 @@ function renderAttendanceTable() {
             if (status === '출석') {
                 statusColor = 'color: #4CAF50; font-weight: 600;';
             } else if (status === '보강') {
+                // 보강 날짜 표시
+                if (makeupDate) {
+                    const formattedDate = makeupDate.substring(5).replace('-', '/');
+                    statusText = `보강(${formattedDate})`;
+                }
                 statusColor = 'color: #f44336; font-weight: 600;';
             } else if (status === '결석') {
                 if (absenceReason) {
@@ -1247,34 +1257,7 @@ async function editAttendance(recordId) {
 // ============================================
 // 8. 출석 삭제
 // ============================================
-async function deleteAttendance(recordId) {
-    console.log('출석 삭제:', recordId);
-    
-    // 로그인 확인
-    const currentUser = getCurrentUser();
-    if (!currentUser) {
-        alert('로그인이 필요합니다.');
-        return;
-    }
-    
-    if (!confirm('정말 삭제하시겠습니까?')) {
-        return;
-    }
-    
-    try {
-        await API.delete('attendance', recordId);
-        console.log('출석 삭제 성공');
-        alert('출석 기록이 삭제되었습니다.');
-        
-        // 데이터 새로고침
-        await loadAttendanceData();
-        await renderMonthlyCalendar();
-        
-    } catch (error) {
-        console.error('출석 삭제 실패:', error);
-        alert('출석 삭제에 실패했습니다.');
-    }
-}
+
 
 // ============================================
 // 9. 유틸리티 함수
