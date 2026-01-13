@@ -742,6 +742,57 @@ input[type="date"] {
 }
 
 /* ============================================
+   통계표 색상 규칙 (화면 표시용)
+   ============================================ */
+
+/* 1행 전체 - 연노랑 */
+.stats-table thead tr:nth-child(1) th {
+    background-color: #fffef0 !important;
+}
+
+/* 1열 2행 - 연노랑 */
+.stats-table tbody tr:nth-child(2) td:first-child {
+    background-color: #fffef0 !important;
+}
+
+/* 1열 3행 - 연노랑 */
+.stats-table tbody tr:nth-child(3) td:first-child {
+    background-color: #fffef0 !important;
+}
+
+/* 4행 전체 - 연두색 */
+.stats-table tbody tr:nth-child(4) th,
+.stats-table tbody tr:nth-child(4) td {
+    background-color: #f0faf4 !important;
+}
+
+/* 1열 5행 - 연두색 */
+.stats-table tbody tr:nth-child(5) td:first-child {
+    background-color: #f0faf4 !important;
+}
+
+/* 1열 6행 - 연두색 */
+.stats-table tbody tr:nth-child(6) td:first-child {
+    background-color: #f0faf4 !important;
+}
+
+/* 7행 전체 - 연하늘색 */
+.stats-table tbody tr:nth-child(7) th,
+.stats-table tbody tr:nth-child(7) td {
+    background-color: #f0f8ff !important;
+}
+
+/* 1열 8행 - 연하늘색 */
+.stats-table tbody tr:nth-child(8) td:first-child {
+    background-color: #f0f8ff !important;
+}
+
+/* 1열 9행 - 연하늘색 */
+.stats-table tbody tr:nth-child(9) td:first-child {
+    background-color: #f0f8ff !important;
+}
+
+/* ============================================
    출석 조회 페이지
    ============================================ */
 .attendance-view-container {
