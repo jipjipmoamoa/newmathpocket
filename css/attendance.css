@@ -745,6 +745,12 @@ input[type="date"] {
    통계표 색상 규칙 (화면 표시용)
    ============================================ */
 
+/* 모든 셀 흰색 초기화 */
+.stats-table th,
+.stats-table td {
+    background-color: white !important;
+}
+
 /* 1행 전체 - 연노랑 */
 .stats-table thead tr:nth-child(1) th {
     background-color: #fffef0 !important;
@@ -790,6 +796,11 @@ input[type="date"] {
 /* 1열 9행 - 연하늘색 */
 .stats-table tbody tr:nth-child(9) td:first-child {
     background-color: #f0f8ff !important;
+}
+
+/* row-label 배경색 복원 */
+.stats-table .row-label {
+    background-color: #f8f9fa !important;
 }
 
 /* ============================================
@@ -1278,7 +1289,7 @@ input[type="date"] {
         padding: 2px !important;
         font-size: 7pt !important;
         border: 0.5px solid #999 !important;
-        background-color: #f0f0f0 !important;
+        background-color: white !important;
         -webkit-print-color-adjust: exact;
         print-color-adjust: exact;
         line-height: 1.1 !important;
@@ -1288,8 +1299,11 @@ input[type="date"] {
         padding: 2px !important;
         font-size: 7pt !important;
         border: 0.5px solid #999 !important;
+        background-color: white !important;
         text-align: center !important;
         line-height: 1.1 !important;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
     }
     
     .stats-table .student-name {
