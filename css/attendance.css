@@ -755,56 +755,62 @@ input[type="date"] {
 /* 1행 전체 (학생 이름) */
 .stats-table tbody tr:nth-child(1) th,
 .stats-table tbody tr:nth-child(1) td {
-    background-color: #fffef0 !important;
+    background-color: #fff9e6 !important;
 }
 
-/* 2행 1열 */
-.stats-table tbody tr:nth-child(2) td:first-child {
-    background-color: #fffef0 !important;
+/* 2행 1열 - row-label 포함 */
+.stats-table tbody tr:nth-child(2) td:first-child,
+.stats-table tbody tr:nth-child(2) .row-label {
+    background-color: #fff9e6 !important;
 }
 
-/* 3행 1열 */
-.stats-table tbody tr:nth-child(3) td:first-child {
-    background-color: #fffef0 !important;
+/* 3행 1열 - row-label 포함 */
+.stats-table tbody tr:nth-child(3) td:first-child,
+.stats-table tbody tr:nth-child(3) .row-label {
+    background-color: #fff9e6 !important;
 }
 
 /* 중학생 포인트 컬러 - 연두색 */
 /* 4행 전체 (학생 이름) */
 .stats-table tbody tr:nth-child(4) th,
 .stats-table tbody tr:nth-child(4) td {
-    background-color: #f0faf4 !important;
+    background-color: #e8f5e9 !important;
 }
 
-/* 5행 1열 */
-.stats-table tbody tr:nth-child(5) td:first-child {
-    background-color: #f0faf4 !important;
+/* 5행 1열 - row-label 포함 */
+.stats-table tbody tr:nth-child(5) td:first-child,
+.stats-table tbody tr:nth-child(5) .row-label {
+    background-color: #e8f5e9 !important;
 }
 
-/* 6행 1열 */
-.stats-table tbody tr:nth-child(6) td:first-child {
-    background-color: #f0faf4 !important;
+/* 6행 1열 - row-label 포함 */
+.stats-table tbody tr:nth-child(6) td:first-child,
+.stats-table tbody tr:nth-child(6) .row-label {
+    background-color: #e8f5e9 !important;
 }
 
 /* 고등학생 포인트 컬러 - 연하늘색 */
 /* 7행 전체 (학생 이름) */
 .stats-table tbody tr:nth-child(7) th,
 .stats-table tbody tr:nth-child(7) td {
-    background-color: #f0f8ff !important;
+    background-color: #e3f2fd !important;
 }
 
-/* 8행 1열 */
-.stats-table tbody tr:nth-child(8) td:first-child {
-    background-color: #f0f8ff !important;
+/* 8행 1열 - row-label 포함 */
+.stats-table tbody tr:nth-child(8) td:first-child,
+.stats-table tbody tr:nth-child(8) .row-label {
+    background-color: #e3f2fd !important;
 }
 
-/* 9행 1열 */
-.stats-table tbody tr:nth-child(9) td:first-child {
-    background-color: #f0f8ff !important;
+/* 9행 1열 - row-label 포함 */
+.stats-table tbody tr:nth-child(9) td:first-child,
+.stats-table tbody tr:nth-child(9) .row-label {
+    background-color: #e3f2fd !important;
 }
 
-/* row-label 배경색 복원 */
+/* row-label 기본 배경색 - 우선순위 낮춤 */
 .stats-table .row-label {
-    background-color: #f8f9fa !important;
+    background-color: #f8f9fa;
 }
 
 /* ============================================
@@ -1362,21 +1368,23 @@ input[type="date"] {
     /* 1행 전체 (학생 이름) */
     .stats-table tbody tr:nth-child(1) th,
     .stats-table tbody tr:nth-child(1) td {
-        background-color: #fffef0 !important;
+        background-color: #fff9e6 !important;
         -webkit-print-color-adjust: exact;
         print-color-adjust: exact;
     }
     
-    /* 2행 1열 */
-    .stats-table tbody tr:nth-child(2) td:first-child {
-        background-color: #fffef0 !important;
+    /* 2행 1열 - row-label 포함 */
+    .stats-table tbody tr:nth-child(2) td:first-child,
+    .stats-table tbody tr:nth-child(2) .row-label {
+        background-color: #fff9e6 !important;
         -webkit-print-color-adjust: exact;
         print-color-adjust: exact;
     }
     
-    /* 3행 1열 */
-    .stats-table tbody tr:nth-child(3) td:first-child {
-        background-color: #fffef0 !important;
+    /* 3행 1열 - row-label 포함 */
+    .stats-table tbody tr:nth-child(3) td:first-child,
+    .stats-table tbody tr:nth-child(3) .row-label {
+        background-color: #fff9e6 !important;
         -webkit-print-color-adjust: exact;
         print-color-adjust: exact;
     }
@@ -1385,21 +1393,23 @@ input[type="date"] {
     /* 4행 전체 (학생 이름) */
     .stats-table tbody tr:nth-child(4) th,
     .stats-table tbody tr:nth-child(4) td {
-        background-color: #f0faf4 !important;
+        background-color: #e8f5e9 !important;
         -webkit-print-color-adjust: exact;
         print-color-adjust: exact;
     }
     
-    /* 5행 1열 */
-    .stats-table tbody tr:nth-child(5) td:first-child {
-        background-color: #f0faf4 !important;
+    /* 5행 1열 - row-label 포함 */
+    .stats-table tbody tr:nth-child(5) td:first-child,
+    .stats-table tbody tr:nth-child(5) .row-label {
+        background-color: #e8f5e9 !important;
         -webkit-print-color-adjust: exact;
         print-color-adjust: exact;
     }
     
-    /* 6행 1열 */
-    .stats-table tbody tr:nth-child(6) td:first-child {
-        background-color: #f0faf4 !important;
+    /* 6행 1열 - row-label 포함 */
+    .stats-table tbody tr:nth-child(6) td:first-child,
+    .stats-table tbody tr:nth-child(6) .row-label {
+        background-color: #e8f5e9 !important;
         -webkit-print-color-adjust: exact;
         print-color-adjust: exact;
     }
@@ -1408,21 +1418,23 @@ input[type="date"] {
     /* 7행 전체 (학생 이름) */
     .stats-table tbody tr:nth-child(7) th,
     .stats-table tbody tr:nth-child(7) td {
-        background-color: #f0f8ff !important;
+        background-color: #e3f2fd !important;
         -webkit-print-color-adjust: exact;
         print-color-adjust: exact;
     }
     
-    /* 8행 1열 */
-    .stats-table tbody tr:nth-child(8) td:first-child {
-        background-color: #f0f8ff !important;
+    /* 8행 1열 - row-label 포함 */
+    .stats-table tbody tr:nth-child(8) td:first-child,
+    .stats-table tbody tr:nth-child(8) .row-label {
+        background-color: #e3f2fd !important;
         -webkit-print-color-adjust: exact;
         print-color-adjust: exact;
     }
     
-    /* 9행 1열 */
-    .stats-table tbody tr:nth-child(9) td:first-child {
-        background-color: #f0f8ff !important;
+    /* 9행 1열 - row-label 포함 */
+    .stats-table tbody tr:nth-child(9) td:first-child,
+    .stats-table tbody tr:nth-child(9) .row-label {
+        background-color: #e3f2fd !important;
         -webkit-print-color-adjust: exact;
         print-color-adjust: exact;
     }
