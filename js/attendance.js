@@ -500,18 +500,6 @@ function renderAttendanceTable() {
     // 등록 행의 학생 선택 드롭다운 채우기
     renderStudentSelectForRegister();
     
-    // 스케줄이 있는 학생이 없는 경우
-    if (attendanceStudents.length === 0) {
-        const emptyRow = document.createElement('tr');
-        emptyRow.innerHTML = `
-            <td colspan="7" style="text-align: center; color: #999;">
-                해당 날짜에 스케줄이 있는 학생이 없습니다.
-            </td>
-        `;
-        tbody.appendChild(emptyRow);
-        return;
-    }
-    
     // 3행부터: 모든 출석 기록을 입실시간 빠른 순으로 정렬
     // 1. 스케줄이 있는 학생들의 출석 정보 수집
     const allAttendanceRows = [];
@@ -750,6 +738,17 @@ function renderAttendanceTable() {
             tbody.appendChild(row);
         }
     });
+    
+    // 스케줄도 없고 출석 기록도 없는 경우
+    if (allAttendanceRows.length === 0) {
+        const emptyRow = document.createElement('tr');
+        emptyRow.innerHTML = `
+            <td colspan="7" style="text-align: center; color: #999;">
+                해당 날짜에 출석 기록이 없습니다.
+            </td>
+        `;
+        tbody.appendChild(emptyRow);
+    }
 }
 
 // 재실시간 계산 (분 단위로 반환)
