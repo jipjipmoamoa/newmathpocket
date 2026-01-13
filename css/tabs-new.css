@@ -325,3 +325,75 @@
         padding: 0.3rem 0.5rem;
     }
 }
+
+/* ===== 상담내용 인라인 편집 스타일 ===== */
+
+/* 관리 열 버튼 가로 배치 */
+.consultation-table .action-buttons {
+    white-space: nowrap;
+}
+
+.consultation-table .action-buttons .btn-edit,
+.consultation-table .action-buttons .btn-delete {
+    display: inline-block;
+    margin: 0 2px;
+}
+
+/* 편집 모드 셀 스타일 */
+.consultation-table .data-row.editing {
+    background-color: #fff9e6 !important;
+}
+
+/* display 값과 edit 입력 필드 */
+.consultation-table .display-value {
+    display: block;
+}
+
+.consultation-table .edit-input {
+    display: none;
+    width: 95%;
+    padding: 0.4rem;
+    border: 1px solid #ced4da;
+    border-radius: 4px;
+    font-size: 0.9rem;
+}
+
+/* 편집 모드일 때 입력 필드 표시 */
+.consultation-table .data-row.editing .display-value {
+    display: none !important;
+}
+
+.consultation-table .data-row.editing .edit-input {
+    display: block !important;
+}
+
+/* 편집 중인 행의 버튼 스타일 */
+.consultation-table .data-row.editing .btn-edit {
+    color: #28a745 !important;  /* 체크 버튼 - 녹색 */
+}
+
+.consultation-table .data-row.editing .btn-edit:hover {
+    color: #218838 !important;
+}
+
+/* 상담내용 셀 왼쪽 정렬 */
+.consultation-table .consul-content-cell {
+    text-align: left !important;
+}
+
+.consultation-table .consul-content-cell .edit-input {
+    text-align: left;
+}
+
+/* 관리 열 너비 조정 */
+.consultation-table th:nth-child(4),
+.consultation-table td:nth-child(4) {
+    width: 100px !important;
+    min-width: 100px !important;
+}
+
+/* 상담내용 열 너비 조정 (살짝 줄임) */
+.consultation-table th:nth-child(3),
+.consultation-table td:nth-child(3) {
+    width: auto !important;
+}
