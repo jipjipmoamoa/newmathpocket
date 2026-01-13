@@ -1280,9 +1280,34 @@ input[type="date"] {
         print-color-adjust: exact !important;
     }
     
-    /* today 배경색 */
+    /* today 배경색 제거 (인쇄 시) */
     .calendar-cell.today {
-        background-color: #fff3cd !important;
+        background-color: white !important;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+    }
+    
+    /* 통계표 학년별 배경색 */
+    .stats-table thead tr:nth-child(1) th {
+        background-color: #fffef0 !important; /* 초등학생 - 연노랑 */
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+    }
+    
+    .stats-table tbody tr:nth-child(1) td,
+    .stats-table tbody tr:nth-child(2) td,
+    .stats-table tbody tr:nth-child(3) td {
+        background-color: white !important;
+    }
+    
+    .stats-table tbody tr:nth-child(4) th {
+        background-color: #f0faf4 !important; /* 중학생 - 연두색 */
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+    }
+    
+    .stats-table tbody tr:nth-child(7) th {
+        background-color: #f0f8ff !important; /* 고등학생 - 연하늘색 */
         -webkit-print-color-adjust: exact;
         print-color-adjust: exact;
     }
