@@ -751,49 +751,53 @@ input[type="date"] {
     background-color: white !important;
 }
 
-/* 1행 전체 - 연노랑 */
-.stats-table thead tr:nth-child(1) th {
+/* 초등학생 포인트 컬러 - 연노랑 */
+/* 1행 전체 (학생 이름) */
+.stats-table tbody tr:nth-child(1) th,
+.stats-table tbody tr:nth-child(1) td {
     background-color: #fffef0 !important;
 }
 
-/* 1열 2행 - 연노랑 */
+/* 2행 1열 */
 .stats-table tbody tr:nth-child(2) td:first-child {
     background-color: #fffef0 !important;
 }
 
-/* 1열 3행 - 연노랑 */
+/* 3행 1열 */
 .stats-table tbody tr:nth-child(3) td:first-child {
     background-color: #fffef0 !important;
 }
 
-/* 4행 전체 - 연두색 */
+/* 중학생 포인트 컬러 - 연두색 */
+/* 4행 전체 (학생 이름) */
 .stats-table tbody tr:nth-child(4) th,
 .stats-table tbody tr:nth-child(4) td {
     background-color: #f0faf4 !important;
 }
 
-/* 1열 5행 - 연두색 */
+/* 5행 1열 */
 .stats-table tbody tr:nth-child(5) td:first-child {
     background-color: #f0faf4 !important;
 }
 
-/* 1열 6행 - 연두색 */
+/* 6행 1열 */
 .stats-table tbody tr:nth-child(6) td:first-child {
     background-color: #f0faf4 !important;
 }
 
-/* 7행 전체 - 연하늘색 */
+/* 고등학생 포인트 컬러 - 연하늘색 */
+/* 7행 전체 (학생 이름) */
 .stats-table tbody tr:nth-child(7) th,
 .stats-table tbody tr:nth-child(7) td {
     background-color: #f0f8ff !important;
 }
 
-/* 1열 8행 - 연하늘색 */
+/* 8행 1열 */
 .stats-table tbody tr:nth-child(8) td:first-child {
     background-color: #f0f8ff !important;
 }
 
-/* 1열 9행 - 연하늘색 */
+/* 9행 1열 */
 .stats-table tbody tr:nth-child(9) td:first-child {
     background-color: #f0f8ff !important;
 }
@@ -1352,69 +1356,73 @@ input[type="date"] {
         print-color-adjust: exact;
     }
     
-    /* 통계표 색상 규칙 */
+    /* 통계표 색상 규칙 (인쇄용) */
     
-    /* 1행 전체 - 연노랑 */
-    .stats-table thead tr:nth-child(1) th {
-        background-color: #fffef0 !important; /* 연노랑 */
+    /* 초등학생 포인트 컬러 - 연노랑 */
+    /* 1행 전체 (학생 이름) */
+    .stats-table tbody tr:nth-child(1) th,
+    .stats-table tbody tr:nth-child(1) td {
+        background-color: #fffef0 !important;
         -webkit-print-color-adjust: exact;
         print-color-adjust: exact;
     }
     
-    /* 1열 2행 - 연노랑 */
+    /* 2행 1열 */
     .stats-table tbody tr:nth-child(2) td:first-child {
-        background-color: #fffef0 !important; /* 연노랑 */
+        background-color: #fffef0 !important;
         -webkit-print-color-adjust: exact;
         print-color-adjust: exact;
     }
     
-    /* 1열 3행 - 연노랑 */
+    /* 3행 1열 */
     .stats-table tbody tr:nth-child(3) td:first-child {
-        background-color: #fffef0 !important; /* 연노랑 */
+        background-color: #fffef0 !important;
         -webkit-print-color-adjust: exact;
         print-color-adjust: exact;
     }
     
-    /* 4행 전체 - 연두색 */
+    /* 중학생 포인트 컬러 - 연두색 */
+    /* 4행 전체 (학생 이름) */
     .stats-table tbody tr:nth-child(4) th,
     .stats-table tbody tr:nth-child(4) td {
-        background-color: #f0faf4 !important; /* 연두색 */
+        background-color: #f0faf4 !important;
         -webkit-print-color-adjust: exact;
         print-color-adjust: exact;
     }
     
-    /* 1열 5행 - 연두색 */
+    /* 5행 1열 */
     .stats-table tbody tr:nth-child(5) td:first-child {
-        background-color: #f0faf4 !important; /* 연두색 */
+        background-color: #f0faf4 !important;
         -webkit-print-color-adjust: exact;
         print-color-adjust: exact;
     }
     
-    /* 1열 6행 - 연두색 */
+    /* 6행 1열 */
     .stats-table tbody tr:nth-child(6) td:first-child {
-        background-color: #f0faf4 !important; /* 연두색 */
+        background-color: #f0faf4 !important;
         -webkit-print-color-adjust: exact;
         print-color-adjust: exact;
     }
     
-    /* 7행 전체 - 연하늘색 */
+    /* 고등학생 포인트 컬러 - 연하늘색 */
+    /* 7행 전체 (학생 이름) */
     .stats-table tbody tr:nth-child(7) th,
     .stats-table tbody tr:nth-child(7) td {
-        background-color: #f0f8ff !important; /* 연하늘색 */
+        background-color: #f0f8ff !important;
         -webkit-print-color-adjust: exact;
         print-color-adjust: exact;
     }
     
-    /* 1열 8행 - 연하늘색 */
+    /* 8행 1열 */
     .stats-table tbody tr:nth-child(8) td:first-child {
-        background-color: #f0f8ff !important; /* 연하늘색 */
+        background-color: #f0f8ff !important;
         -webkit-print-color-adjust: exact;
         print-color-adjust: exact;
     }
     
-    /* 1열 9행 - 연하늘색 */
+    /* 9행 1열 */
     .stats-table tbody tr:nth-child(9) td:first-child {
-        background-color: #f0f8ff !important; /* 연하늘색 */
+        background-color: #f0f8ff !important;
         -webkit-print-color-adjust: exact;
         print-color-adjust: exact;
     }
