@@ -1044,91 +1044,132 @@ input[type="date"] {
     /* 기본 페이지 설정 */
     @page {
         size: A4 portrait;
-        margin: 10mm;
+        margin: 8mm 10mm;
     }
     
-    /* 불필요한 요소 숨기기 */
-    body > *:not(.attendance-view-container) {
+    /* 모든 요소 숨기고 출석 조회 페이지만 표시 */
+    body > *:not(#mainContent) {
         display: none !important;
     }
     
+    header,
+    .main-menu,
+    .sub-menu-container,
     .view-controls,
     .btn-month-nav,
-    button {
+    button,
+    .btn-secondary,
+    input[type="checkbox"],
+    label {
         display: none !important;
+    }
+    
+    /* Body 설정 */
+    body {
+        background: white;
+        margin: 0;
+        padding: 0;
     }
     
     /* 컨테이너 여백 제거 */
+    #mainContent {
+        padding: 0 !important;
+        margin: 0 !important;
+    }
+    
     .attendance-view-container {
         max-width: 100%;
-        padding: 0;
-        margin: 0;
+        padding: 0 !important;
+        margin: 0 !important;
     }
     
     .monthly-calendar-section {
-        padding: 0;
-        margin: 0;
+        padding: 0 !important;
+        margin: 0 !important;
         page-break-inside: avoid;
     }
     
-    /* 제목 스타일 */
+    /* 제목 스타일 - 최소화 */
     .calendar-header {
-        margin-bottom: 10px;
+        margin-bottom: 8px !important;
         text-align: center;
     }
     
     .calendar-header h3 {
-        font-size: 18pt;
-        margin: 0;
-        padding: 5px 0;
+        font-size: 16pt !important;
+        margin: 0 !important;
+        padding: 3px 0 !important;
+        font-weight: 700 !important;
     }
     
-    /* 달력 테이블 최적화 */
+    /* 달력 컨테이너 */
+    #viewMonthlyCalendarContainer {
+        margin-bottom: 10px !important;
+    }
+    
+    /* 달력 테이블 최적화 - 세로폭 맞춤 */
     .monthly-calendar {
-        width: 100%;
-        border-collapse: collapse;
-        font-size: 9pt;
-        page-break-inside: avoid;
+        width: 100% !important;
+        border-collapse: collapse !important;
+        font-size: 7.5pt !important;
+        table-layout: fixed !important;
     }
     
     .monthly-calendar th {
-        padding: 4px;
-        font-size: 9pt;
-        background-color: #f8f9fa !important;
+        padding: 2px !important;
+        font-size: 8pt !important;
+        background-color: #f0f0f0 !important;
+        border: 0.5px solid #999 !important;
         -webkit-print-color-adjust: exact;
         print-color-adjust: exact;
     }
     
     .monthly-calendar td {
-        padding: 4px;
-        height: auto;
-        min-height: 60px;
-        vertical-align: top;
-        border: 1px solid #dee2e6 !important;
+        padding: 2px 3px !important;
+        height: 50px !important;
+        min-height: 50px !important;
+        max-height: 50px !important;
+        vertical-align: top !important;
+        border: 0.5px solid #999 !important;
+        overflow: hidden !important;
     }
     
     .monthly-calendar .calendar-cell {
-        height: auto;
-        min-height: 60px;
+        height: 50px !important;
+        min-height: 50px !important;
+        max-height: 50px !important;
     }
     
+    .monthly-calendar .empty-cell {
+        background-color: #f9f9f9 !important;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+    }
+    
+    /* 날짜 숫자 */
     .date-number {
-        font-size: 10pt;
-        font-weight: 600;
-        margin-bottom: 3px;
+        font-size: 8pt !important;
+        font-weight: 600 !important;
+        margin-bottom: 2px !important;
+        line-height: 1 !important;
     }
     
+    /* 스케줄 리스트 */
     .schedule-list {
-        display: flex;
-        flex-direction: column;
-        gap: 2px;
+        display: flex !important;
+        flex-direction: column !important;
+        gap: 1px !important;
     }
     
+    /* 스케줄 아이템 - 크기 축소 */
     .schedule-item {
-        font-size: 7pt;
-        padding: 1px 3px;
-        line-height: 1.2;
-        border-radius: 2px;
+        font-size: 6pt !important;
+        padding: 0px 2px !important;
+        line-height: 1.1 !important;
+        border-radius: 0 !important;
+        white-space: nowrap !important;
+        overflow: hidden !important;
+        text-overflow: ellipsis !important;
     }
     
     /* 상태별 색상 유지 */
@@ -1165,9 +1206,9 @@ input[type="date"] {
     
     /* 통계 테이블 최적화 */
     #viewAttendanceStatsContainer {
-        margin-top: 15px;
-        page-break-before: avoid;
-        page-break-inside: avoid;
+        margin-top: 10px !important;
+        page-break-before: avoid !important;
+        page-break-inside: avoid !important;
     }
     
     /* 통계 숨김 옵션 */
@@ -1176,52 +1217,72 @@ input[type="date"] {
     }
     
     .stats-table {
-        width: 100%;
-        border-collapse: collapse;
-        font-size: 8pt;
-        page-break-inside: avoid;
+        width: 100% !important;
+        border-collapse: collapse !important;
+        font-size: 7pt !important;
+        table-layout: fixed !important;
     }
     
     .stats-table th {
-        padding: 3px;
-        font-size: 8pt;
-        border: 1px solid #dee2e6 !important;
-        background-color: #f8f9fa !important;
+        padding: 2px !important;
+        font-size: 7pt !important;
+        border: 0.5px solid #999 !important;
+        background-color: #f0f0f0 !important;
         -webkit-print-color-adjust: exact;
         print-color-adjust: exact;
+        line-height: 1.1 !important;
     }
     
     .stats-table td {
-        padding: 3px;
-        font-size: 8pt;
-        border: 1px solid #dee2e6 !important;
-        text-align: center;
+        padding: 2px !important;
+        font-size: 7pt !important;
+        border: 0.5px solid #999 !important;
+        text-align: center !important;
+        line-height: 1.1 !important;
     }
     
     .stats-table .student-name {
-        font-size: 8pt;
-        font-weight: 600;
+        font-size: 7pt !important;
+        font-weight: 600 !important;
+        line-height: 1.1 !important;
+        margin-bottom: 1px !important;
     }
     
     .stats-table .student-info {
-        font-size: 7pt;
-        color: #666;
+        font-size: 6pt !important;
+        color: #666 !important;
+        line-height: 1.1 !important;
     }
     
     .stats-table .row-label {
-        font-weight: 600;
-        background-color: #f8f9fa !important;
+        font-weight: 600 !important;
+        background-color: #f0f0f0 !important;
+        font-size: 7pt !important;
         -webkit-print-color-adjust: exact;
         print-color-adjust: exact;
     }
     
     /* 페이지 나누기 방지 */
-    table, tr, td, th {
-        page-break-inside: avoid;
+    .monthly-calendar,
+    .stats-table,
+    table,
+    tbody {
+        page-break-inside: avoid !important;
+    }
+    
+    tr, td, th {
+        page-break-inside: avoid !important;
     }
     
     /* 배경색 인쇄 강제 */
     * {
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+    }
+    
+    /* today 배경색 */
+    .calendar-cell.today {
+        background-color: #fff3cd !important;
         -webkit-print-color-adjust: exact;
         print-color-adjust: exact;
     }
