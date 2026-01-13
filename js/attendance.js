@@ -668,6 +668,8 @@ function renderAttendanceTable() {
             const expectedOutTime = record.expected_out_time || '';
             const checkOutTime = record.check_out_time || '';
             const status = record.status || '';
+            const absenceReason = record.absence_reason || '';
+            const makeupDate = record.makeup_date || '';
             
             let actualDuration = '';
             if (checkInTime && checkOutTime) {
@@ -682,7 +684,7 @@ function renderAttendanceTable() {
                 }
             }
             
-            // 상태별 색상
+            // 상태별 색상 및 텍스트
             let statusColor = '';
             let statusText = status || '';
             if (status === '출석') {
@@ -690,6 +692,9 @@ function renderAttendanceTable() {
             } else if (status === '보강') {
                 statusColor = 'color: #f44336; font-weight: 600;';
             } else if (status === '결석') {
+                if (absenceReason) {
+                    statusText = `결석(${absenceReason})`;
+                }
                 statusColor = 'color: #000; font-weight: 600; text-decoration: line-through;';
             }
             
@@ -723,6 +728,16 @@ function renderAttendanceTable() {
                             <option value="결석" ${status === '결석' ? 'selected' : ''}>결석</option>
                             <option value="보강" ${status === '보강' ? 'selected' : ''}>보강</option>
                         </select>
+                        <select class="form-select" id="absence-reason-${record.student_id}" style="display: ${status === '결석' ? 'block' : 'none'}; margin-top: 5px;">
+                            <option value="">사유 선택</option>
+                            <option value="병결" ${absenceReason === '병결' ? 'selected' : ''}>병결</option>
+                            <option value="학교" ${absenceReason === '학교' ? 'selected' : ''}>학교</option>
+                            <option value="여행" ${absenceReason === '여행' ? 'selected' : ''}>여행</option>
+                            <option value="기타" ${absenceReason === '기타' ? 'selected' : ''}>기타</option>
+                        </select>
+                        <div id="makeup-date-${record.student_id}" style="display: ${status === '보강' ? 'block' : 'none'}; margin-top: 5px;">
+                            <input type="date" id="makeup-date-input-${record.student_id}" class="form-input" value="${makeupDate}" style="width: 100%;" placeholder="보강 날짜" />
+                        </div>
                     </div>
                 </td>
                 <td style="text-align: center;">
