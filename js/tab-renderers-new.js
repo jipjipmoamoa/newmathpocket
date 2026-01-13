@@ -22,7 +22,7 @@ function renderScoresTab(student) {
         return dateB.localeCompare(dateA);
     });
     
-     return `
+    return `
         <div class="tab-panel">
             <table class="data-table scores-table">
                 <thead>
@@ -62,7 +62,7 @@ function renderScoresTab(student) {
             </table>
         </div>
     `;
-
+}
 
 // ===== 사용책 탭 렌더링 =====
 
