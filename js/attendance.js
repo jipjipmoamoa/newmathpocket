@@ -40,7 +40,7 @@ async function showAttendanceCheckPage() {
             <!-- 2단: 출석 테이블 -->
             <div class="attendance-table-section">
                 <div class="table-header">
-                    <h2>출석 현황 <span id="attendanceSummary" style="font-size: 0.9rem; color: #666; font-weight: normal;"></span></h2>
+                    <h2>출석 현황&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span id="attendanceSummary" style="font-size: 0.9rem; background-color: #fff3cd; padding: 2px 8px; border-radius: 3px;"></span></h2>
                     <div class="date-selector">
                         <button class="date-nav-btn" onclick="changeAttendanceDate(-1)" title="전날">◀</button>
                         <span class="calendar-icon" onclick="document.getElementById('attendanceDateInput').showPicker()">🗓️</span>
@@ -809,7 +809,7 @@ function renderAttendanceTable() {
     // 통계 표시
     const summaryElement = document.getElementById('attendanceSummary');
     if (summaryElement) {
-        summaryElement.textContent = `${attendanceCount}명(보강 ${makeupCount}명) / 결석 ${absenceCount}명`;
+        summaryElement.textContent = `${attendanceCount}(${makeupCount})명 / ${absenceCount}명`;
     }
 }
 
@@ -1505,7 +1505,7 @@ async function renderMonthlyCalendar() {
                 });
                 
                 const statsText = schedules.length > 0 
-                    ? ` <strong>${attendanceCount}(${makeupCount})/${absenceCount}</strong>` 
+                    ? ` <span style="background-color: #fff3cd; padding: 1px 4px; border-radius: 2px; font-size: 0.85rem;">${attendanceCount}(${makeupCount})명 / ${absenceCount}명</span>` 
                     : '';
                 
                 rowHTML += `<td class="${cellClass}">`;
