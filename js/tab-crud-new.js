@@ -579,7 +579,101 @@ async function editBook(studentId, bookId) {
     }
 }
 
-// ===== 상담내용 수정 =====
+// ===== 상담내용 인라인 편집 토글 =====
+function toggleEditConsultation(studentId, consulId) {
+    const row = document.getElementById(`consul-row-${consulId}`);
+    if (!row) return;
+    
+    const isEditing = row.classList.contains('editing');
+    
+    if (isEditing) {
+        // 저장 모드
+        saveConsultationInline(studentId, consulId);
+    } else {
+        // 편집 모드로 전환
+        row.classList.add('editing');
+        
+        // display 값 숨기고 input 표시
+        row.querySelectorAll('.display-value').forEach(el => el.style.display = 'none');
+        row.querySelectorAll('.edit-input').forEach(el => el.style.display = 'block');
+        
+        // 버튼 아이콘 변경 (연필 → 체크)
+        const editBtn = row.querySelector('.btn-edit');
+        if (editBtn) {
+            editBtn.innerHTML = '<i class="fas fa-check"></i>';
+        }
+    }
+}
+
+// ===== 상담내용 인라인 저장 =====
+async function saveConsultationInline(studentId, consulId) {
+    const row = document.getElementById(`consul-row-${consulId}`);
+    if (!row) return;
+    
+    try {
+        // 입력값 가져오기
+        const dateInput = row.querySelector('.consul-date-cell .edit-input').value.trim();
+        const personSelect = row.querySelector('.consul-person-cell .edit-input').value;
+        const contentInput = row.querySelector('.consul-content-cell .edit-input').value.trim();
+        
+        // 필수값 검증
+        if (!dateInput || !personSelect || !contentInput) {
+            alert('모든 필드를 입력해주세요.');
+            return;
+        }
+        
+        // 날짜 포맷 변환
+        const formattedDate = formatDateInput(dateInput);
+        
+        // 학생 데이터 가져오기
+        const response = await API.getList('students', { limit: 1000 });
+        const students = Array.isArray(response) ? response : (response.data || []);
+        const student = students.find(s => s.id === studentId);
+        
+        if (!student) {
+            alert('학생 정보를 찾을 수 없습니다.');
+            return;
+        }
+        
+        let consultations = [];
+        try {
+            if (student.consultations && typeof student.consultations === 'string' && student.consultations.trim() !== '') {
+                consultations = JSON.parse(student.consultations);
+            } else if (Array.isArray(student.consultations)) {
+                consultations = student.consultations;
+            }
+        } catch (e) {
+            consultations = [];
+        }
+        
+        // 상담 정보 업데이트
+        const updatedConsultations = consultations.map(c => {
+            if (c.id === consulId) {
+                return {
+                    ...c,
+                    date: formattedDate,
+                    person: personSelect,
+                    content: contentInput
+                };
+            }
+            return c;
+        });
+        
+        // DB 업데이트
+        await API.update('students', studentId, {
+            consultations: JSON.stringify(updatedConsultations)
+        });
+        
+        // 화면 갱신
+        showStudentDetail(studentId);
+        
+    } catch (error) {
+        console.error('상담 내용 저장 오류:', error);
+        alert('상담 내용 저장에 실패했습니다.');
+    }
+}
+
+// ===== 상담내용 수정 (prompt 방식 - 백업용) =====
 async function editConsultation(studentId, consulId) {
     try {
         // 학생 데이터 가져오기
