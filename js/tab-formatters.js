@@ -10,16 +10,16 @@ function formatDateInput(input) {
     
     const cleaned = input.replace(/[^0-9]/g, '');
     
-    // 4자리: YYMM -> YY.MM
+    // 4자리: YYMM -> YYYY.MM (2601 → 2026.01)
     if (cleaned.length === 4) {
-        const year = cleaned.substring(0, 2);
+        const year = '20' + cleaned.substring(0, 2);
         const month = cleaned.substring(2, 4);
         return `${year}.${month}`;
     }
     
-    // 6자리: YYMMDD -> YY.MM.DD
+    // 6자리: YYMMDD -> YYYY.MM.DD (260115 → 2026.01.15)
     if (cleaned.length === 6) {
-        const year = cleaned.substring(0, 2);
+        const year = '20' + cleaned.substring(0, 2);
         const month = cleaned.substring(2, 4);
         const day = cleaned.substring(4, 6);
         return `${year}.${month}.${day}`;
@@ -59,7 +59,6 @@ function formatExamName(input) {
     
     return cleaned; // 그 외에는 입력 그대로 반환
 }
-
 
 // ===== 시험범위 자동 변환 함수 =====
 
