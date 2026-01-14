@@ -33,7 +33,8 @@ async function showAttendanceCheckPage() {
                         maxlength="5"
                         autofocus
                     />
-                    <button onclick="processAttendanceByNumberBtn()" class="btn-search">조회</button>
+                    <button onclick="processCheckIn()" class="btn-check-in">입실</button>
+                    <button onclick="processCheckOut()" class="btn-check-out">퇴실</button>
                 </div>
             </div>
 
@@ -88,7 +89,7 @@ async function showAttendanceCheckPage() {
     if (numberInput) {
         numberInput.addEventListener('keypress', (e) => {
             if (e.key === 'Enter') {
-                processAttendanceByNumberBtn();
+                processCheckIn();
             }
         });
     }
@@ -116,8 +117,8 @@ async function showAttendanceCheckPage() {
 // 2. 출결번호 입력 처리
 // ============================================
 
-// 출결번호로 출석 처리
-function processAttendanceByNumberBtn() {
+// 입실 처리
+async function processCheckIn() {
     const numberInput = document.getElementById('attendanceNumberInput');
     const number = numberInput.value.trim();
     
@@ -131,68 +132,121 @@ function processAttendanceByNumberBtn() {
         return;
     }
     
-    processAttendanceByNumber(number);
-    numberInput.value = '';
-}
-
-// 출결번호로 학생 찾아서 출석 처리
-async function processAttendanceByNumber(attendanceNumber) {
     try {
-        // 현재 사용자 확인
         const currentUser = getCurrentUser();
         if (!currentUser) {
             alert('로그인이 필요합니다.');
             return;
         }
         
-        // 출결번호로 학생 찾기
-        const student = attendanceStudents.find(s => s.attendance_number === attendanceNumber);
+        const student = attendanceStudents.find(s => s.attendance_number === number);
         
         if (!student) {
-            alert(`출결번호 ${attendanceNumber}에 해당하는 학생을 찾을 수 없습니다.`);
+            alert(`출결번호 ${number}에 해당하는 학생을 찾을 수 없습니다.`);
             return;
         }
         
-        // 이미 출석 체크되었는지 확인
-        const existingRecord = todayAttendanceRecords.find(r => r.student_id === student.id);
-        
-        if (existingRecord) {
-            alert(`${student.name} 학생은 이미 출석 체크되었습니다.`);
-            return;
-        }
-        
-        // 현재 시간
         const now = new Date();
         const checkInTime = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
         
-        // 퇴실 예정 시간 계산
         const schedule = getStudentTodaySchedule(student);
         const expectedOutTime = calculateExpectedTime(checkInTime, schedule ? schedule.duration : 90);
         
-        // 출석 데이터 생성
-        const attendanceData = {
-            student_id: student.id,
-            student_name: student.name,
-            date: getSelectedDateString(),
-            check_in_time: checkInTime,
-            expected_out_time: expectedOutTime,
-            check_out_time: '',
-            status: '출석',
-            absence_reason: '',
-            makeup_date: ''
-        };
+        const existingRecord = todayAttendanceRecords.find(r => r.student_id === student.id);
         
-        const result = await API.create('attendance', attendanceData);
-        console.log('출석 체크 성공:', result);
-        alert(`${student.name} 학생 출석 체크 완료`);
+        if (existingRecord) {
+            await API.update('attendance', existingRecord.id, {
+                ...existingRecord,
+                check_in_time: checkInTime,
+                expected_out_time: expectedOutTime,
+                status: '출석'
+            });
+            alert(`${student.name} 입실 ${checkInTime}`);
+        } else {
+            const attendanceData = {
+                student_id: student.id,
+                student_name: student.name,
+                attendance_number: student.attendance_number,
+                date: getSelectedDateString(),
+                check_in_time: checkInTime,
+                expected_out_time: expectedOutTime,
+                check_out_time: '',
+                status: '출석',
+                absence_reason: '',
+                makeup_date: ''
+            };
+            
+            await API.create('attendance', attendanceData);
+            alert(`${student.name} 입실 ${checkInTime}`);
+        }
         
-        // 데이터 새로고침
         await loadAttendanceData();
         await renderMonthlyCalendar();
         
+        numberInput.value = '';
+        numberInput.focus();
+        
     } catch (error) {
-        console.error('출석 체크 실패:', error);
-        alert('출석 체크에 실패했습니다.');
+        console.error('입실 처리 실패:', error);
+        alert('입실 처리에 실패했습니다.');
+    }
+}
+
+// 퇴실 처리
+async function processCheckOut() {
+    const numberInput = document.getElementById('attendanceNumberInput');
+    const number = numberInput.value.trim();
+    
+    if (!number) {
+        alert('출결번호를 입력해주세요.');
+        return;
+    }
+    
+    if (number.length < 4 || number.length > 5) {
+        alert('출결번호는 4-5자리입니다.');
+        return;
+    }
+    
+    try {
+        const currentUser = getCurrentUser();
+        if (!currentUser) {
+            alert('로그인이 필요합니다.');
+            return;
+        }
+        
+        const student = attendanceStudents.find(s => s.attendance_number === number);
+        
+        if (!student) {
+            alert(`출결번호 ${number}에 해당하는 학생을 찾을 수 없습니다.`);
+            return;
+        }
+        
+        const existingRecord = todayAttendanceRecords.find(r => r.student_id === student.id);
+        
+        if (!existingRecord) {
+            alert(`${student.name} 학생의 입실 기록이 없습니다.`);
+            return;
+        }
+        
+        const now = new Date();
+        const checkOutTime = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+        
+        await API.update('attendance', existingRecord.id, {
+            ...existingRecord,
+            check_out_time: checkOutTime
+        });
+        
+        alert(`${student.name} 퇴실 ${checkOutTime}`);
+        
+        await loadAttendanceData();
+        await renderMonthlyCalendar();
+        
+        numberInput.value = '';
+        numberInput.focus();
+        
+    } catch (error) {
+        console.error('퇴실 처리 실패:', error);
+        alert('퇴실 처리에 실패했습니다.');
     }
 }
 
