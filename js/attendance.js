@@ -59,6 +59,7 @@ async function showAttendanceCheckPage() {
                             <th>퇴실시간</th>
                             <th>재실시간</th>
                             <th>상태</th>
+                            <th>등록</th>
                             <th>관리</th>
                         </tr>
                     </thead>
@@ -717,6 +718,10 @@ function renderAttendanceTable() {
                 </div>
             </td>
             <td>
+                <button class="btn-quick-checkin" onclick="quickCheckIn('${student.id}')" title="입실">입실</button>
+                <button class="btn-quick-checkout" onclick="quickCheckOut('${student.id}')" title="퇴실">퇴실</button>
+            </td>
+            <td>
                 <button class="btn-icon btn-edit display-mode" id="btn-edit-${student.id}" onclick="enterEditMode('${student.id}')" title="수정"></button>
                 ${existingRecord ? `<button class="btn-icon btn-delete display-mode" id="btn-delete-${student.id}" onclick="deleteAttendance('${student.id}', '${existingRecord.id}')" style="margin-left: 0.5rem;" title="삭제"></button>` : ''}
                 <div class="edit-mode" id="edit-buttons-${student.id}" style="display: none;">
@@ -813,6 +818,10 @@ function renderAttendanceTable() {
                     </div>
                 </td>
                 <td style="text-align: center;">
+                    <button class="btn-quick-checkin" onclick="quickCheckIn('${record.student_id}')" title="입실">입실</button>
+                    <button class="btn-quick-checkout" onclick="quickCheckOut('${record.student_id}')" title="퇴실">퇴실</button>
+                </td>
+                <td style="text-align: center;">
                     <button class="btn-icon btn-edit display-mode" id="btn-edit-${record.student_id}" onclick="enterEditMode('${record.student_id}')" title="수정"></button>
                     <button class="btn-icon btn-delete display-mode" id="btn-delete-${record.student_id}" onclick="deleteAttendance('${record.student_id}', '${record.id}')" style="margin-left: 0.5rem;" title="삭제"></button>
                     <div class="edit-mode" id="edit-buttons-${record.student_id}" style="display: none;">
@@ -830,7 +839,7 @@ function renderAttendanceTable() {
     if (allAttendanceRows.length === 0) {
         const emptyRow = document.createElement('tr');
         emptyRow.innerHTML = `
-            <td colspan="7" style="text-align: center; color: #999;">
+            <td colspan="8" style="text-align: center; color: #999;">
                 해당 날짜에 출석 기록이 없습니다.
             </td>
         `;
@@ -1153,6 +1162,108 @@ async function saveAttendance(studentId) {
     } catch (error) {
         console.error('출석 저장 오류:', error);
         alert('출석 저장에 실패했습니다.');
+    }
+}
+
+// ============================================
+// 빠른 입실/퇴실 버튼 함수
+// ============================================
+
+// 빠른 입실 처리
+async function quickCheckIn(studentId) {
+    try {
+        if (!Auth.isLoggedIn()) {
+            alert('로그인이 필요합니다.');
+            return;
+        }
+        
+        const student = attendanceStudents.find(s => s.id === studentId);
+        
+        if (!student) {
+            alert('학생 정보를 찾을 수 없습니다.');
+            return;
+        }
+        
+        const now = new Date();
+        const checkInTime = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+        
+        const schedule = getStudentTodaySchedule(student);
+        const expectedOutTime = calculateExpectedTime(checkInTime, schedule ? schedule.duration : 90);
+        
+        const existingRecord = todayAttendanceRecords.find(r => r.student_id === student.id);
+        
+        if (existingRecord) {
+            await API.update('attendance', existingRecord.id, {
+                ...existingRecord,
+                check_in_time: checkInTime,
+                expected_out_time: expectedOutTime,
+                status: '출석'
+            });
+            alert(`${student.name} 입실 ${checkInTime}`);
+        } else {
+            const attendanceData = {
+                student_id: student.id,
+                student_name: student.name,
+                date: getSelectedDateString(),
+                check_in_time: checkInTime,
+                expected_out_time: expectedOutTime,
+                check_out_time: '',
+                status: '출석',
+                absence_reason: '',
+                makeup_date: ''
+            };
+            
+            await API.create('attendance', attendanceData);
+            alert(`${student.name} 입실 ${checkInTime}`);
+        }
+        
+        await loadAttendanceData();
+        await renderMonthlyCalendar();
+        
+    } catch (error) {
+        console.error('입실 처리 실패:', error);
+        alert('입실 처리에 실패했습니다.');
+    }
+}
+
+// 빠른 퇴실 처리
+async function quickCheckOut(studentId) {
+    try {
+        if (!Auth.isLoggedIn()) {
+            alert('로그인이 필요합니다.');
+            return;
+        }
+        
+        const student = attendanceStudents.find(s => s.id === studentId);
+        
+        if (!student) {
+            alert('학생 정보를 찾을 수 없습니다.');
+            return;
+        }
+        
+        const existingRecord = todayAttendanceRecords.find(r => r.student_id === student.id);
+        
+        if (!existingRecord) {
+            alert(`${student.name} 학생의 입실 기록이 없습니다.`);
+            return;
+        }
+        
+        const now = new Date();
+        const checkOutTime = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+        
+        await API.update('attendance', existingRecord.id, {
+            ...existingRecord,
+            check_out_time: checkOutTime
+        });
+        
+        alert(`${student.name} 퇴실 ${checkOutTime}`);
+        
+        await loadAttendanceData();
+        await renderMonthlyCalendar();
+        
+    } catch (error) {
+        console.error('퇴실 처리 실패:', error);
+        alert('퇴실 처리에 실패했습니다.');
     }
 }
 
