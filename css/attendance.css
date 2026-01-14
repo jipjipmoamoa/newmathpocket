@@ -283,6 +283,7 @@
     padding: 0.5rem;
     color: #495057;
     text-align: center;
+    font-family: 'Noto Sans KR', -apple-system, BlinkMacSystemFont, sans-serif;
 }
 
 /* 등록 행 */
@@ -302,6 +303,7 @@
     border: 1px solid #ced4da;
     border-radius: 4px;
     font-size: 0.9rem;
+    font-family: 'Noto Sans KR', -apple-system, BlinkMacSystemFont, sans-serif;
 }
 
 /* 시간 입력 필드에서 오전/오후 텍스트 숨기기 */
