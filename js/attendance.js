@@ -165,7 +165,6 @@ async function processCheckIn() {
             const attendanceData = {
                 student_id: student.id,
                 student_name: student.name,
-                attendance_number: student.attendance_number,
                 date: getSelectedDateString(),
                 check_in_time: checkInTime,
                 expected_out_time: expectedOutTime,
