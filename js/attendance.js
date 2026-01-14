@@ -133,8 +133,7 @@ async function processCheckIn() {
     }
     
     try {
-        const currentUser = getCurrentUser();
-        if (!currentUser) {
+        if (!Auth.isLoggedIn()) {
             alert('로그인이 필요합니다.');
             return;
         }
@@ -208,8 +207,7 @@ async function processCheckOut() {
     }
     
     try {
-        const currentUser = getCurrentUser();
-        if (!currentUser) {
+        if (!Auth.isLoggedIn()) {
             alert('로그인이 필요합니다.');
             return;
         }
@@ -255,8 +253,7 @@ async function processStudentAttendance(studentData, studentStatus) {
     console.log('출석 처리:', studentData.name, studentStatus);
     
     // 로그인 확인
-    const currentUser = getCurrentUser();
-    if (!currentUser) {
+    if (!Auth.isLoggedIn()) {
         alert('로그인이 필요합니다.');
         return;
     }
@@ -1235,8 +1232,7 @@ async function registerAttendance() {
     console.log('출석 등록 시작');
     
     // 로그인 확인
-    const currentUser = getCurrentUser();
-    if (!currentUser) {
+    if (!Auth.isLoggedIn()) {
         alert('로그인이 필요합니다.');
         return;
     }
@@ -1319,8 +1315,7 @@ async function editAttendance(recordId) {
     console.log('출석 수정:', recordId);
     
     // 로그인 확인
-    const currentUser = getCurrentUser();
-    if (!currentUser) {
+    if (!Auth.isLoggedIn()) {
         alert('로그인이 필요합니다.');
         return;
     }
