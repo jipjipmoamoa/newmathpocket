@@ -105,9 +105,9 @@
     font-size: 1.4rem;
 }
 
-.btn-search {
+.btn-check-in {
     padding: 1rem 2rem;
-    background-color: #FF6B35;
+    background-color: #28a745;
     color: white;
     border: none;
     border-radius: 8px;
@@ -118,10 +118,29 @@
     white-space: nowrap;
 }
 
-.btn-search:hover {
-    background-color: #e55a2b;
+.btn-check-in:hover {
+    background-color: #218838;
     transform: translateY(-2px);
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+    box-shadow: 0 4px 8px rgba(40, 167, 69, 0.3);
+}
+
+.btn-check-out {
+    padding: 1rem 2rem;
+    background-color: #dc3545;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-size: 1.1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    white-space: nowrap;
+}
+
+.btn-check-out:hover {
+    background-color: #c82333;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(220, 53, 69, 0.3);
 }
 
 /* ============================================
