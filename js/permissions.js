@@ -26,23 +26,22 @@ const Permissions = {
         // 관리자는 모든 페이지 접근 가능
         if (Auth.isAdmin()) return true;
         
-        // 부관리자 권한
+        // 부관리자 권한: 설정 페이지만 접근 불가, 나머지 모두 접근 가능
         if (Auth.isSubAdmin()) {
-            // 설정 페이지만 막기
             const blockedPages = ['settings'];
             return !blockedPages.includes(pageId);
         }
         
-        // 선생님 권한
+        // 선생님 권한: 학생관리, 전체회원관리, 출석체크, 출석조회, 이번달스케줄, 스케줄조회, 교육과정 접근 가능 (담당학생만)
         if (Auth.isTeacher()) {
             const allowedPages = [
                 'students',          // 학생관리 (담당학생만)
-                'all-members',       // 전체회원관리 (담당학생만, 인쇄만)
+                'all-members',       // 전체회원관리 (담당학생만)
                 'attendance-check',  // 출석체크 (담당학생만)
-                'attendance-view',   // 출석조회 (담당학생만, 인쇄만)
+                'attendance-view',   // 출석조회 (담당학생만)
                 'schedule-current',  // 이번달 스케줄표 (담당학생만)
                 'schedule-view',     // 스케줄표 조회 (담당학생만)
-                'curriculum'         // 교육과정 (조회만)
+                'curriculum'         // 교육과정 (조회 + 편집)
             ];
             return allowedPages.includes(pageId);
         }
@@ -101,9 +100,9 @@ const Permissions = {
         return Auth.isAdminOrSubAdmin();
     },
     
-    // 교육과정 편집 권한 (관리자/부관리자만)
+    // 교육과정 편집 권한 (관리자/부관리자/선생님 모두 가능)
     canEditCurriculum() {
-        return Auth.isAdminOrSubAdmin();
+        return Auth.isAdmin() || Auth.isSubAdmin() || Auth.isTeacher();
     },
     
     // 메뉴 표시 여부
