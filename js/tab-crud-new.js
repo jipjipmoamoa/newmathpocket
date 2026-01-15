@@ -649,18 +649,22 @@ async function saveConsultationInline(studentId, consulId) {
     
     try {
         // 입력값 가져오기
-        const dateInput = row.querySelector('.consul-date-cell .edit-input').value.trim();
-        const personSelect = row.querySelector('.consul-person-cell .edit-input').value;
-        const contentInput = row.querySelector('.consul-content-cell .edit-input').value.trim();
+        const dateInput = row.querySelector('.consul-date-cell .edit-input');
+        const personSelect = row.querySelector('.consul-person-cell .edit-input');
+        const contentInput = row.querySelector('.consul-content-cell .edit-input');
+        
+        const newDate = dateInput ? dateInput.value.trim() : '';
+        const newPerson = personSelect ? personSelect.value : '';
+        const newContent = contentInput ? contentInput.value.trim() : '';
         
         // 필수값 검증
-        if (!dateInput || !personSelect || !contentInput) {
+        if (!newDate || !newPerson || !newContent) {
             alert('모든 필드를 입력해주세요.');
             return;
         }
         
         // 날짜 포맷 변환
-        const formattedDate = formatDateInput(dateInput);
+        const formattedDate = formatDateInput(newDate);
         
         // 학생 데이터 가져오기
         const response = await API.getList('students', { limit: 1000 });
@@ -689,8 +693,8 @@ async function saveConsultationInline(studentId, consulId) {
                 return {
                     ...c,
                     date: formattedDate,
-                    person: personSelect,
-                    content: contentInput
+                    person: newPerson,
+                    content: newContent
                 };
             }
             return c;
@@ -701,8 +705,25 @@ async function saveConsultationInline(studentId, consulId) {
             consultations: JSON.stringify(updatedConsultations)
         });
         
-        // 화면 갱신
-        showStudentDetail(studentId);
+        // 화면에 즉시 반영
+        const dateDisplay = row.querySelector('.consul-date-cell .display-value');
+        const personDisplay = row.querySelector('.consul-person-cell .display-value');
+        const contentDisplay = row.querySelector('.consul-content-cell .display-value');
+        
+        if (dateDisplay) dateDisplay.textContent = formattedDate || '-';
+        if (personDisplay) personDisplay.textContent = newPerson || '-';
+        if (contentDisplay) contentDisplay.textContent = newContent || '-';
+        
+        // 편집 모드 종료
+        row.classList.remove('editing');
+        row.querySelectorAll('.display-value').forEach(el => el.style.display = 'block');
+        row.querySelectorAll('.edit-input').forEach(el => el.style.display = 'none');
+        
+        // 버튼 아이콘 복원 (체크 → 연필)
+        const editBtn = row.querySelector('.btn-edit');
+        if (editBtn) {
+            editBtn.innerHTML = '<i class="fas fa-pencil-alt"></i>';
+        }
         
     } catch (error) {
         console.error('상담 내용 저장 오류:', error);
