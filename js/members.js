@@ -144,6 +144,16 @@ async function loadStudents() {
         allStudents = Array.isArray(result) ? result : (result.data || []);
         console.log('[loadStudents] 로드된 학생 수:', allStudents.length);
         
+        // 선생님 데이터도 함께 로드하여 캐싱
+        try {
+            const teachersResult = await API.getList('teachers', { limit: 1000 });
+            window.allTeachersCache = Array.isArray(teachersResult) ? teachersResult : (teachersResult.data || []);
+            console.log('[loadStudents] 선생님 데이터 캐싱 완료:', window.allTeachersCache.length);
+        } catch (err) {
+            console.warn('[loadStudents] 선생님 데이터 로드 실패:', err);
+            window.allTeachersCache = [];
+        }
+        
         // 디버깅: 각 학생의 이름과 상태 출력
         allStudents.forEach(s => {
             console.log(`[학생 데이터] 이름: ${s.name}, 상태: ${s.status}, ID: ${s.id}`);
@@ -172,6 +182,23 @@ function filterStudentsByStatus(status) {
     
     currentStudentStatusFilter = status;
     
+    // 권한에 따라 학생 필터링
+    let studentsToShow = allStudents;
+    if (Auth.getRole() === 'teacher') {
+        const currentUsername = Auth.getUsername();
+        const currentTeacher = window.allTeachersCache?.find(t => t.username === currentUsername);
+        if (currentTeacher && currentTeacher.assigned_students) {
+            const assignedStudentIds = Array.isArray(currentTeacher.assigned_students) 
+                ? currentTeacher.assigned_students 
+                : [];
+            studentsToShow = allStudents.filter(s => assignedStudentIds.includes(s.id));
+            console.log('[filterStudentsByStatus] 선생님이 담당하는 학생 수:', studentsToShow.length);
+        } else {
+            studentsToShow = [];
+            console.log('[filterStudentsByStatus] 담당 학생 없음');
+        }
+    }
+    
     // 탭 활성화 상태 변경
     document.querySelectorAll('.status-tab').forEach(tab => {
         if (tab.dataset.status === status) {
@@ -185,7 +212,7 @@ function filterStudentsByStatus(status) {
     selectedStudentId = null;
     
     // 상태별 필터링 (undefined 체크 추가)
-    const filteredStudents = allStudents.filter(s => {
+    const filteredStudents = studentsToShow.filter(s => {
         // 데이터 손상된 학생은 별도 처리
         if (!s.status || !s.name) {
             console.warn('[필터링 경고] 데이터 손상된 학생:', s.id);
@@ -274,12 +301,22 @@ function renderStudentList(students) {
                     ${sortedStudents.map(student => {
                         const isComplete = isStudentInfoComplete(student);
                         const nameClass = isComplete ? 'student-name' : 'student-name incomplete';
+                        
+                        // 담당 선생님 이름 가져오기
+                        let teacherName = '';
+                        if (student.teacher_id && window.allTeachersCache) {
+                            const teacher = window.allTeachersCache.find(t => t.id === student.teacher_id);
+                            if (teacher) {
+                                teacherName = ` (${teacher.name})`;
+                            }
+                        }
+                        
                         return `
                         <div class="student-list-item ${selectedStudentId === student.id ? 'active' : ''}" 
                              onclick="console.log('클릭됨:', '${student.id}'); showStudentDetail('${student.id}')">
                             <div class="student-info-inline">
                                 <span class="${nameClass}">${student.name || 'undefined'}</span>
-                                <span class="student-school-inline">${formatSchoolName(student.school)}</span>
+                                <span class="student-school-inline">${formatSchoolName(student.school)}${teacherName}</span>
                             </div>
                         </div>
                     `;
@@ -361,9 +398,10 @@ async function showStudentDetail(studentId) {
                             </option>
                         `).join('')}
                     </select>
+                    ${Auth.getRole() !== 'teacher' ? `
                     <button class="btn-danger-small" onclick="deleteStudentCompletely('${student.id}', '${student.name}')" style="margin-left: 0.5rem;">
                         삭제
-                    </button>
+                    </button>` : ''}
                 </div>
             </div>
             
@@ -2019,20 +2057,31 @@ async function showTeachersPage() {
                 <table>
                     <thead>
                         <tr>
-                            <th>상태</th>
-                            <th>이름</th>
-                            <th>전화번호</th>
-                            <th>근무시간</th>
-                            <th>관리</th>
+                            <th style="width: 60px;">상태</th>
+                            <th style="width: 100px;">이름</th>
+                            <th style="width: 90px;">권한</th>
+                            <th style="width: 120px;">전화번호</th>
+                            <th style="width: 150px;">근무시간</th>
+                            <th style="width: 100px;">아이디</th>
+                            <th style="width: 100px;">비밀번호</th>
+                            <th style="width: 240px;">관리</th>
                         </tr>
                     </thead>
                     <tbody id="teachersTableBody">
                         <!-- 등록 행 -->
                         <tr class="teacher-register-row">
                             <td></td>
-                            <td><input type="text" id="newTeacherName" placeholder="이름" onkeypress="handleTeacherEnter(event)" style="width: 100%; padding: 0.5rem; border: 1px solid var(--border-color); border-radius: 4px;"></td>
-                            <td><input type="tel" id="newTeacherPhone" placeholder="010-0000-0000" onkeypress="handleTeacherEnter(event)" style="width: 100%; padding: 0.5rem; border: 1px solid var(--border-color); border-radius: 4px;"></td>
-                            <td><input type="text" id="newTeacherWorkHours" placeholder="예: 월~금 14:00-18:00" onkeypress="handleTeacherEnter(event)" style="width: 100%; padding: 0.5rem; border: 1px solid var(--border-color); border-radius: 4px;"></td>
+                            <td><input type="text" id="newTeacherName" placeholder="이름" style="width: 100%; padding: 0.5rem; border: 1px solid var(--border-color); border-radius: 4px;"></td>
+                            <td>
+                                <select id="newTeacherRole" style="width: 100%; padding: 0.5rem; border: 1px solid var(--border-color); border-radius: 4px;">
+                                    <option value="teacher">선생님</option>
+                                    <option value="subadmin">부관리자</option>
+                                </select>
+                            </td>
+                            <td><input type="tel" id="newTeacherPhone" placeholder="010-0000-0000" style="width: 100%; padding: 0.5rem; border: 1px solid var(--border-color); border-radius: 4px;"></td>
+                            <td><input type="text" id="newTeacherWorkHours" placeholder="예: 월~금 14:00-18:00" style="width: 100%; padding: 0.5rem; border: 1px solid var(--border-color); border-radius: 4px;"></td>
+                            <td><input type="text" id="newTeacherUsername" placeholder="아이디" style="width: 100%; padding: 0.5rem; border: 1px solid var(--border-color); border-radius: 4px;"></td>
+                            <td><input type="password" id="newTeacherPassword" placeholder="비밀번호" style="width: 100%; padding: 0.5rem; border: 1px solid var(--border-color); border-radius: 4px;"></td>
                             <td>
                                 <button class="btn btn-primary btn-sm" onclick="quickAddTeacher()" style="padding: 0.5rem 1rem;">
                                     <i class="fas fa-plus"></i> 등록
@@ -2040,7 +2089,7 @@ async function showTeachersPage() {
                             </td>
                         </tr>
                         <!-- 기존 선생님 목록 -->
-                        <tr><td colspan="5" class="text-center">로딩 중...</td></tr>
+                        <tr><td colspan="8" class="text-center">로딩 중...</td></tr>
                     </tbody>
                 </table>
             </div>
@@ -2142,8 +2191,16 @@ function renderTeachers(teachers) {
         <tr class="teacher-register-row">
             <td></td>
             <td><input type="text" id="newTeacherName" placeholder="이름" style="width: 100%; padding: 0.5rem; border: 1px solid var(--border-color); border-radius: 4px;"></td>
+            <td>
+                <select id="newTeacherRole" style="width: 100%; padding: 0.5rem; border: 1px solid var(--border-color); border-radius: 4px;">
+                    <option value="teacher" selected>선생님</option>
+                    <option value="subadmin">부관리자</option>
+                </select>
+            </td>
             <td><input type="tel" id="newTeacherPhone" placeholder="010-0000-0000" style="width: 100%; padding: 0.5rem; border: 1px solid var(--border-color); border-radius: 4px;"></td>
             <td><input type="text" id="newTeacherWorkHours" placeholder="예: 월~금 14:00-18:00" style="width: 100%; padding: 0.5rem; border: 1px solid var(--border-color); border-radius: 4px;"></td>
+            <td><input type="text" id="newTeacherUsername" placeholder="아이디" style="width: 100%; padding: 0.5rem; border: 1px solid var(--border-color); border-radius: 4px;"></td>
+            <td><input type="password" id="newTeacherPassword" placeholder="비밀번호" style="width: 100%; padding: 0.5rem; border: 1px solid var(--border-color); border-radius: 4px;"></td>
             <td>
                 <button class="btn btn-primary btn-sm" onclick="quickAddTeacher()" style="padding: 0.5rem 1rem;">
                     <i class="fas fa-plus"></i> 등록
@@ -2153,7 +2210,7 @@ function renderTeachers(teachers) {
     `;
     
     if (!teachers || teachers.length === 0) {
-        tbody.innerHTML = html + '<tr><td colspan="5" class="text-center">등록된 선생님이 없습니다</td></tr>';
+        tbody.innerHTML = html + '<tr><td colspan="8" class="text-center">등록된 선생님이 없습니다</td></tr>';
         renderTeacherStudentsGrid([]);
         return;
     }
@@ -2163,9 +2220,13 @@ function renderTeachers(teachers) {
         const statusA = a.status || '재직';
         const statusB = b.status || '재직';
         
+        // 상태 정규화 (재직중 -> 재직)
+        const normalizedA = (statusA === '재직' || statusA === '재직중') ? '재직' : '퇴직';
+        const normalizedB = (statusB === '재직' || statusB === '재직중') ? '재직' : '퇴직';
+        
         // 상태별 정렬 (재직이 먼저)
-        if (statusA !== statusB) {
-            return statusA === '재직' ? -1 : 1;
+        if (normalizedA !== normalizedB) {
+            return normalizedA === '재직' ? -1 : 1;
         }
         
         // 같은 상태는 생성 시간 순 (created_at)
@@ -2174,27 +2235,55 @@ function renderTeachers(teachers) {
     
     html += sortedTeachers.map(teacher => {
         const status = teacher.status || '재직';
-        const statusBadgeClass = status === '재직' ? 'status-badge status-active' : 'status-badge status-inactive';
-        const statusText = status === '재직' ? '재직' : '퇴직';
+        // 재직중도 재직으로 통일
+        const normalizedStatus = (status === '재직' || status === '재직중') ? '재직' : '퇴직';
+        const statusBadgeClass = normalizedStatus === '재직' ? 'status-badge status-active' : 'status-badge status-inactive';
+        const statusText = normalizedStatus;
+        const role = teacher.role || 'teacher';
+        const roleText = role === 'subadmin' ? '부관리자' : '선생님';
         
         return `
-        <tr>
-            <td>
-                <span class="${statusBadgeClass}" onclick="toggleTeacherStatus('${teacher.id}')" style="cursor: pointer;">
+        <tr id="teacher-row-${teacher.id}" class="teacher-data-row">
+            <td class="teacher-status-cell">
+                <span class="${statusBadgeClass}" onclick="toggleTeacherStatus('${teacher.id}')" style="cursor: pointer; font-size: 0.85rem; padding: 0.2rem 0.4rem;">
                     ${statusText}
                 </span>
             </td>
-            <td>${teacher.name}</td>
-            <td>${Utils.formatPhone(teacher.phone)}</td>
-            <td>${teacher.work_hours || '-'}</td>
-            <td>
-                <button class="btn btn-primary btn-sm" onclick="editTeacher('${teacher.id}')" style="padding: 0.4rem 0.8rem; margin-right: 0.5rem;">
+            <td class="teacher-name-cell">
+                <span class="display-value">${teacher.name}</span>
+                <input type="text" class="edit-input" value="${teacher.name}" style="display: none; width: 100%; padding: 0.3rem; border: 1px solid var(--border-color); border-radius: 4px;">
+            </td>
+            <td class="teacher-role-cell">
+                <span class="display-value">${roleText}</span>
+                <select class="edit-input" style="display: none; width: 100%; padding: 0.3rem; border: 1px solid var(--border-color); border-radius: 4px;">
+                    <option value="teacher" ${role === 'teacher' ? 'selected' : ''}>선생님</option>
+                    <option value="subadmin" ${role === 'subadmin' ? 'selected' : ''}>부관리자</option>
+                </select>
+            </td>
+            <td class="teacher-phone-cell">
+                <span class="display-value">${Utils.formatPhone(teacher.phone)}</span>
+                <input type="tel" class="edit-input" value="${teacher.phone}" style="display: none; width: 100%; padding: 0.3rem; border: 1px solid var(--border-color); border-radius: 4px;">
+            </td>
+            <td class="teacher-workhours-cell">
+                <span class="display-value">${teacher.work_hours || '-'}</span>
+                <input type="text" class="edit-input" value="${teacher.work_hours || ''}" style="display: none; width: 100%; padding: 0.3rem; border: 1px solid var(--border-color); border-radius: 4px;">
+            </td>
+            <td class="teacher-username-cell">
+                <span class="display-value">${teacher.username || '-'}</span>
+                <input type="text" class="edit-input" value="${teacher.username || ''}" style="display: none; width: 100%; padding: 0.3rem; border: 1px solid var(--border-color); border-radius: 4px;">
+            </td>
+            <td class="teacher-password-cell">
+                <span class="display-value">${teacher.password ? '●●●●●●' : '-'}</span>
+                <input type="password" class="edit-input" value="" placeholder="변경 시에만 입력" style="display: none; width: 100%; padding: 0.3rem; border: 1px solid var(--border-color); border-radius: 4px;">
+            </td>
+            <td style="white-space: nowrap;">
+                <button class="btn btn-primary btn-sm edit-btn" onclick="toggleEditTeacher('${teacher.id}')" style="padding: 0.3rem 0.5rem; margin-right: 0.3rem; font-size: 0.85rem;">
                     <i class="fas fa-edit"></i> 수정
                 </button>
-                <button class="btn btn-danger btn-sm" onclick="deleteTeacher('${teacher.id}')" style="padding: 0.4rem 0.8rem; margin-right: 0.5rem;">
+                <button class="btn btn-danger btn-sm" onclick="deleteTeacher('${teacher.id}')" style="padding: 0.3rem 0.5rem; margin-right: 0.3rem; font-size: 0.85rem;">
                     <i class="fas fa-trash"></i> 삭제
                 </button>
-                <button class="btn btn-secondary btn-sm" onclick="showTeacherStudents('${teacher.id}')" style="padding: 0.4rem 0.8rem;">
+                <button class="btn btn-secondary btn-sm" onclick="showTeacherStudents('${teacher.id}')" style="padding: 0.3rem 0.5rem; font-size: 0.85rem;">
                     <i class="fas fa-users"></i> 담당학생
                 </button>
             </td>
@@ -2204,7 +2293,10 @@ function renderTeachers(teachers) {
     tbody.innerHTML = html;
     
     // 재직 선생님만 필터링
-    const activeTeachers = sortedTeachers.filter(t => (t.status || '재직') === '재직');
+    const activeTeachers = sortedTeachers.filter(t => {
+        const status = t.status || '재직';
+        return status === '재직' || status === '재직중';
+    });
     renderTeacherStudentsGrid(activeTeachers);
     
     updateButtonStates();
@@ -2221,13 +2313,32 @@ async function toggleTeacherStatus(teacherId) {
         const teacher = allTeachers.find(t => t.id === teacherId);
         if (!teacher) return;
         
-        const newStatus = teacher.status === '재직' ? '퇴직' : '재직';
+        const currentStatus = teacher.status || '재직';
+        const normalizedStatus = (currentStatus === '재직' || currentStatus === '재직중') ? '재직' : '퇴직';
+        const newStatus = normalizedStatus === '재직' ? '퇴직' : '재직';
+        
+        console.log('상태 토글:', currentStatus, '->', newStatus);
+        
+        // 퇴직으로 변경 시 확인
+        if (newStatus === '퇴직') {
+            if (!confirm('퇴직으로 변경하면 로그인할 수 없습니다. 계속하시겠습니까?')) {
+                return;
+            }
+        }
         
         // PATCH를 사용하여 status만 업데이트
         await API.patch('teachers', teacherId, { status: newStatus });
         
         // 로컬 데이터 업데이트
         teacher.status = newStatus;
+        
+        // window.allTeachersCache도 업데이트
+        if (window.allTeachersCache) {
+            const cacheTeacher = window.allTeachersCache.find(t => t.id === teacherId);
+            if (cacheTeacher) {
+                cacheTeacher.status = newStatus;
+            }
+        }
         
         // 재렌더링
         renderTeachers(allTeachers);
@@ -2313,8 +2424,11 @@ async function quickAddTeacher() {
     }
     
     const name = document.getElementById('newTeacherName').value.trim();
+    const role = document.getElementById('newTeacherRole').value;
     const phone = document.getElementById('newTeacherPhone').value.trim();
     const workHours = document.getElementById('newTeacherWorkHours').value.trim();
+    const username = document.getElementById('newTeacherUsername').value.trim();
+    const password = document.getElementById('newTeacherPassword').value.trim();
     
     if (!name) {
         alert('이름을 입력해주세요');
@@ -2326,24 +2440,48 @@ async function quickAddTeacher() {
         return;
     }
     
+    if (!username) {
+        alert('아이디를 입력해주세요');
+        return;
+    }
+    
+    if (!password) {
+        alert('비밀번호를 입력해주세요');
+        return;
+    }
+    
     try {
+        // 아이디 중복 체크
+        const existingTeacher = allTeachers.find(t => t.username === username);
+        if (existingTeacher) {
+            alert('이미 사용 중인 아이디입니다');
+            return;
+        }
+        
         const newTeacher = {
             name: name,
             phone: phone,
             work_hours: workHours,
-            subject: '수학',
-            hire_date: Date.now(),  // 밀리초 타임스탬프
-            status: '재직',  // 초기 상태 재직
-            memo: ''
+            status: '재직'
         };
+        
+        // 선택적 필드 추가
+        if (role) newTeacher.role = role;
+        if (username) newTeacher.username = username;
+        if (password) newTeacher.password = password;
+        
+        console.log('새 선생님 등록:', newTeacher);
         
         await API.create('teachers', newTeacher);
         alert('선생님이 등록되었습니다');
         
         // 입력 필드 초기화
         document.getElementById('newTeacherName').value = '';
+        document.getElementById('newTeacherRole').value = 'teacher';
         document.getElementById('newTeacherPhone').value = '';
         document.getElementById('newTeacherWorkHours').value = '';
+        document.getElementById('newTeacherUsername').value = '';
+        document.getElementById('newTeacherPassword').value = '';
         
         // 목록 새로고침
         await loadTeachers();
@@ -2421,6 +2559,182 @@ function closeTeacherModal() {
 }
 
 // 선생님 편집
+// 인라인 편집 토글
+function toggleEditTeacher(teacherId) {
+    const row = document.getElementById(`teacher-row-${teacherId}`);
+    if (!row) return;
+    
+    const isEditing = row.classList.contains('editing');
+    
+    if (isEditing) {
+        // 저장
+        saveTeacherInline(teacherId);
+    } else {
+        // 편집 모드로 전환
+        row.classList.add('editing');
+        
+        // display-value 숨기고 edit-input 표시
+        row.querySelectorAll('.display-value').forEach(el => el.style.display = 'none');
+        row.querySelectorAll('.edit-input').forEach(el => el.style.display = 'block');
+        
+        // 버튼 아이콘 변경
+        const editBtn = row.querySelector('.edit-btn');
+        editBtn.innerHTML = '<i class="fas fa-check"></i> 저장';
+        editBtn.classList.remove('btn-primary');
+        editBtn.classList.add('btn-success');
+    }
+}
+
+// 인라인 저장
+async function saveTeacherInline(teacherId) {
+    if (!Auth.isLoggedIn()) {
+        alert('로그인이 필요합니다');
+        return;
+    }
+    
+    const row = document.getElementById(`teacher-row-${teacherId}`);
+    if (!row) return;
+    
+    try {
+        // 입력값 가져오기
+        const nameInput = row.querySelector('.teacher-name-cell .edit-input');
+        const roleInput = row.querySelector('.teacher-role-cell .edit-input');
+        const phoneInput = row.querySelector('.teacher-phone-cell .edit-input');
+        const workHoursInput = row.querySelector('.teacher-workhours-cell .edit-input');
+        const usernameInput = row.querySelector('.teacher-username-cell .edit-input');
+        const passwordInput = row.querySelector('.teacher-password-cell .edit-input');
+        
+        if (!nameInput || !roleInput || !phoneInput || !workHoursInput || !usernameInput || !passwordInput) {
+            console.error('입력 필드를 찾을 수 없습니다');
+            alert('입력 필드를 찾을 수 없습니다. 페이지를 새로고침해주세요.');
+            return;
+        }
+        
+        const name = nameInput.value.trim();
+        const role = roleInput.value;
+        const phone = phoneInput.value.trim();
+        const work_hours = workHoursInput.value.trim();
+        const username = usernameInput.value.trim();
+        const password = passwordInput.value.trim();
+        
+        console.log('저장 시도:', { name, role, phone, work_hours, username, hasPassword: !!password });
+        
+        // 필수값 체크
+        if (!name) {
+            alert('이름을 입력해주세요');
+            return;
+        }
+        if (!username) {
+            alert('아이디를 입력해주세요');
+            return;
+        }
+        
+        // 아이디 중복 체크 (자기 자신 제외)
+        const duplicateTeacher = allTeachers.find(t => 
+            t.username === username && t.id !== teacherId
+        );
+        if (duplicateTeacher) {
+            alert('이미 사용 중인 아이디입니다');
+            return;
+        }
+        
+        // 현재 선생님 데이터 가져오기
+        const currentTeacher = allTeachers.find(t => t.id === teacherId);
+        
+        // 업데이트할 데이터 (기존 데이터 유지하면서 업데이트)
+        const updateData = {
+            name: name,
+            phone: phone,
+            work_hours: work_hours,
+            status: currentTeacher?.status || '재직'
+        };
+        
+        // role이 있으면 추가
+        if (role) {
+            updateData.role = role;
+        }
+        
+        // username이 있으면 추가
+        if (username) {
+            updateData.username = username;
+        }
+        
+        // 비밀번호가 입력된 경우에만 업데이트
+        if (password) {
+            updateData.password = password;
+        }
+        
+        console.log('업데이트 데이터:', updateData);
+        
+        // API 업데이트
+        const result = await API.update('teachers', teacherId, updateData);
+        console.log('업데이트 결과:', result);
+        
+        // 성공 시 display-value 업데이트
+        const roleText = role === 'subadmin' ? '부관리자' : '선생님';
+        row.querySelector('.teacher-name-cell .display-value').textContent = name;
+        row.querySelector('.teacher-role-cell .display-value').textContent = roleText;
+        row.querySelector('.teacher-phone-cell .display-value').textContent = Utils.formatPhone(phone);
+        row.querySelector('.teacher-workhours-cell .display-value').textContent = work_hours || '-';
+        row.querySelector('.teacher-username-cell .display-value').textContent = username || '-';
+        if (password) {
+            row.querySelector('.teacher-password-cell .display-value').textContent = '●●●●●●';
+        }
+        
+        // 편집 모드 종료
+        row.classList.remove('editing');
+        row.querySelectorAll('.display-value').forEach(el => el.style.display = 'block');
+        row.querySelectorAll('.edit-input').forEach(el => el.style.display = 'none');
+        
+        // 버튼 아이콘 복원
+        const editBtn = row.querySelector('.edit-btn');
+        editBtn.innerHTML = '<i class="fas fa-edit"></i> 수정';
+        editBtn.classList.remove('btn-success');
+        editBtn.classList.add('btn-primary');
+        
+        // allTeachers 캐시 업데이트
+        const teacherIndex = allTeachers.findIndex(t => t.id === teacherId);
+        if (teacherIndex !== -1) {
+            allTeachers[teacherIndex] = {
+                ...allTeachers[teacherIndex],
+                name: name,
+                role: role,
+                phone: phone,
+                work_hours: work_hours,
+                username: username
+            };
+            if (password) {
+                allTeachers[teacherIndex].password = password;
+            }
+        }
+        
+        // window.allTeachersCache도 업데이트
+        if (window.allTeachersCache) {
+            const cacheIndex = window.allTeachersCache.findIndex(t => t.id === teacherId);
+            if (cacheIndex !== -1) {
+                window.allTeachersCache[cacheIndex] = {
+                    ...window.allTeachersCache[cacheIndex],
+                    name: name,
+                    role: role,
+                    phone: phone,
+                    work_hours: work_hours,
+                    username: username
+                };
+                if (password) {
+                    window.allTeachersCache[cacheIndex].password = password;
+                }
+            }
+        }
+        
+        console.log('선생님 정보가 성공적으로 저장되었습니다');
+        
+    } catch (error) {
+        console.error('선생님 정보 저장 실패:', error);
+        console.error('에러 상세:', error.message, error.stack);
+        alert('저장에 실패했습니다.\n에러: ' + (error.message || '알 수 없는 오류'));
+    }
+}
+
 function editTeacher(teacherId) {
     openTeacherModal(teacherId);
 }
@@ -2508,7 +2822,24 @@ async function loadAllMembers() {
         // 재원 학생만 가져오기
         const studentsResult = await API.getList('students', { limit: 1000 });
         const allStudentsData = Array.isArray(studentsResult) ? studentsResult : (studentsResult.data || []);
-        const activeStudents = allStudentsData.filter(s => s.status === '재원');
+        let activeStudents = allStudentsData.filter(s => s.status === '재원');
+        
+        // 선생님인 경우 담당 학생만 필터링
+        if (Auth.getRole() === 'teacher') {
+            const currentUsername = Auth.getUsername();
+            const teachersResult = await API.getList('teachers', { limit: 1000 });
+            const teachers = Array.isArray(teachersResult) ? teachersResult : (teachersResult.data || []);
+            const currentTeacher = teachers.find(t => t.username === currentUsername);
+            
+            if (currentTeacher && currentTeacher.assigned_students) {
+                const assignedStudentIds = Array.isArray(currentTeacher.assigned_students) 
+                    ? currentTeacher.assigned_students 
+                    : [];
+                activeStudents = activeStudents.filter(s => assignedStudentIds.includes(s.id));
+            } else {
+                activeStudents = [];
+            }
+        }
         
         renderAllMembersByGrade(activeStudents);
     } catch (error) {
