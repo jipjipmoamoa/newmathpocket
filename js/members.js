@@ -182,22 +182,9 @@ function filterStudentsByStatus(status) {
     
     currentStudentStatusFilter = status;
     
-    // 권한에 따라 학생 필터링
-    let studentsToShow = allStudents;
-    if (Auth.getRole() === 'teacher') {
-        const currentUsername = Auth.getUsername();
-        const currentTeacher = window.allTeachersCache?.find(t => t.username === currentUsername);
-        if (currentTeacher && currentTeacher.assigned_students) {
-            const assignedStudentIds = Array.isArray(currentTeacher.assigned_students) 
-                ? currentTeacher.assigned_students 
-                : [];
-            studentsToShow = allStudents.filter(s => assignedStudentIds.includes(s.id));
-            console.log('[filterStudentsByStatus] 선생님이 담당하는 학생 수:', studentsToShow.length);
-        } else {
-            studentsToShow = [];
-            console.log('[filterStudentsByStatus] 담당 학생 없음');
-        }
-    }
+    // 권한에 따라 학생 필터링 (Permissions 유틸리티 사용)
+    let studentsToShow = Permissions.filterStudentsByTeacher(allStudents);
+    console.log('[filterStudentsByStatus] 권한 필터링 후 학생 수:', studentsToShow.length);
     
     // 탭 활성화 상태 변경
     document.querySelectorAll('.status-tab').forEach(tab => {
@@ -2057,16 +2044,16 @@ async function showTeachersPage() {
                 <table>
                     <thead>
                         <tr>
-                            <th style="width: 60px;">상태</th>
-                            <th style="width: 100px;">이름</th>
-                            <th style="width: 90px;">권한</th>
-                            <th style="width: 120px;">전화번호</th>
-                            <th style="width: 150px;">근무시간</th>
-                            <th style="width: 100px;">아이디</th>
-                            <th style="width: 100px;">비밀번호</th>
-                            <th style="width: 240px;">관리</th>
+                            <th style="width: 80px;">상태</th>
+                            <th style="width: 120px;">이름</th>
+                            <th style="width: 150px;">전화번호</th>
+                            <th style="width: 200px;">근무시간</th>
+                            <th style="width: 300px;">관리</th>
                         </tr>
                     </thead>
+                    <tbody><tr><td colspan="5" style="background: #fff3cd; padding: 1rem; text-align: center; color: #856404;">
+                        ⚠️ 권한/아이디/비밀번호 기능을 사용하려면 Supabase에서 teachers 테이블에 role, username, password, assigned_students 컬럼을 추가해주세요.
+                    </td></tr></tbody>
                     <tbody id="teachersTableBody">
                         <!-- 등록 행 -->
                         <tr class="teacher-register-row">
@@ -2462,15 +2449,13 @@ async function quickAddTeacher() {
             name: name,
             phone: phone,
             work_hours: workHours,
-            status: '재직'
+            status: '재직',
+            subject: '수학',
+            memo: ''
         };
         
-        // 선택적 필드 추가
-        if (role) newTeacher.role = role;
-        if (username) newTeacher.username = username;
-        if (password) newTeacher.password = password;
-        
         console.log('새 선생님 등록:', newTeacher);
+        console.warn('경고: role, username, password는 DB에 저장되지 않습니다. Supabase에서 컬럼을 추가해주세요.');
         
         await API.create('teachers', newTeacher);
         alert('선생님이 등록되었습니다');
@@ -2641,7 +2626,7 @@ async function saveTeacherInline(teacherId) {
         // 현재 선생님 데이터 가져오기
         const currentTeacher = allTeachers.find(t => t.id === teacherId);
         
-        // 업데이트할 데이터 (기존 데이터 유지하면서 업데이트)
+        // 업데이트할 데이터 (DB에 실제 존재하는 필드만)
         const updateData = {
             name: name,
             phone: phone,
@@ -2649,20 +2634,13 @@ async function saveTeacherInline(teacherId) {
             status: currentTeacher?.status || '재직'
         };
         
-        // role이 있으면 추가
-        if (role) {
-            updateData.role = role;
+        // memo 필드가 있으면 유지
+        if (currentTeacher?.memo) {
+            updateData.memo = currentTeacher.memo;
         }
         
-        // username이 있으면 추가
-        if (username) {
-            updateData.username = username;
-        }
-        
-        // 비밀번호가 입력된 경우에만 업데이트
-        if (password) {
-            updateData.password = password;
-        }
+        // 경고: role, username, password는 DB에 컬럼이 없어서 저장 안 됨
+        console.warn('경고: role, username, password 필드는 DB에 저장되지 않습니다. Supabase에서 컬럼을 추가해주세요.');
         
         console.log('업데이트 데이터:', updateData);
         
@@ -2824,22 +2802,9 @@ async function loadAllMembers() {
         const allStudentsData = Array.isArray(studentsResult) ? studentsResult : (studentsResult.data || []);
         let activeStudents = allStudentsData.filter(s => s.status === '재원');
         
-        // 선생님인 경우 담당 학생만 필터링
-        if (Auth.getRole() === 'teacher') {
-            const currentUsername = Auth.getUsername();
-            const teachersResult = await API.getList('teachers', { limit: 1000 });
-            const teachers = Array.isArray(teachersResult) ? teachersResult : (teachersResult.data || []);
-            const currentTeacher = teachers.find(t => t.username === currentUsername);
-            
-            if (currentTeacher && currentTeacher.assigned_students) {
-                const assignedStudentIds = Array.isArray(currentTeacher.assigned_students) 
-                    ? currentTeacher.assigned_students 
-                    : [];
-                activeStudents = activeStudents.filter(s => assignedStudentIds.includes(s.id));
-            } else {
-                activeStudents = [];
-            }
-        }
+        // 권한에 따라 학생 필터링 (Permissions 유틸리티 사용)
+        activeStudents = Permissions.filterStudentsByTeacher(activeStudents);
+        console.log('[loadAllMembers] 권한 필터링 후 재원생 수:', activeStudents.length);
         
         renderAllMembersByGrade(activeStudents);
     } catch (error) {
