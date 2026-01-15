@@ -113,13 +113,25 @@ function renderBooksTab(student) {
                     <!-- 데이터 행 (3행부터, 최신순) -->
                     ${books.length === 0 ? '<tr><td colspan="5" class="empty-message">등록된 사용책 정보가 없습니다</td></tr>' : ''}
                     ${books.map(book => `
-                        <tr>
-                            <td>${book.date || '-'}</td>
-                            <td>${book.concept || '-'}</td>
-                            <td>${book.review || '-'}</td>
-                            <td>${book.advanced || '-'}</td>
-                            <td>
-                                <button class="btn-edit" onclick="editBook('${student.id}', '${book.id}')"><i class="fas fa-pencil-alt"></i></button>
+                        <tr id="book-row-${book.id}" class="data-row">
+                            <td class="book-date-cell" data-book-id="${book.id}">
+                                <span class="display-value">${book.date || '-'}</span>
+                                <input type="text" class="edit-input" value="${book.date || ''}" style="display:none;" placeholder="2511" onblur="this.value = formatDateInput(this.value)">
+                            </td>
+                            <td class="book-concept-cell" data-book-id="${book.id}">
+                                <span class="display-value">${book.concept || '-'}</span>
+                                <input type="text" class="edit-input" value="${book.concept || ''}" style="display:none;" placeholder="선행개념">
+                            </td>
+                            <td class="book-review-cell" data-book-id="${book.id}">
+                                <span class="display-value">${book.review || '-'}</span>
+                                <input type="text" class="edit-input" value="${book.review || ''}" style="display:none;" placeholder="선행복습">
+                            </td>
+                            <td class="book-advanced-cell" data-book-id="${book.id}">
+                                <span class="display-value">${book.advanced || '-'}</span>
+                                <input type="text" class="edit-input" value="${book.advanced || ''}" style="display:none;" placeholder="현행심화">
+                            </td>
+                            <td class="action-buttons">
+                                <button class="btn-edit" onclick="toggleEditBook('${student.id}', '${book.id}')"><i class="fas fa-pencil-alt"></i></button>
                                 <button class="btn-delete" onclick="deleteBook('${student.id}', '${book.id}')"><i class="fas fa-times"></i></button>
                             </td>
                         </tr>
@@ -186,7 +198,7 @@ function renderConsultationTab(student) {
                         <tr id="consul-row-${consul.id}" class="data-row">
                             <td class="consul-date-cell" data-consul-id="${consul.id}">
                                 <span class="display-value">${consul.date || '-'}</span>
-                                <input type="text" class="edit-input" value="${consul.date || ''}" style="display:none;">
+                                <input type="text" class="edit-input" value="${consul.date || ''}" style="display:none;" onblur="this.value = formatDateInput(this.value)">
                             </td>
                             <td class="consul-person-cell" data-consul-id="${consul.id}">
                                 <span class="display-value">${consul.person || '-'}</span>
