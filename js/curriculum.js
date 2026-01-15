@@ -8,9 +8,16 @@ let isEditMode = false; // 수정 모드 여부
 async function showCurriculumPage() {
     const mainContent = document.getElementById('mainContent');
     
-    // 모든 사람에게 수정 버튼 숨김 (조회 전용)
+    // 관리자만 수정 버튼 표시
+    const showEditButton = Auth.isAdmin();
+    
     mainContent.innerHTML = `
         <div class="page-container">
+            ${showEditButton ? `<div style="display: flex; justify-content: flex-end; margin-bottom: 1rem;">
+                <button class="btn btn-secondary" onclick="toggleEditMode()" id="editModeBtn">
+                    <i class="fas fa-edit"></i> 수정
+                </button>
+            </div>` : ''}
             <div class="curriculum-three-columns">
                 <!-- 1단: 초등학교 -->
                 <div class="curriculum-column">
@@ -67,9 +74,19 @@ async function loadCurriculumData() {
         const result = await API.getList('curriculum_units', { limit: 1000 });
         curriculumData = Array.isArray(result) ? result : (result.data || []);
         
+        console.log('교육과정 데이터 로드됨:', curriculumData.length, '개');
+        console.log('교육과정 데이터:', curriculumData);
+        
         renderCurriculum();
     } catch (error) {
         console.error('교육과정 데이터 로드 실패:', error);
+        const containers = ['elementary-curriculum', 'middle-curriculum', 'high-curriculum'];
+        containers.forEach(id => {
+            const container = document.getElementById(id);
+            if (container) {
+                container.innerHTML = '<div style="padding: 2rem; text-align: center; color: red;">데이터 로드 실패</div>';
+            }
+        });
     }
 }
 
@@ -126,27 +143,34 @@ function renderSchoolType(schoolType, containerId, grades) {
 function renderSemester(schoolType, grade, semester) {
     const units = curriculumData.filter(u => 
         u.school_type === schoolType && 
-        u.grade === grade && 
+        String(u.grade) === String(grade) && 
         u.semester === semester &&
         !u.parent_id
     ).sort((a, b) => (a.order || 0) - (b.order || 0));
     
+    console.log(`${schoolType} ${grade}학년 ${semester}:`, units.length, '개 단원');
+    
     const containerId = `semester-${schoolType}-${grade}-${semester}`;
+    const showButtons = Auth.isAdmin(); // 관리자만 버튼 표시
     
     let html = `
         <div class="semester-wrapper">
             <div class="semester-header">
                 <span class="semester-title">${semester}</span>
-                <button class="btn-icon-orange" onclick="showInlineInput('${containerId}', 'major', '${schoolType}', ${grade}, '${semester}', null)" title="대단원 추가">
+                ${showButtons ? `<button class="btn-icon-orange" onclick="showInlineInput('${containerId}', 'major', '${schoolType}', ${grade}, '${semester}', null)" title="대단원 추가">
                     <i class="fas fa-plus"></i>
-                </button>
+                </button>` : ''}
             </div>
             <div class="units-container" id="${containerId}">
     `;
     
-    units.forEach((unit, index) => {
-        html += renderUnit(unit, 'major', index + 1);
-    });
+    if (units.length === 0) {
+        html += '<div style="padding: 1rem; color: #999; text-align: center;">등록된 단원이 없습니다</div>';
+    } else {
+        units.forEach((unit, index) => {
+            html += renderUnit(unit, 'major', index + 1);
+        });
+    }
     
     html += `
             </div>
@@ -181,30 +205,37 @@ function renderUnit(unit, level, number) {
         className += ' unit-minor';
     }
     
+    const showButtons = Auth.isAdmin(); // 관리자만 버튼 표시
+    
     let html = `
         <div class="${className}" id="unit-${unit.id}">
             <div class="unit-header" onclick="toggleUnit('${unit.id}')">
                 <span class="unit-number">${numberDisplay}</span>
                 <span class="unit-name">${typeof MathUtils !== 'undefined' ? MathUtils.renderMath(unit.name) : unit.name}</span>
-                <div class="unit-actions" onclick="event.stopPropagation()">
+                ${showButtons ? `<div class="unit-actions" onclick="event.stopPropagation()">` : ''}
     `;
     
-    // 대단원과 중단원에만 하위 항목 추가 버튼 표시
-    if (level !== 'minor') {
-        const nextLevel = level === 'major' ? 'middle' : 'minor';
-        html += `<button class="btn-icon-orange" onclick="showInlineInputChild('${unit.id}', '${nextLevel}')" title="하위 항목 추가">
-            <i class="fas fa-plus"></i>
-        </button>`;
-    }
-    
-    html += `
+    // 관리자만 버튼 표시
+    if (showButtons) {
+        // 대단원과 중단원에만 하위 항목 추가 버튼 표시
+        if (level !== 'minor') {
+            const nextLevel = level === 'major' ? 'middle' : 'minor';
+            html += `<button class="btn-icon-orange" onclick="showInlineInputChild('${unit.id}', '${nextLevel}')" title="하위 항목 추가">
+                <i class="fas fa-plus"></i>
+            </button>`;
+        }
+        
+        html += `
                     <button class="btn-icon-orange" onclick="editUnitInline('${unit.id}')" title="수정">
                         <i class="fas fa-pencil-alt"></i>
                     </button>
                     <button class="btn-icon-orange" onclick="deleteUnit('${unit.id}')" title="삭제">
                         <i class="fas fa-times"></i>
                     </button>
-                </div>
+                </div>`;
+    }
+    
+    html += `
             </div>
     `;
     
