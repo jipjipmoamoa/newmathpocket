@@ -2451,11 +2451,13 @@ async function quickAddTeacher() {
             work_hours: workHours,
             status: '재직',
             subject: '수학',
-            memo: ''
+            memo: '',
+            role: role,
+            username: username,
+            password: password
         };
         
         console.log('새 선생님 등록:', newTeacher);
-        console.warn('경고: role, username, password는 DB에 저장되지 않습니다. Supabase에서 컬럼을 추가해주세요.');
         
         await API.create('teachers', newTeacher);
         alert('선생님이 등록되었습니다');
@@ -2808,6 +2810,7 @@ async function loadAllMembers() {
         
         renderAllMembersByGrade(activeStudents);
     } catch (error) {
+        console.error('[loadAllMembers] 오류 발생:', error);
         document.getElementById('membersByGrade').innerHTML = 
             '<p class="text-center">데이터를 불러오는데 실패했습니다</p>';
     }
