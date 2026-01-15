@@ -36,11 +36,12 @@ const Permissions = {
         // 선생님 권한
         if (Auth.isTeacher()) {
             const allowedPages = [
-                'members',           // 학생관리 (담당학생만)
+                'students',          // 학생관리 (담당학생만)
                 'all-members',       // 전체회원관리 (담당학생만, 인쇄만)
                 'attendance-check',  // 출석체크 (담당학생만)
                 'attendance-view',   // 출석조회 (담당학생만, 인쇄만)
-                'schedule',          // 스케줄표 (담당학생만, 인쇄만)
+                'schedule-current',  // 이번달 스케줄표 (담당학생만)
+                'schedule-view',     // 스케줄표 조회 (담당학생만)
                 'curriculum'         // 교육과정 (조회만)
             ];
             return allowedPages.includes(pageId);
