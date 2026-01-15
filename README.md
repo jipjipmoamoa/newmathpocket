@@ -5,6 +5,21 @@
 
 ---
 
+## 🚨 v9.0.5.2 긴급 수정 - 선생님 인라인 편집 기능 수정 (2026-01-15)
+
+### 🔧 추가 수정 사항
+
+#### 문제: 선생님 정보 인라인 편집 시 username, password, role 저장 안 됨
+- **원인**: `saveTeacherInline()` 함수에서 username, password, role을 DB에 저장하지 않음
+- **증상**: 선생님 정보 수정 후 새로고침하면 username, password, role이 사라짐
+- **해결**: Line 2640-2648에 username, password, role 저장 로직 추가
+
+#### 수정 파일
+- ✅ `js/members.js` - Line 2640-2648 (`saveTeacherInline` 함수)
+- ✅ `index.html` - members.js 버전 9.0.5.2로 업데이트
+
+---
+
 ## 🚨 v9.0.5.1 긴급 수정 - Supabase 데이터베이스 마이그레이션 필요 (2026-01-15)
 
 ### ⚠️ **중요**: 배포 전 필수 작업
