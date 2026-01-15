@@ -334,24 +334,9 @@ async function loadAttendanceData() {
         // API 응답이 배열이면 그대로, 객체면 data 속성 사용
         let allStudents = Array.isArray(studentsResponse) ? studentsResponse : (studentsResponse.data || []);
         
-        // 선생님인 경우 담당 학생만 필터링
-        if (Auth.getRole() === 'teacher') {
-            const currentUsername = Auth.getUsername();
-            const teachersResponse = await API.getList('teachers', { limit: 1000 });
-            const teachers = Array.isArray(teachersResponse) ? teachersResponse : (teachersResponse.data || []);
-            const currentTeacher = teachers.find(t => t.username === currentUsername);
-            
-            if (currentTeacher && currentTeacher.assigned_students) {
-                const assignedStudentIds = Array.isArray(currentTeacher.assigned_students) 
-                    ? currentTeacher.assigned_students 
-                    : [];
-                allStudents = allStudents.filter(s => assignedStudentIds.includes(s.id));
-                console.log('담당 학생 수:', allStudents.length);
-            } else {
-                allStudents = [];
-                console.log('담당 학생 없음');
-            }
-        }
+        // ✅ 선생님인 경우 담당 학생만 필터링 (teacher_id 기반)
+        allStudents = Permissions.filterStudentsByTeacher(allStudents);
+        console.log('[loadAttendanceData] 권한 필터링 후 학생 수:', allStudents.length);
         
         console.log('전체 학생 수:', allStudents.length);
         console.log('재원생 수:', allStudents.filter(s => s.status === '재원').length);
@@ -1838,7 +1823,11 @@ async function renderAttendanceStats(year, month) {
         // 학생 목록 로드
         const response = await API.getList('students', { limit: 1000 });
         // API 응답이 배열이면 그대로, 객체면 data 속성 사용
-        const allStudents = Array.isArray(response) ? response : (response.data || []);
+        let allStudents = Array.isArray(response) ? response : (response.data || []);
+        
+        // ✅ 선생님인 경우 담당 학생만 필터링 (teacher_id 기반)
+        allStudents = Permissions.filterStudentsByTeacher(allStudents);
+        console.log('[renderAttendanceStats] 권한 필터링 후 학생 수:', allStudents.length);
         
         // 재원생만 필터링 (항상 표시)
         const activeStudents = allStudents.filter(student => student.status === '재원');
