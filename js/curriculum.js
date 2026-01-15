@@ -8,8 +8,8 @@ let isEditMode = false; // 수정 모드 여부
 async function showCurriculumPage() {
     const mainContent = document.getElementById('mainContent');
     
-    // 관리자만 수정 버튼 표시
-    const showEditButton = Auth.isAdmin();
+    // 관리자와 부관리자만 수정 버튼 표시
+    const showEditButton = Auth.isAdminOrSubAdmin();
     
     mainContent.innerHTML = `
         <div class="page-container">
@@ -55,14 +55,13 @@ function toggleEditMode() {
     const btn = document.getElementById('editModeBtn');
     
     if (isEditMode) {
-        btn.innerHTML = '<i class="fas fa-save"></i> 저장';
+        btn.innerHTML = '<i class="fas fa-times"></i> 완료';
         btn.classList.remove('btn-secondary');
         btn.classList.add('btn-primary');
     } else {
         btn.innerHTML = '<i class="fas fa-edit"></i> 수정';
         btn.classList.remove('btn-primary');
         btn.classList.add('btn-secondary');
-        // TODO: 저장 로직 구현
     }
     
     renderCurriculum();
@@ -151,7 +150,8 @@ function renderSemester(schoolType, grade, semester) {
     console.log(`${schoolType} ${grade}학년 ${semester}:`, units.length, '개 단원');
     
     const containerId = `semester-${schoolType}-${grade}-${semester}`;
-    const showButtons = Auth.isAdmin(); // 관리자만 버튼 표시
+    const canEdit = Auth.isAdminOrSubAdmin(); // 관리자 또는 부관리자
+    const showButtons = canEdit && isEditMode; // 수정 모드일 때만 버튼 표시
     
     let html = `
         <div class="semester-wrapper">
@@ -205,7 +205,8 @@ function renderUnit(unit, level, number) {
         className += ' unit-minor';
     }
     
-    const showButtons = Auth.isAdmin(); // 관리자만 버튼 표시
+    const canEdit = Auth.isAdminOrSubAdmin(); // 관리자 또는 부관리자
+    const showButtons = canEdit && isEditMode; // 수정 모드일 때만 버튼 표시
     
     let html = `
         <div class="${className}" id="unit-${unit.id}">
@@ -215,7 +216,7 @@ function renderUnit(unit, level, number) {
                 ${showButtons ? `<div class="unit-actions" onclick="event.stopPropagation()">` : ''}
     `;
     
-    // 관리자만 버튼 표시
+    // 수정 모드일 때만 버튼 표시
     if (showButtons) {
         // 대단원과 중단원에만 하위 항목 추가 버튼 표시
         if (level !== 'minor') {
