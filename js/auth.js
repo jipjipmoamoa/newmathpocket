@@ -5,58 +5,109 @@ const Auth = {
         return localStorage.getItem('isLoggedIn') === 'true';
     },
     
+    // 사용자 역할 가져오기
+    getRole() {
+        return localStorage.getItem('userRole') || '';
+    },
+    
+    // 사용자 ID 가져오기
+    getUserId() {
+        return localStorage.getItem('userId') || '';
+    },
+    
+    // 관리자인지 확인
+    isAdmin() {
+        return this.getRole() === 'admin';
+    },
+    
+    // 부관리자인지 확인
+    isSubAdmin() {
+        return this.getRole() === 'subadmin';
+    },
+    
+    // 선생님인지 확인
+    isTeacher() {
+        return this.getRole() === 'teacher';
+    },
+    
+    // 관리자 또는 부관리자인지 확인
+    isAdminOrSubAdmin() {
+        return this.isAdmin() || this.isSubAdmin();
+    },
+    
     // 로그인
-       // 로그인
     async login(username, password) {
         try {
-            // 설정에서 관리자 정보 가져오기
-            const result = await API.getList('settings');
-            console.log('Settings API response:', result);
+            // 1. 먼저 관리자 계정 확인
+            const settingsResult = await API.getList('settings');
+            console.log('Settings API response:', settingsResult);
             
-            // Supabase는 배열을 직접 반환합니다
             let settings;
-            if (Array.isArray(result)) {
-                // 배열인 경우
-                if (result.length === 0) {
-                    throw new Error('관리자 설정을 찾을 수 없습니다');
+            if (Array.isArray(settingsResult)) {
+                if (settingsResult.length > 0) {
+                    settings = settingsResult[0];
                 }
-                settings = result[0];
-            } else if (result.data && Array.isArray(result.data)) {
-                // {data: []} 형식인 경우
-                if (result.data.length === 0) {
-                    throw new Error('관리자 설정을 찾을 수 없습니다');
+            } else if (settingsResult.data && Array.isArray(settingsResult.data)) {
+                if (settingsResult.data.length > 0) {
+                    settings = settingsResult.data[0];
                 }
-                settings = result.data[0];
-            } else {
-                throw new Error('관리자 설정을 찾을 수 없습니다');
             }
             
-            console.log('Settings data:', settings);
-            
-            // 인증 확인
-            if (settings.admin_username === username && settings.admin_password === password) {
+            // 관리자 계정 체크
+            if (settings && settings.admin_username === username && settings.admin_password === password) {
                 localStorage.setItem('isLoggedIn', 'true');
                 localStorage.setItem('username', username);
-                return true;
-            } else {
-                throw new Error('아이디 또는 비밀번호가 일치하지 않습니다');
+                localStorage.setItem('userRole', 'admin');
+                localStorage.setItem('userId', 'admin');
+                return { success: true, role: 'admin' };
             }
+            
+            // 2. teachers 테이블에서 선생님 계정 확인
+            const teachersResult = await API.getList('teachers', { limit: 1000 });
+            const teachers = Array.isArray(teachersResult) ? teachersResult : (teachersResult.data || []);
+            
+            // 먼저 아이디/비밀번호가 일치하는 선생님을 찾음
+            const matchedTeacher = teachers.find(t => 
+                t.username === username && 
+                t.password === password
+            );
+            
+            if (matchedTeacher) {
+                // 상태 확인
+                const status = matchedTeacher.status || '재직';
+                if (status === '퇴직' || status === '퇴사') {
+                    throw new Error('퇴직한 계정은 로그인할 수 없습니다');
+                }
+                
+                // 재직 중이면 로그인 허용
+                const role = matchedTeacher.role || 'teacher';
+                localStorage.setItem('isLoggedIn', 'true');
+                localStorage.setItem('username', matchedTeacher.name);
+                localStorage.setItem('userRole', role);
+                localStorage.setItem('userId', matchedTeacher.id);
+                return { success: true, role: role, teacherId: matchedTeacher.id };
+            }
+            
+            // 3. 로그인 실패
+            throw new Error('아이디 또는 비밀번호가 일치하지 않습니다');
+            
         } catch (error) {
             console.error('Login error:', error);
             throw error;
         }
     },
-
     
     // 로그아웃
     logout() {
         localStorage.removeItem('isLoggedIn');
         localStorage.removeItem('username');
+        localStorage.removeItem('userRole');
+        localStorage.removeItem('userId');
         updateUIBasedOnAuth();
         showPage('welcome');
     },
     
-    // 관리자 정보 가져오기
+    // 사용자 이름 가져오기
     getUsername() {
         return localStorage.getItem('username') || '';
     }
@@ -73,8 +124,13 @@ async function login() {
     }
     
     try {
-        await Auth.login(username, password);
-        Utils.showAlert('로그인 성공!', 'success');
+        const result = await Auth.login(username, password);
+        
+        let roleText = '관리자';
+        if (result.role === 'subadmin') roleText = '부관리자';
+        else if (result.role === 'teacher') roleText = '선생님';
+        
+        Utils.showAlert(`${roleText}로 로그인 성공!`, 'success');
         updateUIBasedOnAuth();
         
         // 입력 필드 초기화
@@ -103,6 +159,9 @@ function updateUIBasedOnAuth() {
         loginForm.style.display = 'none';
         logoutArea.style.display = 'flex';
         updateCurrentDate();  // 날짜 업데이트
+        
+        // 설정 메뉴 표시/숨김 (관리자만 보기)
+        updateSettingsMenuVisibility();
     } else {
         loginForm.style.display = 'flex';
         logoutArea.style.display = 'none';
@@ -110,6 +169,28 @@ function updateUIBasedOnAuth() {
     
     // 모든 수정/삭제/추가 버튼 제어
     updateButtonStates();
+}
+
+// 설정 메뉴 표시/숨김 (관리자만 접근 가능)
+function updateSettingsMenuVisibility() {
+    const settingsMenuItem = document.querySelector('[data-menu="settings"]');
+    if (settingsMenuItem) {
+        if (Auth.isAdmin()) {
+            settingsMenuItem.style.display = 'block';
+        } else {
+            settingsMenuItem.style.display = 'none';
+        }
+    }
+    
+    // 원비관리 메뉴 표시/숨김 (선생님은 접근 불가)
+    const tuitionMenuItem = document.querySelector('[data-menu="tuition"]');
+    if (tuitionMenuItem) {
+        if (Auth.getRole() === 'teacher') {
+            tuitionMenuItem.style.display = 'none';
+        } else {
+            tuitionMenuItem.style.display = 'block';
+        }
+    }
 }
 
 // 현재 날짜와 요일 업데이트
