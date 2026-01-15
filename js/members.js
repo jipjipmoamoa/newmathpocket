@@ -2641,8 +2641,16 @@ async function saveTeacherInline(teacherId) {
             updateData.memo = currentTeacher.memo;
         }
         
-        // 경고: role, username, password는 DB에 컬럼이 없어서 저장 안 됨
-        console.warn('경고: role, username, password 필드는 DB에 저장되지 않습니다. Supabase에서 컬럼을 추가해주세요.');
+        // ✅ username, password, role도 저장
+        if (role) {
+            updateData.role = role;
+        }
+        if (username) {
+            updateData.username = username;
+        }
+        if (password) {
+            updateData.password = password;
+        }
         
         console.log('업데이트 데이터:', updateData);
         
