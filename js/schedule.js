@@ -123,11 +123,35 @@ async function loadWeeklySchedule() {
         console.log('[loadWeeklySchedule] API 응답:', studentsResult);
         
         // API 응답이 배열이면 그대로, 객체면 data 속성 사용
-        const allStudents = Array.isArray(studentsResult) ? studentsResult : (studentsResult.data || []);
+        let allStudents = Array.isArray(studentsResult) ? studentsResult : (studentsResult.data || []);
         console.log('[loadWeeklySchedule] 전체 학생 수:', allStudents.length);
+        
+        // 선생님인 경우 담당 학생만 필터링
+        if (Auth.getRole() === 'teacher') {
+            const currentUsername = Auth.getUsername();
+            const teachersResult = await API.getList('teachers', { limit: 1000 });
+            const teachers = Array.isArray(teachersResult) ? teachersResult : (teachersResult.data || []);
+            const currentTeacher = teachers.find(t => t.username === currentUsername);
+            
+            if (currentTeacher && currentTeacher.assigned_students) {
+                const assignedStudentIds = Array.isArray(currentTeacher.assigned_students) 
+                    ? currentTeacher.assigned_students 
+                    : [];
+                allStudents = allStudents.filter(s => assignedStudentIds.includes(s.id));
+                console.log('[loadWeeklySchedule] 담당 학생 수:', allStudents.length);
+            } else {
+                allStudents = [];
+                console.log('[loadWeeklySchedule] 담당 학생 없음');
+            }
+        }
         
         let students = allStudents.filter(s => s.status === '재원');
         console.log('[loadWeeklySchedule] 재원생 수:', students.length);
+        
+        // 각 학생의 상태 확인
+        students.forEach(s => {
+            console.log(`[학생 확인] 이름: ${s.name}, 상태: ${s.status}, ID: ${s.id}`);
+        });
         
         // 선생님 필터 적용
         if (currentTeacherFilter !== 'all') {
@@ -163,7 +187,6 @@ function assignStudentColors(students) {
         }
     });
 }
-
 
 // 스케줄 데이터 구성
 function buildScheduleData(students) {
