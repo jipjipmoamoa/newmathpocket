@@ -5,6 +5,67 @@
 
 ---
 
+## 🚨 v9.0.5.1 긴급 수정 - Supabase 데이터베이스 마이그레이션 필요 (2026-01-15)
+
+### ⚠️ **중요**: 배포 전 필수 작업
+
+#### 🔧 문제 발견
+1. **선생님 등록 후 사라지는 문제**
+   - 원인: teachers 테이블에 `username`, `password`, `role` 컬럼이 없음
+   - 증상: 선생님 등록 후 새로고침하면 사라짐
+
+2. **전체 회원관리 페이지 오류**
+   - 원인: `Permissions.canEditStudent()` 등에서 `allStudents` 변수 체크 누락
+   - 증상: "데이터를 불러오는데 실패했습니다" 오류 표시
+
+#### 🛠️ 해결 방법
+
+**1단계: Supabase 데이터베이스 마이그레이션 (필수)**
+
+Supabase 대시보드에서 다음 SQL을 실행하세요:
+
+```sql
+-- teachers 테이블에 로그인 인증 컬럼 추가
+ALTER TABLE teachers ADD COLUMN IF NOT EXISTS username TEXT UNIQUE;
+ALTER TABLE teachers ADD COLUMN IF NOT EXISTS password TEXT;
+ALTER TABLE teachers ADD COLUMN IF NOT EXISTS role TEXT CHECK (role IN ('teacher', 'subadmin')) DEFAULT 'teacher';
+ALTER TABLE teachers ADD COLUMN IF NOT EXISTS work_hours TEXT;
+ALTER TABLE teachers ADD COLUMN IF NOT EXISTS subject TEXT;
+ALTER TABLE teachers ADD COLUMN IF NOT EXISTS memo TEXT;
+
+-- students 테이블에 담당 선생님 매핑 컬럼 추가
+ALTER TABLE students ADD COLUMN IF NOT EXISTS teacher_id UUID REFERENCES teachers(id) ON DELETE SET NULL;
+
+-- 인덱스 생성
+CREATE INDEX IF NOT EXISTS idx_teachers_username ON teachers(username);
+CREATE INDEX IF NOT EXISTS idx_teachers_role ON teachers(role);
+CREATE INDEX IF NOT EXISTS idx_students_teacher_id ON students(teacher_id);
+```
+
+**상세 가이드**: `SUPABASE_MIGRATION_GUIDE.md` 참조
+
+**2단계: 코드 업데이트 (완료됨)**
+- ✅ `js/members.js`: `quickAddTeacher()` 함수에 username, password, role 저장 로직 추가
+- ✅ `js/permissions.js`: `allStudents` undefined 체크 추가
+- ✅ `js/members.js`: `loadAllMembers()` 오류 로깅 추가
+
+#### 📦 수정된 파일
+- `js/members.js` - Line 2448-2460 (quickAddTeacher 함수)
+- `js/permissions.js` - Line 60-65, 74-79, 90-95 (안전성 체크 추가)
+- `supabase-schema.sql` - teachers, students 테이블 스키마 업데이트
+- `supabase-migration-teachers-auth.sql` - 마이그레이션 SQL 스크립트 생성
+- `SUPABASE_MIGRATION_GUIDE.md` - 마이그레이션 가이드 문서
+
+#### ✅ 배포 체크리스트
+1. [ ] **Supabase 마이그레이션 실행** (위의 SQL 실행) ⚠️ **필수**
+2. [ ] 수정된 파일 GitHub 업로드 (js/members.js, js/permissions.js)
+3. [ ] Netlify 자동 재배포
+4. [ ] 브라우저 캐시 삭제 (`Ctrl + Shift + R`)
+5. [ ] 선생님 등록 테스트 → 새로고침 후 유지 확인
+6. [ ] 전체 회원관리 페이지 정상 작동 확인
+
+---
+
 ## ✨ v9.0.5 권한 체계 개선 및 담당학생 필터링 수정 (2026-01-15)
 
 ### 🎯 주요 변경 사항
