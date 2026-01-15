@@ -58,6 +58,10 @@ const Permissions = {
         
         // 선생님은 담당 학생만 수정 가능
         if (Auth.isTeacher()) {
+            if (typeof allStudents === 'undefined' || !allStudents) {
+                console.warn('[Permissions] allStudents가 정의되지 않음');
+                return false;
+            }
             const student = allStudents.find(s => s.id === studentId);
             return student && student.teacher_id === Auth.getUserId();
         }
@@ -72,6 +76,10 @@ const Permissions = {
         
         // 선생님은 담당 학생 삭제 가능
         if (Auth.isTeacher()) {
+            if (typeof allStudents === 'undefined' || !allStudents) {
+                console.warn('[Permissions] allStudents가 정의되지 않음');
+                return false;
+            }
             const student = allStudents.find(s => s.id === studentId);
             return student && student.teacher_id === Auth.getUserId();
         }
@@ -88,6 +96,10 @@ const Permissions = {
         
         // 선생님은 담당 학생 출석만 수정 가능
         if (Auth.isTeacher()) {
+            if (typeof allStudents === 'undefined' || !allStudents) {
+                console.warn('[Permissions] allStudents가 정의되지 않음');
+                return false;
+            }
             const student = allStudents.find(s => s.id === studentId);
             return student && student.teacher_id === Auth.getUserId();
         }
