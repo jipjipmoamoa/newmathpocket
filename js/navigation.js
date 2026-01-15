@@ -21,6 +21,59 @@ const Navigation = {
             { id: 'schedule-current', label: '이번달 스케줄표' },
             { id: 'schedule-view', label: '스케줄표 조회' }
         ]
+    },
+    
+    // 권한별 접근 가능한 메뉴
+    getAccessibleMenus: function() {
+        if (!Auth.isLoggedIn()) {
+            return [];
+        }
+        
+        const role = Auth.getRole();
+        
+        if (role === 'admin' || role === 'subadmin') {
+            // 관리자와 부관리자는 모든 메뉴 접근 가능
+            return ['members', 'attendance', 'tuition', 'schedule', 'curriculum', 'settings'];
+        } else if (role === 'teacher') {
+            // 선생님은 제한된 메뉴만 접근 가능
+            return ['members', 'attendance', 'schedule', 'curriculum'];
+        }
+        
+        return [];
+    },
+    
+    // 권한별 접근 가능한 서브메뉴
+    getAccessibleSubMenus: function(menuId) {
+        if (!Auth.isLoggedIn()) {
+            return [];
+        }
+        
+        const role = Auth.getRole();
+        
+        if (role === 'admin' || role === 'subadmin') {
+            // 관리자와 부관리자는 모든 서브메뉴 접근 가능
+            return this.subMenus[menuId] || [];
+        } else if (role === 'teacher') {
+            // 선생님은 제한된 서브메뉴만 접근 가능
+            if (menuId === 'members') {
+                return [
+                    { id: 'students', label: '학생 관리' },
+                    { id: 'all-members', label: '전체 회원 관리' }
+                ];
+            } else if (menuId === 'attendance') {
+                return [
+                    { id: 'attendance-check', label: '출석체크' },
+                    { id: 'attendance-view', label: '출석 조회' }
+                ];
+            } else if (menuId === 'schedule') {
+                return [
+                    { id: 'schedule-current', label: '이번달 스케줄표' },
+                    { id: 'schedule-view', label: '스케줄표 조회' }
+                ];
+            }
+        }
+        
+        return [];
     }
 };
 
@@ -28,11 +81,19 @@ const Navigation = {
 function toggleSubMenu(event, menuId) {
     event.preventDefault();
     
+    // 권한 체크
+    const accessibleMenus = Navigation.getAccessibleMenus();
+    if (!accessibleMenus.includes(menuId)) {
+        alert('접근 권한이 없습니다.');
+        return;
+    }
+    
     const subMenuContainer = document.getElementById('subMenuContainer');
     const subMenu = document.getElementById('subMenu');
     
     // 서브메뉴가 있는 경우
-    if (Navigation.subMenus[menuId]) {
+    const accessibleSubMenus = Navigation.getAccessibleSubMenus(menuId);
+    if (accessibleSubMenus.length > 0) {
         Navigation.currentMenu = menuId;
         
         // 클릭된 메뉴의 위치 계산
@@ -44,8 +105,8 @@ function toggleSubMenu(event, menuId) {
         // 메뉴 아이템의 왼쪽 오프셋 계산
         const leftOffset = menuRect.left - mainMenuRect.left;
         
-        // 서브메뉴 생성
-        subMenu.innerHTML = Navigation.subMenus[menuId].map(item => `
+        // 서브메뉴 생성 (권한에 따라 필터링)
+        subMenu.innerHTML = accessibleSubMenus.map(item => `
             <li class="${Navigation.currentSubMenu === item.id ? 'active' : ''}">
                 <a href="#" onclick="showPage('${item.id}'); return false;">${item.label}</a>
             </li>
@@ -81,6 +142,12 @@ function removeActiveClass() {
 // 페이지 표시
 function showPage(pageId) {
     Navigation.currentSubMenu = pageId;
+    
+    // 권한 체크
+    if (!Permissions.canAccessPage(pageId)) {
+        alert('접근 권한이 없습니다.');
+        return;
+    }
     
     // 스케줄 인쇄 CSS 제거 (스케줄 페이지가 아닐 때)
     if (pageId !== 'schedule-current') {
@@ -153,16 +220,32 @@ function showPage(pageId) {
             showStudentsPage();
             break;
         case 'teachers':
+            // 선생님은 선생님 관리 페이지 접근 불가
+            if (Auth.getRole() === 'teacher') {
+                alert('접근 권한이 없습니다.');
+                showPage('students');
+                return;
+            }
             showTeachersPage();
             break;
         case 'all-members':
             showAllMembersPage();
             break;
         case 'attendance-check':
-            showAttendanceCheckPage();
+            if (typeof showAttendanceCheckPage === 'function') {
+                showAttendanceCheckPage();
+            } else {
+                console.error('showAttendanceCheckPage is not defined');
+                mainContent.innerHTML = '<div style="padding: 2rem; text-align: center;"><h2>출석체크 페이지를 불러오는 중...</h2><p>잠시 후 다시 시도해주세요.</p></div>';
+            }
             break;
         case 'attendance-view':
-            showAttendanceViewPage();
+            if (typeof showAttendanceViewPage === 'function') {
+                showAttendanceViewPage();
+            } else {
+                console.error('showAttendanceViewPage is not defined');
+                mainContent.innerHTML = '<div style="padding: 2rem; text-align: center;"><h2>출석조회 페이지를 불러오는 중...</h2><p>잠시 후 다시 시도해주세요.</p></div>';
+            }
             break;
         case 'tuition-student':
             showTuitionStudentPage();
