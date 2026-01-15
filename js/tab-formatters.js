@@ -8,23 +8,38 @@
 function formatDateInput(input) {
     if (!input) return '';
     
+    // 숫자만 추출
     const cleaned = input.replace(/[^0-9]/g, '');
     
     // 4자리: YYMM -> YYYY.MM (2601 → 2026.01)
     if (cleaned.length === 4) {
-        const year = '20' + cleaned.substring(0, 2);
-        const month = cleaned.substring(2, 4);
-        return `${year}.${month}`;
+        const yy = cleaned.substring(0, 2);
+        const mm = cleaned.substring(2, 4);
+        return `20${yy}.${mm}`;
     }
     
     // 6자리: YYMMDD -> YYYY.MM.DD (260115 → 2026.01.15)
     if (cleaned.length === 6) {
-        const year = '20' + cleaned.substring(0, 2);
-        const month = cleaned.substring(2, 4);
-        const day = cleaned.substring(4, 6);
-        return `${year}.${month}.${day}`;
+        const yy = cleaned.substring(0, 2);
+        const mm = cleaned.substring(2, 4);
+        const dd = cleaned.substring(4, 6);
+        return `20${yy}.${mm}.${dd}`;
     }
     
+    // 8자리: YYYYMMDD -> YYYY.MM.DD (20260115 → 2026.01.15)
+    if (cleaned.length === 8) {
+        const yyyy = cleaned.substring(0, 4);
+        const mm = cleaned.substring(4, 6);
+        const dd = cleaned.substring(6, 8);
+        return `${yyyy}.${mm}.${dd}`;
+    }
+    
+    // 이미 YYYY.MM 또는 YYYY.MM.DD 형식이면 그대로 반환
+    if (/^\d{4}\.\d{2}(\.\d{2})?$/.test(input)) {
+        return input;
+    }
+    
+    // 그 외에는 입력 그대로 반환
     return input;
 }
 
