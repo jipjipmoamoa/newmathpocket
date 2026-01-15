@@ -7,13 +7,17 @@ let isEditMode = false; // 수정 모드 여부
 
 async function showCurriculumPage() {
     const mainContent = document.getElementById('mainContent');
+    
+    // 선생님은 수정 버튼 숨김
+    const showEditButton = Auth.getRole() !== 'teacher';
+    
     mainContent.innerHTML = `
         <div class="page-container">
-            <div style="display: flex; justify-content: flex-end; margin-bottom: 1rem;">
+            ${showEditButton ? `<div style="display: flex; justify-content: flex-end; margin-bottom: 1rem;">
                 <button class="btn btn-secondary" onclick="toggleEditMode()" id="editModeBtn">
                     <i class="fas fa-edit"></i> 수정
                 </button>
-            </div>
+            </div>` : ''}
             <div class="curriculum-three-columns">
                 <!-- 1단: 초등학교 -->
                 <div class="curriculum-column">
@@ -69,7 +73,6 @@ async function loadCurriculumData() {
     try {
         const result = await API.getList('curriculum_units', { limit: 1000 });
         curriculumData = Array.isArray(result) ? result : (result.data || []);
-
         
         renderCurriculum();
     } catch (error) {
@@ -130,11 +133,10 @@ function renderSchoolType(schoolType, containerId, grades) {
 function renderSemester(schoolType, grade, semester) {
     const units = curriculumData.filter(u => 
         u.school_type === schoolType && 
-        String(u.grade) === String(grade) && 
+        u.grade === grade && 
         u.semester === semester &&
         !u.parent_id
     ).sort((a, b) => (a.order || 0) - (b.order || 0));
-
     
     const containerId = `semester-${schoolType}-${grade}-${semester}`;
     
@@ -142,12 +144,11 @@ function renderSemester(schoolType, grade, semester) {
         <div class="semester-wrapper">
             <div class="semester-header">
                 <span class="semester-title">${semester}</span>
-                   ${isEditMode ? `<button class="btn-icon-orange" onclick="showInlineInput('${containerId}', 'major', '${schoolType}', ${grade}, '${semester}', null)" title="대단원 추가">
+                <button class="btn-icon-orange" onclick="showInlineInput('${containerId}', 'major', '${schoolType}', ${grade}, '${semester}', null)" title="대단원 추가">
                     <i class="fas fa-plus"></i>
-                </button>` : ''}
+                </button>
             </div>
             <div class="units-container" id="${containerId}">
-
     `;
     
     units.forEach((unit, index) => {
@@ -162,7 +163,6 @@ function renderSemester(schoolType, grade, semester) {
     return html;
 }
 
-// 단원 렌더링 (재귀적)
 // 단원 렌더링 (재귀적)
 function renderUnit(unit, level, number) {
     const isExpanded = expandedUnits.has(unit.id);
@@ -187,57 +187,45 @@ function renderUnit(unit, level, number) {
         numberDisplay = getCircledNumber(number);
         className += ' unit-minor';
     }
-
     
     let html = `
         <div class="${className}" id="unit-${unit.id}">
             <div class="unit-header" onclick="toggleUnit('${unit.id}')">
                 <span class="unit-number">${numberDisplay}</span>
-                <span class="unit-name">${unit.name}</span>
-                ${isEditMode ? `<div class="unit-actions" onclick="event.stopPropagation()">` : ''}
+                <span class="unit-name">${typeof MathUtils !== 'undefined' ? MathUtils.renderMath(unit.name) : unit.name}</span>
+                <div class="unit-actions" onclick="event.stopPropagation()">
     `;
     
-    // 수정 모드일 때만 버튼 표시
-    if (isEditMode) {
-        // 대단원과 중단원에만 하위 항목 추가 버튼 표시
-        if (level !== 'minor') {
-            const nextLevel = level === 'major' ? 'middle' : 'minor';
-            html += `<button class="btn-icon-orange" onclick="showInlineInputChild('${unit.id}', '${nextLevel}')" title="하위 항목 추가">
-                <i class="fas fa-plus"></i>
-            </button>`;
-        }
-        
-        html += `
-                        <button class="btn-icon-orange" onclick="editUnitInline('${unit.id}')" title="수정">
-                            <i class="fas fa-pencil-alt"></i>
-                        </button>
-                        <button class="btn-icon-orange" onclick="deleteUnit('${unit.id}')" title="삭제">
-                            <i class="fas fa-times"></i>
-                        </button>
-                    </div>`;
+    // 대단원과 중단원에만 하위 항목 추가 버튼 표시
+    if (level !== 'minor') {
+        const nextLevel = level === 'major' ? 'middle' : 'minor';
+        html += `<button class="btn-icon-orange" onclick="showInlineInputChild('${unit.id}', '${nextLevel}')" title="하위 항목 추가">
+            <i class="fas fa-plus"></i>
+        </button>`;
     }
     
     html += `
+                    <button class="btn-icon-orange" onclick="editUnitInline('${unit.id}')" title="수정">
+                        <i class="fas fa-pencil-alt"></i>
+                    </button>
+                    <button class="btn-icon-orange" onclick="deleteUnit('${unit.id}')" title="삭제">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
             </div>
     `;
-
-
     
-    // 펼쳐진 상태면 하위 항목 컨테이너 표시 (하위 항목이 없어도 표시)
-    if (isExpanded) {
+    // 하위 항목이 있고 펼쳐진 상태면 표시
+    if (children.length > 0 && isExpanded) {
         html += `<div class="unit-children" id="children-${unit.id}">`;
-        if (children.length > 0) {
-            const nextLevel = level === 'major' ? 'middle' : 'minor';
-            children.forEach((child, index) => {
-                // 자식 단원의 level을 DB에서 가져온 값 또는 계산된 값 사용
-                const childLevel = child.level || nextLevel;
-                html += renderUnit(child, childLevel, index + 1);
-            });
-        }
+        const nextLevel = level === 'major' ? 'middle' : 'minor';
+        children.forEach((child, index) => {
+            // 자식 단원의 level을 DB에서 가져온 값 또는 계산된 값 사용
+            const childLevel = child.level || nextLevel;
+            html += renderUnit(child, childLevel, index + 1);
+        });
         html += `</div>`;
     }
-
-
     
     html += `</div>`;
     
@@ -281,25 +269,64 @@ function showInlineInput(containerId, level, schoolType, grade, semester, parent
     inputRow.className = 'inline-input-row';
     inputRow.innerHTML = `
         <div class="inline-input-wrapper">
-            <input type="text" 
-                   class="inline-input" 
-                   placeholder="단원명을 입력하고 엔터를 누르세요" 
-                   id="inlineInput"
-                    onkeypress="handleInlineInputKeyPress(event, '${level}', '${schoolType}', '${grade}', '${semester}', ${parentId})"
-
-                   autofocus>
-            <button class="btn-icon-orange" onclick="saveInlineUnit('${level}', '${schoolType}', '${grade}', '${semester}', ${parentId})" title="저장">
-
-                <i class="fas fa-check"></i>
-            </button>
-            <button class="btn-icon-orange" onclick="cancelInlineInput()" title="취소">
-                <i class="fas fa-times"></i>
-            </button>
+            <div style="flex: 1;">
+                <div class="math-symbol-panel-container" id="mathPanelContainer"></div>
+                <input type="text" 
+                       class="inline-input math-input" 
+                       placeholder="단원명 입력 (수식: $x^2$)" 
+                       id="inlineInput"
+                       onkeypress="handleInlineInputKeyPress(event, '${level}', '${schoolType}', '${grade}', '${semester}', ${parentId})"
+                       oninput="updateMathPreview(this)"
+                       autofocus>
+                <div class="math-preview" id="mathPreview" style="
+                    margin-top: 0.3rem;
+                    padding: 0.5rem;
+                    background: white;
+                    border: 1px solid #e0e0e0;
+                    border-radius: 3px;
+                    min-height: 2rem;
+                    font-size: 0.9rem;
+                "></div>
+            </div>
+            <div style="display: flex; gap: 0.3rem; align-items: flex-start;">
+                <button class="btn-icon-orange" onclick="saveInlineUnit('${level}', '${schoolType}', '${grade}', '${semester}', ${parentId})" title="저장">
+                    <i class="fas fa-check"></i>
+                </button>
+                <button class="btn-icon-orange" onclick="cancelInlineInput()" title="취소">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
         </div>
     `;
     
     container.insertBefore(inputRow, container.firstChild);
-    document.getElementById('inlineInput').focus();
+    
+    // 수학 기호 패널 추가
+    const input = document.getElementById('inlineInput');
+    const panelContainer = document.getElementById('mathPanelContainer');
+    if (input && panelContainer && typeof MathUtils !== 'undefined') {
+        const panel = MathUtils.createMathSymbolPanel();
+        panelContainer.appendChild(panel);
+        // 패널의 버튼들이 input을 참조하도록 수정
+        const buttons = panel.querySelectorAll('.math-symbol-btn');
+        buttons.forEach(btn => {
+            const originalClick = btn.onclick;
+            btn.onclick = () => {
+                const targetInput = document.getElementById('inlineInput');
+                if (targetInput) {
+                    // 임시로 panel의 nextElementSibling를 targetInput으로 설정
+                    Object.defineProperty(panel, 'nextElementSibling', {
+                        value: targetInput,
+                        writable: true,
+                        configurable: true
+                    });
+                }
+                originalClick();
+            };
+        });
+    }
+    
+    input.focus();
 }
 
 // 인라인 입력창 표시 (단원 하위 - 중단원/소단원 추가)
@@ -337,23 +364,63 @@ function showInlineInputChild(parentId, level) {
     inputRow.className = 'inline-input-row';
     inputRow.innerHTML = `
         <div class="inline-input-wrapper">
-            <input type="text" 
-                   class="inline-input" 
-                   placeholder="단원명을 입력하고 엔터를 누르세요" 
-                   id="inlineInput"
-                   onkeypress="handleInlineInputChildKeyPress(event, '${parentId}', '${level}')"
-                   autofocus>
-            <button class="btn-icon-orange" onclick="saveInlineChildUnit('${parentId}', '${level}')" title="저장">
-                <i class="fas fa-check"></i>
-            </button>
-            <button class="btn-icon-orange" onclick="cancelInlineInput()" title="취소">
-                <i class="fas fa-times"></i>
-            </button>
+            <div style="flex: 1;">
+                <div class="math-symbol-panel-container" id="mathPanelContainerChild"></div>
+                <input type="text" 
+                       class="inline-input math-input" 
+                       placeholder="단원명 입력 (수식: $x^2$)" 
+                       id="inlineInput"
+                       onkeypress="handleInlineInputChildKeyPress(event, '${parentId}', '${level}')"
+                       oninput="updateMathPreview(this)"
+                       autofocus>
+                <div class="math-preview" id="mathPreviewChild" style="
+                    margin-top: 0.3rem;
+                    padding: 0.5rem;
+                    background: white;
+                    border: 1px solid #e0e0e0;
+                    border-radius: 3px;
+                    min-height: 2rem;
+                    font-size: 0.9rem;
+                "></div>
+            </div>
+            <div style="display: flex; gap: 0.3rem; align-items: flex-start;">
+                <button class="btn-icon-orange" onclick="saveInlineChildUnit('${parentId}', '${level}')" title="저장">
+                    <i class="fas fa-check"></i>
+                </button>
+                <button class="btn-icon-orange" onclick="cancelInlineInput()" title="취소">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
         </div>
     `;
     
     container.insertBefore(inputRow, container.firstChild);
-    document.getElementById('inlineInput').focus();
+    
+    // 수학 기호 패널 추가
+    const input = document.getElementById('inlineInput');
+    const panelContainer = document.getElementById('mathPanelContainerChild');
+    if (input && panelContainer && typeof MathUtils !== 'undefined') {
+        const panel = MathUtils.createMathSymbolPanel();
+        panelContainer.appendChild(panel);
+        // 패널의 버튼들이 input을 참조하도록 수정
+        const buttons = panel.querySelectorAll('.math-symbol-btn');
+        buttons.forEach(btn => {
+            const originalClick = btn.onclick;
+            btn.onclick = () => {
+                const targetInput = document.getElementById('inlineInput');
+                if (targetInput) {
+                    Object.defineProperty(panel, 'nextElementSibling', {
+                        value: targetInput,
+                        writable: true,
+                        configurable: true
+                    });
+                }
+                originalClick();
+            };
+        });
+    }
+    
+    input.focus();
 }
 
 // 엔터 키 처리 (학기 하위)
@@ -385,7 +452,6 @@ async function saveInlineUnit(level, schoolType, grade, semester, parentId) {
     }
     
     // 같은 레벨에서 순서 계산
-    // 같은 레벨에서 순서 계산
     const siblings = curriculumData.filter(u => 
         u.school_type === schoolType &&
         String(u.grade) === String(grade) &&
@@ -401,14 +467,12 @@ async function saveInlineUnit(level, schoolType, grade, semester, parentId) {
         school_type: schoolType,
         grade: String(grade),
         semester: semester,
-
         parent_id: parentId,
         level: levelNumber,
         name: name,
         content: '',
         order: order
     };
-
     
     try {
         await API.create('curriculum_units', data);
@@ -447,13 +511,15 @@ async function saveInlineChildUnit(parentId, level) {
     const siblings = curriculumData.filter(u => u.parent_id === parentId);
     const order = siblings.length + 1;
     
+    // level을 숫자로 변환 (major=1, middle=2, minor=3)
+    const levelNumber = level === 'major' ? 1 : level === 'middle' ? 2 : level === 'minor' ? 3 : parseInt(level) || 1;
+    
     const data = {
         school_type: parent.school_type,
-        grade: parent.grade,
+        grade: String(parent.grade),
         semester: parent.semester,
         parent_id: parentId,
-level: level === 'major' ? 1 : level === 'middle' ? 2 : level === 'minor' ? 3 : parseInt(level) || 1,
-
+        level: levelNumber,
         name: name,
         content: '',
         order: order
@@ -490,105 +556,9 @@ function cancelInlineInput() {
 
 // 단원 인라인 수정
 function editUnitInline(unitId) {
-    if (!Auth.isLoggedIn()) {
-        Utils.showAlert('로그인이 필요합니다.');
-        return;
-    }
-    
-    const unit = curriculumData.find(u => u.id === unitId);
-    if (!unit) return;
-    
-    // 기존 입력창이 있으면 제거
-    const existingInput = document.querySelector('.inline-edit-row');
-    if (existingInput) {
-        existingInput.remove();
-    }
-    
-    // 단원 헤더 찾기
-    const unitElement = document.getElementById(`unit-${unitId}`);
-    if (!unitElement) return;
-    
-    const unitHeader = unitElement.querySelector('.unit-header');
-    if (!unitHeader) return;
-    
-    // 기존 내용 숨기기
-    const unitNumber = unitHeader.querySelector('.unit-number');
-    const unitName = unitHeader.querySelector('.unit-name');
-    const unitActions = unitHeader.querySelector('.unit-actions');
-    
-    const originalName = unitName.textContent;
-    
-    // 편집 UI 생성
-    unitName.innerHTML = `
-        <input type="text" 
-               class="inline-input" 
-               value="${originalName}"
-               id="editInput-${unitId}"
-               style="width: 100%; padding: 0.25rem; border: 1px solid #ddd; border-radius: 4px;"
-               onkeypress="if(event.key==='Enter'){event.preventDefault();saveUnitEdit('${unitId}');}">
-    `;
-    
-    if (unitActions) {
-        unitActions.innerHTML = `
-            <button class="btn-icon-orange" onclick="saveUnitEdit('${unitId}')" title="저장">
-                <i class="fas fa-check"></i>
-            </button>
-            <button class="btn-icon-orange" onclick="cancelUnitEdit('${unitId}', '${originalName.replace(/'/g, "\\'")}', this)" title="취소">
-                <i class="fas fa-times"></i>
-            </button>
-        `;
-    }
-    
-    // 입력창에 포커스
-    document.getElementById(`editInput-${unitId}`).focus();
-    document.getElementById(`editInput-${unitId}`).select();
+    // TODO: 인라인 수정 기능 구현
+    Utils.showAlert('수정 기능은 추후 구현 예정입니다.');
 }
-
-// 단원 수정 저장
-async function saveUnitEdit(unitId) {
-    const input = document.getElementById(`editInput-${unitId}`);
-    if (!input) return;
-    
-    const newName = input.value.trim();
-    if (!newName) {
-        Utils.showAlert('단원명을 입력해주세요.');
-        input.focus();
-        return;
-    }
-    
-    try {
-        // 스크롤 위치 저장
-        const scrollPos = window.pageYOffset || document.documentElement.scrollTop;
-        
-        await API.update('curriculum_units', unitId, { name: newName });
-        
-        // 데이터 다시 로드
-        await loadCurriculumData();
-        
-        // 스크롤 위치 복원
-        window.scrollTo(0, scrollPos);
-        
-    } catch (error) {
-        console.error('단원 수정 실패:', error);
-        Utils.showAlert('단원 수정에 실패했습니다.');
-    }
-}
-
-// 단원 수정 취소
-function cancelUnitEdit(unitId, originalName, buttonElement) {
-    const unit = curriculumData.find(u => u.id === unitId);
-    if (!unit) return;
-    
-    // 스크롤 위치 저장
-    const scrollPos = window.pageYOffset || document.documentElement.scrollTop;
-    
-    // 렌더링 다시
-    renderCurriculum();
-    
-    // 스크롤 위치 복원
-    window.scrollTo(0, scrollPos);
-}
-
 
 // 단원 삭제
 async function deleteUnit(unitId) {
@@ -624,3 +594,24 @@ async function deleteUnit(unitId) {
         Utils.showAlert('단원 삭제에 실패했습니다.');
     }
 }
+
+// 수학 공식 미리보기 업데이트
+function updateMathPreview(input) {
+    if (!input || typeof MathUtils === 'undefined') return;
+    
+    const previewId = input.id === 'inlineInput' ? 
+        (document.getElementById('mathPreview') ? 'mathPreview' : 'mathPreviewChild') : 
+        'mathPreview';
+    
+    const preview = document.getElementById(previewId);
+    if (!preview) return;
+    
+    const text = input.value;
+    if (!text.trim()) {
+        preview.innerHTML = '<span style="color: #999;">미리보기</span>';
+        return;
+    }
+    
+    MathUtils.showMathPreview(text, preview);
+}
+
