@@ -332,7 +332,26 @@ async function loadAttendanceData() {
         // 학생 목록 로드
         const studentsResponse = await API.getList('students', { limit: 1000 });
         // API 응답이 배열이면 그대로, 객체면 data 속성 사용
-        const allStudents = Array.isArray(studentsResponse) ? studentsResponse : (studentsResponse.data || []);
+        let allStudents = Array.isArray(studentsResponse) ? studentsResponse : (studentsResponse.data || []);
+        
+        // 선생님인 경우 담당 학생만 필터링
+        if (Auth.getRole() === 'teacher') {
+            const currentUsername = Auth.getUsername();
+            const teachersResponse = await API.getList('teachers', { limit: 1000 });
+            const teachers = Array.isArray(teachersResponse) ? teachersResponse : (teachersResponse.data || []);
+            const currentTeacher = teachers.find(t => t.username === currentUsername);
+            
+            if (currentTeacher && currentTeacher.assigned_students) {
+                const assignedStudentIds = Array.isArray(currentTeacher.assigned_students) 
+                    ? currentTeacher.assigned_students 
+                    : [];
+                allStudents = allStudents.filter(s => assignedStudentIds.includes(s.id));
+                console.log('담당 학생 수:', allStudents.length);
+            } else {
+                allStudents = [];
+                console.log('담당 학생 없음');
+            }
+        }
         
         console.log('전체 학생 수:', allStudents.length);
         console.log('재원생 수:', allStudents.filter(s => s.status === '재원').length);
@@ -1700,7 +1719,24 @@ async function renderMonthlyCalendar() {
 async function loadMonthAttendance(year, month) {
     try {
         const response = await API.getList('attendance', { limit: 1000 });
-        const allAttendance = Array.isArray(response) ? response : (response.data || []);
+        let allAttendance = Array.isArray(response) ? response : (response.data || []);
+        
+        // 선생님인 경우 담당 학생의 출석 기록만 필터링
+        if (Auth.getRole() === 'teacher') {
+            const currentUsername = Auth.getUsername();
+            const teachersResponse = await API.getList('teachers', { limit: 1000 });
+            const teachers = Array.isArray(teachersResponse) ? teachersResponse : (teachersResponse.data || []);
+            const currentTeacher = teachers.find(t => t.username === currentUsername);
+            
+            if (currentTeacher && currentTeacher.assigned_students) {
+                const assignedStudentIds = Array.isArray(currentTeacher.assigned_students) 
+                    ? currentTeacher.assigned_students 
+                    : [];
+                allAttendance = allAttendance.filter(record => assignedStudentIds.includes(record.student_id));
+            } else {
+                allAttendance = [];
+            }
+        }
         
         // 해당 월의 데이터만 필터링
         const monthStart = `${year}-${String(month + 1).padStart(2, '0')}-01`;
