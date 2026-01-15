@@ -502,9 +502,52 @@ async function editScore(studentId, scoreId) {
     }
 }
 
-// ===== 사용책 수정 =====
-async function editBook(studentId, bookId) {
+// ===== 사용책 인라인 편집 토글 =====
+function toggleEditBook(studentId, bookId) {
+    const row = document.getElementById(`book-row-${bookId}`);
+    if (!row) return;
+    
+    const isEditing = row.classList.contains('editing');
+    
+    if (isEditing) {
+        // 저장 모드
+        saveBookInline(studentId, bookId);
+    } else {
+        // 편집 모드로 전환
+        row.classList.add('editing');
+        
+        // display 값 숨기고 input 표시
+        row.querySelectorAll('.display-value').forEach(el => el.style.display = 'none');
+        row.querySelectorAll('.edit-input').forEach(el => el.style.display = 'block');
+        
+        // 버튼 아이콘 변경 (연필 → 체크)
+        const editBtn = row.querySelector('.btn-edit');
+        if (editBtn) {
+            editBtn.innerHTML = '<i class="fas fa-check"></i>';
+        }
+    }
+}
+
+// ===== 사용책 인라인 저장 =====
+async function saveBookInline(studentId, bookId) {
+    const row = document.getElementById(`book-row-${bookId}`);
+    if (!row) return;
+    
     try {
+        // 입력값 가져오기
+        const dateInput = row.querySelector('.book-date-cell .edit-input');
+        const conceptInput = row.querySelector('.book-concept-cell .edit-input');
+        const reviewInput = row.querySelector('.book-review-cell .edit-input');
+        const advancedInput = row.querySelector('.book-advanced-cell .edit-input');
+        
+        const newDate = dateInput ? dateInput.value.trim() : '';
+        const newConcept = conceptInput ? conceptInput.value.trim() : '';
+        const newReview = reviewInput ? reviewInput.value.trim() : '';
+        const newAdvanced = advancedInput ? advancedInput.value.trim() : '';
+        
+        // 날짜 포맷 변환
+        const formattedDate = formatDateInput(newDate);
+        
         // 학생 데이터 가져오기
         const response = await API.getList('students', { limit: 1000 });
         const students = Array.isArray(response) ? response : (response.data || []);
@@ -526,38 +569,15 @@ async function editBook(studentId, bookId) {
             books = [];
         }
         
-        // 해당 책 찾기
-        const book = books.find(b => b.id === bookId);
-        if (!book) {
-            alert('사용책 정보를 찾을 수 없습니다.');
-            return;
-        }
-        
-        // 수정할 값 입력받기
-        const newDate = prompt('책 안내 날짜를 입력하세요 (예: 2511):', book.date || '');
-        if (newDate === null) return; // 취소
-        
-        const newConcept = prompt('선행개념을 입력하세요:', book.concept || '');
-        if (newConcept === null) return; // 취소
-        
-        const newReview = prompt('선행복습을 입력하세요:', book.review || '');
-        if (newReview === null) return; // 취소
-        
-        const newAdvanced = prompt('현행심화를 입력하세요:', book.advanced || '');
-        if (newAdvanced === null) return; // 취소
-        
-        // 날짜 포맷 변환
-        const formattedDate = formatDateInput(newDate.trim());
-        
         // 책 정보 업데이트
         const updatedBooks = books.map(b => {
             if (b.id === bookId) {
                 return {
                     ...b,
                     date: formattedDate,
-                    concept: newConcept.trim(),
-                    review: newReview.trim(),
-                    advanced: newAdvanced.trim()
+                    concept: newConcept,
+                    review: newReview,
+                    advanced: newAdvanced
                 };
             }
             return b;
@@ -568,10 +588,27 @@ async function editBook(studentId, bookId) {
             books: JSON.stringify(updatedBooks)
         });
         
-        // 화면 갱신
-        showStudentDetail(studentId);
+        // 화면에 즉시 반영
+        const dateDisplay = row.querySelector('.book-date-cell .display-value');
+        const conceptDisplay = row.querySelector('.book-concept-cell .display-value');
+        const reviewDisplay = row.querySelector('.book-review-cell .display-value');
+        const advancedDisplay = row.querySelector('.book-advanced-cell .display-value');
         
-        alert('사용책 정보가 수정되었습니다.');
+        if (dateDisplay) dateDisplay.textContent = formattedDate || '-';
+        if (conceptDisplay) conceptDisplay.textContent = newConcept || '-';
+        if (reviewDisplay) reviewDisplay.textContent = newReview || '-';
+        if (advancedDisplay) advancedDisplay.textContent = newAdvanced || '-';
+        
+        // 편집 모드 종료
+        row.classList.remove('editing');
+        row.querySelectorAll('.display-value').forEach(el => el.style.display = 'block');
+        row.querySelectorAll('.edit-input').forEach(el => el.style.display = 'none');
+        
+        // 버튼 아이콘 복원 (체크 → 연필)
+        const editBtn = row.querySelector('.btn-edit');
+        if (editBtn) {
+            editBtn.innerHTML = '<i class="fas fa-pencil-alt"></i>';
+        }
         
     } catch (error) {
         console.error('사용책 수정 오류:', error);
