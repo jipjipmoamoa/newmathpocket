@@ -8,16 +8,9 @@ let isEditMode = false; // 수정 모드 여부
 async function showCurriculumPage() {
     const mainContent = document.getElementById('mainContent');
     
-    // 선생님은 수정 버튼 숨김
-    const showEditButton = Auth.getRole() !== 'teacher';
-    
+    // 모든 사람에게 수정 버튼 숨김 (조회 전용)
     mainContent.innerHTML = `
         <div class="page-container">
-            ${showEditButton ? `<div style="display: flex; justify-content: flex-end; margin-bottom: 1rem;">
-                <button class="btn btn-secondary" onclick="toggleEditMode()" id="editModeBtn">
-                    <i class="fas fa-edit"></i> 수정
-                </button>
-            </div>` : ''}
             <div class="curriculum-three-columns">
                 <!-- 1단: 초등학교 -->
                 <div class="curriculum-column">
