@@ -1722,20 +1722,16 @@ async function loadMonthAttendance(year, month) {
         let allAttendance = Array.isArray(response) ? response : (response.data || []);
         
         // 선생님인 경우 담당 학생의 출석 기록만 필터링
-        if (Auth.getRole() === 'teacher') {
-            const currentUsername = Auth.getUsername();
-            const teachersResponse = await API.getList('teachers', { limit: 1000 });
-            const teachers = Array.isArray(teachersResponse) ? teachersResponse : (teachersResponse.data || []);
-            const currentTeacher = teachers.find(t => t.username === currentUsername);
+        if (Auth.isTeacher()) {
+            const teacherId = Auth.getUserId();
+            // 학생 목록 로드
+            const studentsResponse = await API.getList('students', { limit: 1000 });
+            const allStudentsData = Array.isArray(studentsResponse) ? studentsResponse : (studentsResponse.data || []);
+            const myStudents = allStudentsData.filter(s => s.teacher_id === teacherId);
+            const myStudentIds = myStudents.map(s => s.id);
             
-            if (currentTeacher && currentTeacher.assigned_students) {
-                const assignedStudentIds = Array.isArray(currentTeacher.assigned_students) 
-                    ? currentTeacher.assigned_students 
-                    : [];
-                allAttendance = allAttendance.filter(record => assignedStudentIds.includes(record.student_id));
-            } else {
-                allAttendance = [];
-            }
+            allAttendance = allAttendance.filter(record => myStudentIds.includes(record.student_id));
+            console.log('[loadMonthAttendance] 선생님 담당 학생 출석 기록:', allAttendance.length);
         }
         
         // 해당 월의 데이터만 필터링
