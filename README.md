@@ -5,6 +5,23 @@
 
 ---
 
+## 🚨 v9.0.5.3 긴급 수정 - 출석현황표/통계표 담당학생 필터링 수정 (2026-01-15)
+
+### 🔧 추가 수정 사항
+
+#### 문제: 선생님 로그인 시 출석현황표와 통계표에 담당이 아닌 학생 표시
+- **원인**: `attendance.js`의 `loadAttendanceData()`, `renderAttendanceStats()` 함수에서 teacher_id 기반 필터링 누락
+- **증상**: 권미정 선생님 로그인 시 담당 학생이 0명인데도 모든 학생이 출석현황표와 통계표에 표시됨
+- **해결**: 
+  - `loadAttendanceData()` Line 332-337: `Permissions.filterStudentsByTeacher()` 적용
+  - `renderAttendanceStats()` Line 1822-1831: `Permissions.filterStudentsByTeacher()` 적용
+
+#### 수정 파일
+- ✅ `js/attendance.js` - Line 332-337 (출석현황표 필터링), Line 1822-1831 (통계표 필터링)
+- ✅ `index.html` - attendance.js 버전 9.0.5.3으로 업데이트
+
+---
+
 ## 🚨 v9.0.5.2 긴급 수정 - 선생님 인라인 편집 기능 수정 (2026-01-15)
 
 ### 🔧 추가 수정 사항
