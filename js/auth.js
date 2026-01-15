@@ -160,6 +160,13 @@ function updateUIBasedOnAuth() {
         logoutArea.style.display = 'flex';
         updateCurrentDate();  // 날짜 업데이트
         
+        // 사용자 이름 표시
+        const username = Auth.getUsername();
+        const welcomeText = document.querySelector('.welcome-text');
+        if (welcomeText) {
+            welcomeText.textContent = username + '님';
+        }
+        
         // 설정 메뉴 표시/숨김 (관리자만 보기)
         updateSettingsMenuVisibility();
     } else {
