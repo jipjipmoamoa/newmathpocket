@@ -72,11 +72,11 @@ const API = {
             throw error;
         }
     },
-
     
     // PUT - 전체 업데이트
     async update(table, id, data) {
         try {
+            console.log(`API update: ${table}/${id}`, data);
             const response = await fetch(`${this.baseURL}/${table}?id=eq.${id}`, {
                 method: 'PATCH',
                 headers: {
@@ -87,8 +87,15 @@ const API = {
                 },
                 body: JSON.stringify(data)
             });
-            if (!response.ok) throw new Error('데이터 수정 실패');
+            
+            if (!response.ok) {
+                const errorText = await response.text();
+                console.error('API update error response:', errorText);
+                throw new Error(`데이터 수정 실패: ${errorText}`);
+            }
+            
             const result = await response.json();
+            console.log('API update result:', result);
             return result[0];
         } catch (error) {
             console.error('API update error:', error);
