@@ -2806,14 +2806,40 @@ let allMembers = [];
 
 async function loadAllMembers() {
     try {
+        console.log('[loadAllMembers] 시작');
+        
         // 재원 학생만 가져오기
         const studentsResult = await API.getList('students', { limit: 1000 });
+        console.log('[loadAllMembers] API 응답:', studentsResult);
+        
         const allStudentsData = Array.isArray(studentsResult) ? studentsResult : (studentsResult.data || []);
+        console.log('[loadAllMembers] 전체 학생 수:', allStudentsData.length);
+        
         let activeStudents = allStudentsData.filter(s => s.status === '재원');
+        console.log('[loadAllMembers] 재원생 수:', activeStudents.length);
+        
+        // 현재 로그인한 사용자 정보
+        console.log('[loadAllMembers] 사용자 정보:', {
+            userId: Auth.getUserId(),
+            username: Auth.getUsername(),
+            role: Auth.getRole(),
+            isAdmin: Auth.isAdmin(),
+            isSubAdmin: Auth.isSubAdmin(),
+            isTeacher: Auth.isTeacher()
+        });
         
         // 권한에 따라 학생 필터링 (Permissions 유틸리티 사용)
         activeStudents = Permissions.filterStudentsByTeacher(activeStudents);
         console.log('[loadAllMembers] 권한 필터링 후 재원생 수:', activeStudents.length);
+        
+        if (activeStudents.length > 0) {
+            console.log('[loadAllMembers] 필터링된 학생 목록:', activeStudents.map(s => ({
+                name: s.name,
+                school: s.school,
+                grade: s.grade,
+                teacher_id: s.teacher_id
+            })));
+        }
         
         renderAllMembersByGrade(activeStudents);
     } catch (error) {
