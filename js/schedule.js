@@ -144,14 +144,20 @@ async function loadWeeklySchedule() {
             console.log('[loadWeeklySchedule] 필터링 후 학생 수:', students.length);
         }
         
-        // 학생들에게 색상 할당
-        assignStudentColors(students);
-        
-        // 요일별 스케줄 데이터 구성
-        const scheduleData = buildScheduleData(students);
-        
-        // 테이블 렌더링
-        renderWeeklyScheduleTable(scheduleData);
+        // 🔥 관리자/부관리자인 경우 선생님별로 그룹화하여 표시
+        if (Auth.isAdminOrSubAdmin() && currentTeacherFilter === 'all') {
+            await renderScheduleByTeachers(students);
+        } else {
+            // 선생님이거나 필터가 적용된 경우 기존 방식으로 표시
+            // 학생들에게 색상 할당
+            assignStudentColors(students);
+            
+            // 요일별 스케줄 데이터 구성
+            const scheduleData = buildScheduleData(students);
+            
+            // 테이블 렌더링
+            renderWeeklyScheduleTable(scheduleData);
+        }
         
     } catch (error) {
         console.error('스케줄 로드 실패:', error);
@@ -277,8 +283,14 @@ function buildScheduleData(students) {
     return { scheduleData, hasSaturday, maxColumnsPerDay };
 }
 
-// 주간 스케줄 테이블 렌더링
+// 주간 스케줄 테이블 렌더링 (리팩토링: 공통 함수 사용)
 function renderWeeklyScheduleTable(data) {
+    const container = document.getElementById('weeklyScheduleTable');
+    container.innerHTML = generateScheduleTableHTML(data);
+}
+
+// 이전 렌더링 함수 (백업, 사용하지 않음)
+function renderWeeklyScheduleTable_OLD(data) {
     const { scheduleData, hasSaturday, maxColumnsPerDay } = data;
     const days = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday'];
     if (hasSaturday) {
@@ -395,6 +407,201 @@ function renderWeeklyScheduleTable(data) {
     `;
     
     container.innerHTML = html;
+}
+
+// 🔥 선생님별로 스케줄 그룹화하여 렌더링 (관리자/부관리자용)
+async function renderScheduleByTeachers(allStudents) {
+    try {
+        // 선생님 목록 로드
+        const teachersResult = await API.getList('teachers', { limit: 1000 });
+        const allTeachers = Array.isArray(teachersResult) ? teachersResult : (teachersResult.data || []);
+        const activeTeachers = allTeachers.filter(t => (t.status || '재직') === '재직');
+        
+        // 선생님별로 학생 그룹화
+        const studentsByTeacher = {};
+        const noTeacherStudents = [];
+        
+        allStudents.forEach(student => {
+            if (student.teacher_id) {
+                if (!studentsByTeacher[student.teacher_id]) {
+                    studentsByTeacher[student.teacher_id] = [];
+                }
+                studentsByTeacher[student.teacher_id].push(student);
+            } else {
+                noTeacherStudents.push(student);
+            }
+        });
+        
+        const container = document.getElementById('weeklyScheduleTable');
+        let html = '';
+        
+        // 선생님별로 순회하면서 스케줄 테이블 생성
+        activeTeachers.forEach(teacher => {
+            const teacherStudents = studentsByTeacher[teacher.id] || [];
+            
+            if (teacherStudents.length === 0) return; // 담당 학생이 없으면 건너뛰기
+            
+            // 선생님 이름 헤더
+            html += `
+                <div class="teacher-schedule-section" style="margin-bottom: 3rem; page-break-inside: avoid;">
+                    <h3 style="margin-bottom: 1rem; padding: 0.75rem; background: #f0f0f0; border-left: 4px solid #4CAF50; font-size: 1.1rem;">
+                        <i class="fas fa-user-tie"></i> ${teacher.name} 선생님 (${teacherStudents.length}명)
+                    </h3>
+            `;
+            
+            // 이 선생님의 학생들에게 색상 할당
+            assignStudentColors(teacherStudents);
+            
+            // 스케줄 데이터 구성
+            const scheduleData = buildScheduleData(teacherStudents);
+            
+            // 테이블 HTML 생성
+            html += generateScheduleTableHTML(scheduleData);
+            
+            html += `</div>`;
+        });
+        
+        // 담당 선생님이 없는 학생들
+        if (noTeacherStudents.length > 0) {
+            html += `
+                <div class="teacher-schedule-section" style="margin-bottom: 3rem; page-break-inside: avoid;">
+                    <h3 style="margin-bottom: 1rem; padding: 0.75rem; background: #f0f0f0; border-left: 4px solid #999; font-size: 1.1rem;">
+                        <i class="fas fa-user-times"></i> 담당 선생님 미지정 (${noTeacherStudents.length}명)
+                    </h3>
+            `;
+            
+            assignStudentColors(noTeacherStudents);
+            const scheduleData = buildScheduleData(noTeacherStudents);
+            html += generateScheduleTableHTML(scheduleData);
+            
+            html += `</div>`;
+        }
+        
+        container.innerHTML = html;
+        
+    } catch (error) {
+        console.error('선생님별 스케줄 렌더링 실패:', error);
+        document.getElementById('weeklyScheduleTable').innerHTML = 
+            '<div class="alert alert-danger">스케줄을 불러오는데 실패했습니다.</div>';
+    }
+}
+
+// 스케줄 테이블 HTML 생성 (공통 함수)
+function generateScheduleTableHTML(data) {
+    const { scheduleData, hasSaturday, maxColumnsPerDay } = data;
+    const days = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday'];
+    if (hasSaturday) {
+        days.push('saturday');
+    }
+    
+    // 시간대 배열 (14:00 ~ 19:30, 30분 단위)
+    const times = [];
+    for (let hour = 14; hour <= 19; hour++) {
+        for (let min = 0; min < 60; min += 30) {
+            if (hour === 19 && min > 30) break; // 19:30까지만
+            times.push(`${String(hour).padStart(2, '0')}:${String(min).padStart(2, '0')}`);
+        }
+    }
+    
+    // 각 요일/열/시간의 셀이 이미 렌더링되었는지 추적
+    const renderedCells = {};
+    
+    // 요일 레이블 간단히 (월, 화, 수, 목, 금)
+    const dayLabelsShort = {
+        'monday': '월',
+        'tuesday': '화',
+        'wednesday': '수',
+        'thursday': '목',
+        'friday': '금',
+        'saturday': '토'
+    };
+    
+    let html = `
+        <table class="weekly-schedule-table">
+            <thead>
+                <tr>
+                    <th class="time-header-cell" rowspan="1"></th>
+    `;
+    
+    // 요일 헤더 (실제 열 개수만큼)
+    days.forEach(day => {
+        const colCount = Math.max(maxColumnsPerDay[day], 1);
+        html += `<th colspan="${colCount}" class="day-header">${dayLabelsShort[day]}</th>`;
+    });
+    
+    html += `
+                </tr>
+            </thead>
+            <tbody>
+    `;
+    
+    // 시간대별 행
+    times.forEach((time, timeIndex) => {
+        // 정각인지 확인
+        const isHourMark = time.endsWith(':00');
+        const rowClass = isHourMark ? 'hour-mark-row' : '';
+        
+        html += `<tr class="${rowClass}">`;
+        
+        // 시간 열
+        html += `<td class="time-cell">${time}</td>`;
+        
+        // 각 요일의 열
+        days.forEach((day, dayIndex) => {
+            const columns = scheduleData[day] ? scheduleData[day].columns : [];
+            const colCount = Math.max(columns.length, 1);
+            
+            // 각 열을 렌더링
+            for (let col = 0; col < colCount; col++) {
+                const cellKey = `${dayIndex}-${col}-${timeIndex}`;
+                
+                // 요일의 마지막 열인지 확인
+                const isLastColOfDay = (col === colCount - 1);
+                
+                // 이미 rowspan으로 렌더링된 셀이면 건너뛰기
+                if (renderedCells[cellKey]) {
+                    continue;
+                }
+                
+                // 이 열에서 이 시간에 시작하는 수업 찾기
+                let studentSchedule = null;
+                if (columns[col]) {
+                    studentSchedule = columns[col].find(item => item.checkIn === time);
+                }
+                
+                if (studentSchedule) {
+                    const { student, duration, checkIn, checkOut } = studentSchedule;
+                    const slots = Math.ceil(duration / 30); // 30분당 1칸
+                    const color = studentColorMap[student.id];
+                    
+                    // 이 셀이 차지하는 모든 시간대를 렌더링됨으로 표시
+                    for (let s = 0; s < slots; s++) {
+                        const key = `${dayIndex}-${col}-${timeIndex + s}`;
+                        renderedCells[key] = true;
+                    }
+                    
+                    html += `
+                        <td rowspan="${slots}" class="student-cell ${isLastColOfDay ? 'last-col' : ''}" style="background: ${color}; vertical-align: top; padding: 0.4rem;">
+                            <div style="font-weight: 600; color: #333; font-size: 0.85rem;">${student.name}</div>
+                            <div style="font-size: 0.7rem; color: #555; margin-top: 0.2rem;">(${checkIn}-${checkOut})</div>
+                        </td>
+                    `;
+                } else {
+                    // 빈 셀
+                    html += `<td class="empty-cell ${isLastColOfDay ? 'last-col' : ''}"></td>`;
+                }
+            }
+        });
+        
+        html += `</tr>`;
+    });
+    
+    html += `
+            </tbody>
+        </table>
+    `;
+    
+    return html;
 }
 
 // 스케줄표 인쇄
