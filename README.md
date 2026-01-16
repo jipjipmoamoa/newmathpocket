@@ -5,6 +5,38 @@
 
 ---
 
+## 🚨 v9.0.5.6 긴급 수정 - books.sort TypeError 수정 및 teacher_id 디버깅 강화 (2026-01-16)
+
+### 🔧 수정 사항
+
+#### 문제 1: books.sort TypeError (치명적!)
+- **증상**: 전체 회원관리 페이지에서 `TypeError: books.sort is not a function` 발생
+- **원인**: `student.books`가 배열이 아닌 경우 (null, undefined, 객체 등) `.sort()` 메서드 호출 실패
+- **해결**: 
+  - Line 2909: `Array.isArray()` 체크 추가
+  - Line 2911: 원본 배열 보호를 위해 `[...books].sort()` 스프레드 연산자 사용
+
+#### 문제 2: 설하령 선생님 필터링 실패 조사
+- **증상**: 설하령 선생님 로그인 시 권한 필터링 후에도 전체 15명 표시 (필터링 안 됨)
+- **예상 원인**: 학생 데이터의 `teacher_id`가 설하령 선생님의 `userId`와 일치하지 않음
+- **해결**: 
+  - Line 2832: 필터링 전 학생들의 `teacher_id` 출력 (처음 5명)
+  - Line 2837: 필터링 후 학생들의 `teacher_id` 출력 (처음 5명)
+  - → 다음 테스트에서 학생 데이터의 `teacher_id` 값 확인 필요
+
+#### 수정 파일
+- ✅ `js/members.js` - Line 2909-2911 (books 배열 안전성 체크), Line 2832-2842 (teacher_id 디버깅 로그 추가)
+- ✅ `index.html` - members.js 버전 9.0.5.6으로 업데이트
+
+#### 다음 테스트 시 확인 사항
+1. books.sort TypeError가 해결되었는지 확인
+2. 설하령 선생님 콘솔에서 다음 로그 확인:
+   - `[loadAllMembers] 필터링 전 첫 5명의 teacher_id`
+   - `[loadAllMembers] 필터링된 학생 목록 (처음 5명)`
+3. 학생들의 `teacher_id`가 설하령 선생님의 `userId` ('4b912678-5328-45fb-a733-768921e007c0')와 일치하는지 확인
+
+---
+
 ## 🚨 v9.0.5.5 긴급 수정 - 전체 회원관리 페이지 디버깅 로그 추가 (2026-01-16)
 
 ### 🔧 추가 수정 사항
