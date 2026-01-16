@@ -335,14 +335,16 @@ async function showStudentDetail(studentId) {
         return;
     }
     
-    // 선생님 목록 가져오기
+    // 선생님 목록 가져오기 (재직중인 선생님만)
     let teachers = [];
     try {
         const teachersResult = await API.getList('teachers', { limit: 1000 });
-        teachers = teachersResult.data.filter(t => (t.status || '재직') === '재직') || [];
-        console.log('[showStudentDetail] 선생님 수:', teachers.length);
+        const allTeachers = Array.isArray(teachersResult) ? teachersResult : (teachersResult.data || []);
+        teachers = allTeachers.filter(t => (t.status || '재직') === '재직');
+        console.log('[showStudentDetail] 재직중인 선생님 수:', teachers.length);
+        console.log('[showStudentDetail] 선생님 목록:', teachers.map(t => t.name));
     } catch (error) {
-        console.error('선생님 정보 로드 실패:', error);
+        console.error('[showStudentDetail] 선생님 정보 로드 실패:', error);
     }
     
     // 목록에서 활성화 표시
@@ -417,9 +419,11 @@ async function showStudentForm(studentId = null) {
     let teachers = [];
     try {
         const teachersResult = await API.getList('teachers', { limit: 1000 });
-        teachers = teachersResult.data.filter(t => t.status === '재직') || [];
+        const allTeachers = Array.isArray(teachersResult) ? teachersResult : (teachersResult.data || []);
+        teachers = allTeachers.filter(t => (t.status || '재직') === '재직');
+        console.log('[showStudentForm] 재직중인 선생님 수:', teachers.length);
     } catch (error) {
-        console.error('선생님 정보 로드 실패:', error);
+        console.error('[showStudentForm] 선생님 정보 로드 실패:', error);
     }
     
     const container = document.getElementById('studentDetailContainer');
@@ -823,14 +827,9 @@ function renderInfoTab(student, teachers, gradeOptions, currentSchoolType) {
                            onchange="updateStudentField('${student.id}', 'parent_phone', this.value)"
                            placeholder="010-0000-0000">
                 </div>
-                <div class="detail-group-compact">
-                    <label>담당선생님</label>
-                    <select onchange="updateStudentTeacher('${student.id}', this.value)">
-                        <option value="">담당선생님 선택</option>
-                        ${teachers.map(t => `
-                            <option value="${t.id}" ${student.teacher_id === t.id ? 'selected' : ''}>${t.name}</option>
-                        `).join('')}
-                    </select>
+                <div class="detail-group-compact" style="visibility: hidden;">
+                    <label>-</label>
+                    <input type="text" disabled>
                 </div>
             </div>
             
