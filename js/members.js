@@ -2829,11 +2829,16 @@ async function loadAllMembers() {
         });
         
         // 권한에 따라 학생 필터링 (Permissions 유틸리티 사용)
+        console.log('[loadAllMembers] 필터링 전 첫 5명의 teacher_id:', activeStudents.slice(0, 5).map(s => ({
+            name: s.name,
+            teacher_id: s.teacher_id
+        })));
+        
         activeStudents = Permissions.filterStudentsByTeacher(activeStudents);
         console.log('[loadAllMembers] 권한 필터링 후 재원생 수:', activeStudents.length);
         
         if (activeStudents.length > 0) {
-            console.log('[loadAllMembers] 필터링된 학생 목록:', activeStudents.map(s => ({
+            console.log('[loadAllMembers] 필터링된 학생 목록 (처음 5명):', activeStudents.slice(0, 5).map(s => ({
                 name: s.name,
                 school: s.school,
                 grade: s.grade,
@@ -2906,9 +2911,9 @@ function renderAllMembersByGrade(students) {
         
         sortedStudents.forEach((student, index) => {
             // 최신 교재 정보 가져오기
-            const books = student.books || [];
+            const books = Array.isArray(student.books) ? student.books : [];
             const latestBook = books.length > 0 
-                ? books.sort((a, b) => (b.date || 0) - (a.date || 0))[0]
+                ? [...books].sort((a, b) => (b.date || 0) - (a.date || 0))[0]
                 : {};
             
             // 첫 번째 학생 행에만 분류 표시 (rowspan)
