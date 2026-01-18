@@ -4,6 +4,10 @@
 let currentStudentStatusFilter = '재원';
 // 현재 선택된 탭
 let currentStudentTab = 'info';
+// 현재 선택된 담당선생님 필터 (학생관리)
+let currentTeacherFilter = 'all';
+// 현재 선택된 담당선생님 필터 (전체회원관리)
+let currentAllMembersTeacherFilter = 'all';
 
 // 학생 관리 페이지
 async function showStudentsPage() {
@@ -23,7 +27,12 @@ async function showStudentsPage() {
                         퇴원생
                     </button>
                 </div>
-                <div style="display: flex; gap: 0.5rem;">
+                <div style="display: flex; gap: 0.5rem; align-items: center;">
+                    ${Auth.isAdmin() || Auth.isSubAdmin() ? `
+                    <select id="teacherFilterSelect" class="form-select" style="width: 200px;" onchange="filterStudentsByTeacher()">
+                        <option value="all">전체 선생님</option>
+                    </select>
+                    ` : ''}
                     <button class="btn btn-secondary" onclick="upgradeAllStudents()" style="background-color: #17a2b8; border-color: #17a2b8;">
                         <i class="fas fa-arrow-up"></i> 승급
                     </button>
@@ -127,6 +136,11 @@ async function showStudentsPage() {
         </div>
     `;
     
+    // 관리자/부관리자인 경우 선생님 목록 로드
+    if (Auth.isAdmin() || Auth.isSubAdmin()) {
+        await loadTeachersForFilter();
+    }
+    
     loadStudents();
     updateButtonStates();
 }
@@ -185,6 +199,12 @@ function filterStudentsByStatus(status) {
     // 권한에 따라 학생 필터링 (Permissions 유틸리티 사용)
     let studentsToShow = Permissions.filterStudentsByTeacher(allStudents);
     console.log('[filterStudentsByStatus] 권한 필터링 후 학생 수:', studentsToShow.length);
+    
+    // 관리자/부관리자인 경우 선택된 선생님으로 추가 필터링
+    if ((Auth.isAdmin() || Auth.isSubAdmin()) && currentTeacherFilter !== 'all') {
+        studentsToShow = studentsToShow.filter(s => s.teacher_id === currentTeacherFilter);
+        console.log('[filterStudentsByStatus] 선생님 필터링 후 학생 수:', studentsToShow.length);
+    }
     
     // 탭 활성화 상태 변경
     document.querySelectorAll('.status-tab').forEach(tab => {
@@ -2786,7 +2806,14 @@ async function showAllMembersPage() {
     const mainContent = document.getElementById('mainContent');
     mainContent.innerHTML = `
         <div class="page-container">
-            <div class="page-header" style="display: flex; justify-content: flex-end; align-items: center;">
+            <div class="page-header" style="display: flex; justify-content: space-between; align-items: center;">
+                <div style="display: flex; gap: 0.5rem; align-items: center;">
+                    ${Auth.isAdmin() || Auth.isSubAdmin() ? `
+                    <select id="allMembersTeacherFilterSelect" class="form-select" style="width: 200px;" onchange="filterAllMembersByTeacher()">
+                        <option value="all">전체 선생님</option>
+                    </select>
+                    ` : ''}
+                </div>
                 <button class="btn btn-primary" onclick="printAllMembers()">
                     <i class="fas fa-print"></i> 인쇄
                 </button>
@@ -2797,6 +2824,11 @@ async function showAllMembersPage() {
             </div>
         </div>
     `;
+    
+    // 관리자/부관리자인 경우 선생님 목록 로드
+    if (Auth.isAdmin() || Auth.isSubAdmin()) {
+        await loadTeachersForAllMembersFilter();
+    }
     
     loadAllMembers();
 }
@@ -2836,6 +2868,12 @@ async function loadAllMembers() {
         
         activeStudents = Permissions.filterStudentsByTeacher(activeStudents);
         console.log('[loadAllMembers] 권한 필터링 후 재원생 수:', activeStudents.length);
+        
+        // 관리자/부관리자인 경우 선택된 선생님으로 추가 필터링
+        if ((Auth.isAdmin() || Auth.isSubAdmin()) && currentAllMembersTeacherFilter !== 'all') {
+            activeStudents = activeStudents.filter(s => s.teacher_id === currentAllMembersTeacherFilter);
+            console.log('[loadAllMembers] 선생님 필터링 후 재원생 수:', activeStudents.length);
+        }
         
         if (activeStudents.length > 0) {
             console.log('[loadAllMembers] 필터링된 학생 목록 (처음 5명):', activeStudents.slice(0, 5).map(s => ({
@@ -3058,6 +3096,140 @@ function printAllMembers() {
 // 전체 회원 필터
 function filterAllMembers() {
     searchAllMembers();
+}
+
+// ========================================
+// 담당선생님 필터링 함수들 (학생관리/전체회원관리)
+// ========================================
+
+// 학생관리 페이지: 선생님 목록 로드 및 드롭다운 구성
+async function loadTeachersForFilter() {
+    try {
+        const result = await API.getList('teachers', { limit: 1000 });
+        const teachers = Array.isArray(result) ? result : (result.data || []);
+        
+        // 재직중인 선생님만 필터링
+        const activeTeachers = teachers.filter(t => t.status === '재직');
+        
+        // 역할별로 그룹화
+        const admins = activeTeachers.filter(t => t.role === '관리자');
+        const subAdmins = activeTeachers.filter(t => t.role === '부관리자');
+        const regularTeachers = activeTeachers.filter(t => t.role === '선생님');
+        
+        // 드롭다운 구성
+        const select = document.getElementById('teacherFilterSelect');
+        if (!select) return;
+        
+        let options = '<option value="all">전체 선생님</option>';
+        
+        // 관리자
+        if (admins.length > 0) {
+            options += '<optgroup label="관리자">';
+            admins.forEach(t => {
+                options += `<option value="${t.id}">${t.name}</option>`;
+            });
+            options += '</optgroup>';
+        }
+        
+        // 부관리자
+        if (subAdmins.length > 0) {
+            options += '<optgroup label="부관리자">';
+            subAdmins.forEach(t => {
+                options += `<option value="${t.id}">${t.name}</option>`;
+            });
+            options += '</optgroup>';
+        }
+        
+        // 선생님
+        if (regularTeachers.length > 0) {
+            options += '<optgroup label="재직중 선생님">';
+            regularTeachers.forEach(t => {
+                options += `<option value="${t.id}">${t.name}</option>`;
+            });
+            options += '</optgroup>';
+        }
+        
+        select.innerHTML = options;
+    } catch (error) {
+        console.error('[loadTeachersForFilter] 선생님 목록 로드 실패:', error);
+    }
+}
+
+// 학생관리 페이지: 선생님 필터 변경 핸들러
+function filterStudentsByTeacher() {
+    const select = document.getElementById('teacherFilterSelect');
+    if (!select) return;
+    
+    currentTeacherFilter = select.value;
+    console.log('[filterStudentsByTeacher] 선택된 선생님 ID:', currentTeacherFilter);
+    
+    // 현재 상태 탭 유지하면서 필터링 재실행
+    filterStudentsByStatus(currentStudentStatusFilter);
+}
+
+// 전체회원관리 페이지: 선생님 목록 로드 및 드롭다운 구성
+async function loadTeachersForAllMembersFilter() {
+    try {
+        const result = await API.getList('teachers', { limit: 1000 });
+        const teachers = Array.isArray(result) ? result : (result.data || []);
+        
+        // 재직중인 선생님만 필터링
+        const activeTeachers = teachers.filter(t => t.status === '재직');
+        
+        // 역할별로 그룹화
+        const admins = activeTeachers.filter(t => t.role === '관리자');
+        const subAdmins = activeTeachers.filter(t => t.role === '부관리자');
+        const regularTeachers = activeTeachers.filter(t => t.role === '선생님');
+        
+        // 드롭다운 구성
+        const select = document.getElementById('allMembersTeacherFilterSelect');
+        if (!select) return;
+        
+        let options = '<option value="all">전체 선생님</option>';
+        
+        // 관리자
+        if (admins.length > 0) {
+            options += '<optgroup label="관리자">';
+            admins.forEach(t => {
+                options += `<option value="${t.id}">${t.name}</option>`;
+            });
+            options += '</optgroup>';
+        }
+        
+        // 부관리자
+        if (subAdmins.length > 0) {
+            options += '<optgroup label="부관리자">';
+            subAdmins.forEach(t => {
+                options += `<option value="${t.id}">${t.name}</option>`;
+            });
+            options += '</optgroup>';
+        }
+        
+        // 선생님
+        if (regularTeachers.length > 0) {
+            options += '<optgroup label="재직중 선생님">';
+            regularTeachers.forEach(t => {
+                options += `<option value="${t.id}">${t.name}</option>`;
+            });
+            options += '</optgroup>';
+        }
+        
+        select.innerHTML = options;
+    } catch (error) {
+        console.error('[loadTeachersForAllMembersFilter] 선생님 목록 로드 실패:', error);
+    }
+}
+
+// 전체회원관리 페이지: 선생님 필터 변경 핸들러
+function filterAllMembersByTeacher() {
+    const select = document.getElementById('allMembersTeacherFilterSelect');
+    if (!select) return;
+    
+    currentAllMembersTeacherFilter = select.value;
+    console.log('[filterAllMembersByTeacher] 선택된 선생님 ID:', currentAllMembersTeacherFilter);
+    
+    // 필터링 재실행
+    loadAllMembers();
 }
 
 // ========================================
