@@ -5,6 +5,204 @@
 
 ---
 
+## ✨ v9.0.7 주요 업데이트 - 관리자용 담당선생님 필터링 기능 추가 (2026-01-18)
+
+### 🔧 알려진 이슈 및 다음 작업
+**권미정 선생님 스케줄 표시 문제**:
+- 현재 스케줄 표시 범위: 14:00~19:30 (고정)
+- 김예주 학생 스케줄: 화/수/금 13:30~15:00
+- 문제: 13:30 시작 스케줄이 표시되지 않음
+- 해결 예정: 스케줄 시간 범위를 동적으로 계산하도록 수정
+
+### ✅ v9.0.7 완료 사항
+
+### 🎯 핵심 변경 사항
+
+#### 1. 관리자/부관리자용 담당선생님 필터 드롭다운 추가
+**새로운 기능**: 관리자/부관리자가 로그인하면 학생관리, 전체회원관리, 출석관리, 출석조회 페이지에 **담당선생님 필터 드롭다운**이 표시됩니다.
+
+**권한별 동작**:
+- **👔 관리자/부관리자**: 
+  - ✅ 초기 화면에 전체 재원생 표시
+  - ✅ 각 페이지에 드롭다운 표시 (관리자, 부관리자, 재직중 선생님들)
+  - ✅ 드롭다운에서 선택 시 해당 선생님의 담당 학생만 표시
+  
+- **👨‍🏫 선생님**: 
+  - ⚠️ 드롭다운 없음
+  - ⚠️ 로그인 시 자동으로 담당 학생만 표시
+
+#### 2. 페이지별 필터 적용
+
+**학생관리 페이지** (`showStudentsPage`)
+- 위치: 상태 필터 탭(재원생/휴원생/퇴원생) 오른쪽
+- 드롭다운 ID: `teacherFilterSelect`
+- 필터 변경 시: `filterStudentsByTeacher()` 호출
+
+**전체회원관리 페이지** (`showAllMembersPage`)
+- 위치: 페이지 헤더 왼쪽 (인쇄 버튼 반대편)
+- 드롭다운 ID: `allMembersTeacherFilterSelect`
+- 필터 변경 시: `filterAllMembersByTeacher()` 호출
+
+**출석관리 페이지** (`showAttendanceCheckPage`)
+- 위치: "출석 현황" 헤더 오른쪽
+- 드롭다운 ID: `attendanceTeacherFilterSelect`
+- 필터 변경 시: `filterAttendanceByTeacher()` 호출
+- 영향: 출석 테이블 및 월별 통계
+
+**출석조회 페이지** (`showAttendanceViewPage`)
+- 위치: 월 선택 드롭다운 왼쪽
+- 드롭다운 ID: `attendanceViewTeacherFilterSelect`
+- 필터 변경 시: `filterAttendanceViewByTeacher()` 호출
+- 영향: 달력 및 통계표
+
+### 🔧 수정 파일
+
+#### js/members.js
+**새로운 전역 변수** (Line 8-10):
+```javascript
+let currentTeacherFilter = 'all'; // 학생관리
+let currentAllMembersTeacherFilter = 'all'; // 전체회원관리
+```
+
+**showStudentsPage** (Line 18-38):
+- 관리자/부관리자에게만 드롭다운 표시
+- `loadTeachersForFilter()` 호출하여 선생님 목록 로드
+
+**filterStudentsByStatus** (Line 193-218):
+- 권한 필터링 후 선생님 필터 추가 적용
+- `currentTeacherFilter !== 'all'`일 때 teacher_id로 필터링
+
+**showAllMembersPage** (Line 2805-2832):
+- 관리자/부관리자에게만 드롭다운 표시
+- `loadTeachersForAllMembersFilter()` 호출
+
+**loadAllMembers** (Line 2869-2875):
+- 권한 필터링 후 선생님 필터 추가 적용
+- `currentAllMembersTeacherFilter !== 'all'`일 때 teacher_id로 필터링
+
+**새로운 함수들** (Line 3090-3221):
+- `loadTeachersForFilter()`: 학생관리용 선생님 목록 로드
+- `filterStudentsByTeacher()`: 학생관리 필터 변경 핸들러
+- `loadTeachersForAllMembersFilter()`: 전체회원관리용 선생님 목록 로드
+- `filterAllMembersByTeacher()`: 전체회원관리 필터 변경 핸들러
+
+#### js/attendance.js
+**새로운 전역 변수** (Line 8-10):
+```javascript
+let currentAttendanceTeacherFilter = 'all'; // 출석관리
+let currentAttendanceViewTeacherFilter = 'all'; // 출석조회
+```
+
+**showAttendanceCheckPage** (Line 46-56):
+- 관리자/부관리자에게만 드롭다운 표시 (출석 현황 헤더 내)
+- `loadTeachersForAttendanceFilter()` 호출
+
+**loadAttendanceData** (Line 354-360):
+- 권한 필터링 후 선생님 필터 추가 적용
+- `currentAttendanceTeacherFilter !== 'all'`일 때 teacher_id로 필터링
+
+**renderAttendanceStats** (Line 1851-1857):
+- 권한 필터링 후 선생님 필터 추가 적용
+- 월별 통계에 필터 반영
+
+**showAttendanceViewPage** (Line 2408-2414):
+- 관리자/부관리자에게만 드롭다운 표시 (월 선택 드롭다운 왼쪽)
+- `loadTeachersForAttendanceViewFilter()` 호출
+
+**renderViewAttendanceStats** (Line 2691-2702):
+- 권한 필터링 후 선생님 필터 추가 적용
+- 출석조회 통계에 필터 반영
+
+**새로운 함수들** (Line 2933-3077):
+- `loadTeachersForAttendanceFilter()`: 출석관리용 선생님 목록 로드
+- `filterAttendanceByTeacher()`: 출석관리 필터 변경 핸들러
+- `loadTeachersForAttendanceViewFilter()`: 출석조회용 선생님 목록 로드
+- `filterAttendanceViewByTeacher()`: 출석조회 필터 변경 핸들러
+
+#### index.html
+- ✅ 모든 CSS 파일 버전 9.0.7로 업데이트 (Line 7-12)
+- ✅ 모든 JS 파일 버전 9.0.7로 업데이트 (Line 138-156)
+
+### 📝 테스트 시나리오
+
+#### 1. 관리자/부관리자 테스트
+**학생관리 페이지**:
+1. 관리자 계정으로 로그인
+2. "학생관리" 페이지 접속
+3. 초기: 전체 재원생 표시 확인
+4. 드롭다운에서 특정 선생님 선택 (예: "설하령")
+5. **예상 결과**: 해당 선생님의 담당 학생만 표시됨
+6. "전체 선생님" 선택
+7. **예상 결과**: 모든 재원생 다시 표시됨
+
+**전체회원관리 페이지**:
+1. "전체 회원 관리" 페이지 접속
+2. 초기: 전체 재원생 표시 확인
+3. 드롭다운에서 특정 선생님 선택
+4. **예상 결과**: 해당 선생님의 담당 학생만 표시됨
+
+**출석관리 페이지**:
+1. "출석관리" 페이지 접속
+2. 출석 테이블에 전체 학생 표시 확인
+3. 드롭다운에서 특정 선생님 선택
+4. **예상 결과**: 출석 테이블 및 월별 통계가 해당 선생님의 학생으로 필터링됨
+
+**출석조회 페이지**:
+1. "출석조회" 페이지 접속
+2. 달력 및 통계에 전체 학생 표시 확인
+3. 드롭다운에서 특정 선생님 선택
+4. **예상 결과**: 달력 및 통계가 해당 선생님의 학생으로 필터링됨
+
+#### 2. 선생님 테스트
+1. 선생님 계정으로 로그인 (예: 설하령)
+2. 각 페이지 접속 시 드롭다운이 **표시되지 않음** 확인
+3. **학생관리**: 담당 학생만 표시됨
+4. **전체회원관리**: 담당 학생만 표시됨
+5. **출석관리**: 담당 학생의 출석만 표시됨
+6. **출석조회**: 담당 학생의 출석 기록만 표시됨
+
+#### 3. 드롭다운 구조 확인
+**옵션 그룹 구조**:
+```html
+<select>
+  <option value="all">전체 선생님</option>
+  <optgroup label="관리자">
+    <option value="[관리자_ID]">[관리자 이름]</option>
+  </optgroup>
+  <optgroup label="부관리자">
+    <option value="[부관리자_ID]">[부관리자 이름]</option>
+  </optgroup>
+  <optgroup label="재직중 선생님">
+    <option value="[선생님_ID]">[선생님 이름]</option>
+  </optgroup>
+</select>
+```
+
+### 🔄 변경 사항 요약
+
+| 구분 | 이전 (v9.0.6) | 현재 (v9.0.7) |
+|------|---------------|---------------|
+| **관리자/부관리자 데이터 접근** | 전체 학생 보기만 가능 | 전체 + 선생님별 필터링 가능 |
+| **선생님 데이터 접근** | 담당 학생만 | 담당 학생만 (변경 없음) |
+| **드롭다운 표시** | 없음 | 관리자/부관리자에게만 표시 |
+| **필터링 기능** | 권한별 자동 필터링 | 권한별 + 수동 선생님 필터링 |
+| **페이지별 적용** | - | 학생관리, 전체회원관리, 출석관리, 출석조회 |
+
+### 🚀 배포 체크리스트
+
+1. ✅ GitHub에 커밋 및 푸시
+2. ⏳ Netlify 재배포 확인
+3. ⏳ 브라우저 캐시 무효화 (`Ctrl + Shift + R`)
+4. ⏳ 계정별 검증 테스트:
+   - 관리자 계정으로 드롭다운 동작 확인
+   - 부관리자 계정으로 드롭다운 동작 확인
+   - 선생님 계정(설하령, 권미정)으로 필터링 동작 확인
+5. ⏳ 콘솔 로그 확인:
+   - `[filterStudentsByTeacher]`, `[loadAttendanceData]` 등의 필터링 로그
+   - teacher_id 매칭 확인
+
+---
+
 ## ✨ v9.0.6 주요 업데이트 - 권한별 데이터 접근 규칙 명확화 및 스케줄 표시 개선 (2026-01-16)
 
 ### 🎯 핵심 변경 사항
