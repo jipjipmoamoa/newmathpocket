@@ -28,7 +28,7 @@ let studentColorMap = {}; // 학생 ID -> 색상 매핑
 let currentTeacherFilter = 'all'; // 현재 선생님 필터
 
 // 이번달 스케줄표 페이지
-window.showScheduleCurrentPage = async function showScheduleCurrentPage() {
+async function showScheduleCurrentPage() {
     const mainContent = document.getElementById('mainContent');
     
     // 스케줄 인쇄 CSS 추가
@@ -107,7 +107,7 @@ async function loadTeachersForFilter() {
 }
 
 // 선생님 필터 변경
-window.filterByTeacher = function filterByTeacher() {
+function filterByTeacher() {
     const selectElement = document.getElementById('teacherFilter');
     currentTeacherFilter = selectElement.value;
     loadWeeklySchedule();
@@ -348,9 +348,9 @@ function renderWeeklyScheduleTable_OLD(data) {
     });
     
     html += `
-                    </tr>
-                </thead>
-                <tbody>
+                </tr>
+            </thead>
+            <tbody>
     `;
     
     // 시간대별 행
@@ -528,11 +528,14 @@ function generateScheduleTableHTML(data) {
         days.push('saturday');
     }
     
-    // 14:00부터 19:30까지 30분 단위
-    const times = [
-        '14:00', '14:30', '15:00', '15:30', '16:00', '16:30',
-        '17:00', '17:30', '18:00', '18:30', '19:00', '19:30'
-    ];
+    // 시간대 배열 (14:00 ~ 19:30, 30분 단위)
+    const times = [];
+    for (let hour = 14; hour <= 19; hour++) {
+        for (let min = 0; min < 60; min += 30) {
+            if (hour === 19 && min > 30) break; // 19:30까지만
+            times.push(`${String(hour).padStart(2, '0')}:${String(min).padStart(2, '0')}`);
+        }
+    }
     
     // 각 요일/열/시간의 셀이 이미 렌더링되었는지 추적
     const renderedCells = {};
@@ -636,12 +639,12 @@ function generateScheduleTableHTML(data) {
 }
 
 // 스케줄표 인쇄
-window.printScheduleTable = function printScheduleTable() {
+function printScheduleTable() {
     window.print();
 }
 
 // 스케줄 조회 페이지 (기존 코드 유지)
-window.showScheduleViewPage = async function showScheduleViewPage() {
+async function showScheduleViewPage() {
     const mainContent = document.getElementById('mainContent');
     const now = new Date();
     const year = now.getFullYear();
@@ -681,7 +684,7 @@ function generateScheduleYearOptions(currentYear) {
     return html;
 }
 
-window.updateViewScheduleMonth = function updateViewScheduleMonth() {
+function updateViewScheduleMonth() {
     loadViewSchedules();
 }
 
