@@ -181,8 +181,6 @@ function assignStudentColors(students) {
 
 // 스케줄 데이터 구성
 function buildScheduleData(students) {
-    console.log(`[buildScheduleData] 시작 - 학생 수: ${students.length}`);
-    
     const days = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
     const dayLabels = ['월요일', '화요일', '수요일', '목요일', '금요일', '토요일'];
     
@@ -205,20 +203,13 @@ function buildScheduleData(students) {
             // schedule이 JSON 문자열이면 파싱
             let schedule = student.schedule;
             
-            console.log(`[buildScheduleData] ${student.name} - schedule 타입: ${typeof schedule}, 값:`, schedule);
-            
             if (typeof schedule === 'string' && schedule.trim() !== '') {
                 try {
                     schedule = JSON.parse(schedule);
-                    console.log(`[buildScheduleData] ${student.name} - 파싱 성공:`, schedule);
                 } catch (e) {
-                    console.error(`[buildScheduleData] ${student.name} - 스케줄 파싱 오류:`, e);
+                    console.error('[buildScheduleData] 스케줄 파싱 오류:', e, 'student:', student.name);
                     schedule = null;
                 }
-            }
-            
-            if (schedule && schedule[day]) {
-                console.log(`[buildScheduleData] ${student.name} - ${day} 스케줄:`, schedule[day]);
             }
             
             if (schedule && schedule[day] && schedule[day].enabled) {
@@ -226,8 +217,6 @@ function buildScheduleData(students) {
                 const checkIn = daySchedule.checkIn;
                 const duration = parseInt(daySchedule.duration) || 90;
                 const checkOut = daySchedule.checkOut;
-                
-                console.log(`[buildScheduleData] ${student.name} - ${day} enabled, checkIn: ${checkIn}, checkOut: ${checkOut}`);
                 
                 if (checkIn) {
                     // 토요일 스케줄이 있으면 표시
@@ -286,8 +275,6 @@ function buildScheduleData(students) {
                     if (scheduleData[day].columns.length > maxColumnsPerDay[day]) {
                         maxColumnsPerDay[day] = scheduleData[day].columns.length;
                     }
-                } else {
-                    console.log(`[buildScheduleData] ⚠️ ${student.name} - ${day} checkIn이 없음`);
                 }
             }
         });
@@ -348,9 +335,9 @@ function renderWeeklyScheduleTable_OLD(data) {
     });
     
     html += `
-                </tr>
-            </thead>
-            <tbody>
+                    </tr>
+                </thead>
+                <tbody>
     `;
     
     // 시간대별 행
@@ -425,25 +412,16 @@ function renderWeeklyScheduleTable_OLD(data) {
 // 🔥 선생님별로 스케줄 그룹화하여 렌더링 (관리자/부관리자용)
 async function renderScheduleByTeachers(allStudents) {
     try {
-        console.log('[renderScheduleByTeachers] 시작 - 전체 학생 수:', allStudents.length);
-        
         // 선생님 목록 로드
         const teachersResult = await API.getList('teachers', { limit: 1000 });
         const allTeachers = Array.isArray(teachersResult) ? teachersResult : (teachersResult.data || []);
         const activeTeachers = allTeachers.filter(t => (t.status || '재직') === '재직');
-        
-        console.log('[renderScheduleByTeachers] 재직중 선생님 수:', activeTeachers.length);
-        activeTeachers.forEach(t => {
-            console.log(`[선생님] ID: ${t.id}, 이름: ${t.name}`);
-        });
         
         // 선생님별로 학생 그룹화
         const studentsByTeacher = {};
         const noTeacherStudents = [];
         
         allStudents.forEach(student => {
-            console.log(`[학생 그룹화] 이름: ${student.name}, teacher_id: ${student.teacher_id}`);
-            
             if (student.teacher_id) {
                 if (!studentsByTeacher[student.teacher_id]) {
                     studentsByTeacher[student.teacher_id] = [];
@@ -454,22 +432,12 @@ async function renderScheduleByTeachers(allStudents) {
             }
         });
         
-        console.log('[renderScheduleByTeachers] 선생님별 학생 그룹화 결과:', studentsByTeacher);
-        console.log('[renderScheduleByTeachers] 담당 선생님 미지정 학생 수:', noTeacherStudents.length);
-        
         const container = document.getElementById('weeklyScheduleTable');
         let html = '';
         
         // 선생님별로 순회하면서 스케줄 테이블 생성
         activeTeachers.forEach(teacher => {
             const teacherStudents = studentsByTeacher[teacher.id] || [];
-            
-            console.log(`[선생님별 테이블] ${teacher.name} 선생님 - 담당 학생 수: ${teacherStudents.length}`);
-            if (teacherStudents.length > 0) {
-                teacherStudents.forEach(s => {
-                    console.log(`  - ${s.name}`);
-                });
-            }
             
             if (teacherStudents.length === 0) return; // 담당 학생이 없으면 건너뛰기
             
@@ -495,8 +463,6 @@ async function renderScheduleByTeachers(allStudents) {
         
         // 담당 선생님이 없는 학생들
         if (noTeacherStudents.length > 0) {
-            console.log('[renderScheduleByTeachers] 담당 선생님 미지정 학생들:', noTeacherStudents.map(s => s.name));
-            
             html += `
                 <div class="teacher-schedule-section" style="margin-bottom: 3rem; page-break-inside: avoid;">
                     <h3 style="margin-bottom: 1rem; padding: 0.75rem; background: #f0f0f0; border-left: 4px solid #999; font-size: 1.1rem;">
