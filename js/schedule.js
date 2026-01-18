@@ -299,11 +299,72 @@ function renderWeeklyScheduleTable_OLD(data) {
     
     const container = document.getElementById('weeklyScheduleTable');
     
-    // 시간대 배열 (14:00 ~ 19:30, 30분 단위)
+    // 실제 스케줄의 최소/최대 시간을 계산
+    let minHour = 14, maxHour = 19;
+    let minMinute = 0, maxMinute = 30;
+    let hasSchedule = false;
+    
+    // 모든 스케줄을 순회하며 시간 범위 계산
+    days.forEach(day => {
+        if (scheduleData[day] && scheduleData[day].columns) {
+            scheduleData[day].columns.forEach(column => {
+                column.forEach(item => {
+                    hasSchedule = true;
+                    const [inHour, inMin] = item.checkIn.split(':').map(Number);
+                    const [outHour, outMin] = item.checkOut.split(':').map(Number);
+                    
+                    // 가장 이른 시작 시간
+                    if (inHour < minHour || (inHour === minHour && inMin < minMinute)) {
+                        minHour = inHour;
+                        minMinute = inMin;
+                    }
+                    
+                    // 가장 늦은 종료 시간
+                    if (outHour > maxHour || (outHour === maxHour && outMin > maxMinute)) {
+                        maxHour = outHour;
+                        maxMinute = outMin;
+                    }
+                });
+            });
+        }
+    });
+    
+    // 스케줄이 없으면 기본 범위 사용
+    if (!hasSchedule) {
+        minHour = 14;
+        minMinute = 0;
+        maxHour = 19;
+        maxMinute = 30;
+    }
+    
+    // 시작 시간을 30분 단위로 내림
+    if (minMinute > 0 && minMinute < 30) {
+        minMinute = 0;
+    } else if (minMinute > 30) {
+        minMinute = 30;
+    }
+    
+    // 종료 시간을 30분 단위로 올림
+    if (maxMinute > 0 && maxMinute <= 30) {
+        maxMinute = 30;
+    } else if (maxMinute > 30) {
+        maxHour += 1;
+        maxMinute = 0;
+    }
+    
+    console.log(`[generateScheduleTableHTML] 시간 범위: ${minHour}:${String(minMinute).padStart(2, '0')} ~ ${maxHour}:${String(maxMinute).padStart(2, '0')}`);
+    
+    // 시간대 배열 생성 (동적 범위)
     const times = [];
-    for (let hour = 14; hour <= 19; hour++) {
+    for (let hour = minHour; hour <= maxHour; hour++) {
         for (let min = 0; min < 60; min += 30) {
-            if (hour === 19 && min > 30) break; // 19:30까지만
+            const currentTime = hour * 60 + min;
+            const startTime = minHour * 60 + minMinute;
+            const endTime = maxHour * 60 + maxMinute;
+            
+            // 시작 시간 이전이나 종료 시간 이후는 건너뛰기
+            if (currentTime < startTime || currentTime > endTime) continue;
+            
             times.push(`${String(hour).padStart(2, '0')}:${String(min).padStart(2, '0')}`);
         }
     }
@@ -410,6 +471,75 @@ function renderWeeklyScheduleTable_OLD(data) {
 }
 
 // 🔥 선생님별로 스케줄 그룹화하여 렌더링 (관리자/부관리자용)
+// 전체 학생의 시간 범위 계산 (모든 선생님에게 동일하게 적용)
+function calculateGlobalTimeRange(allStudents) {
+    let minHour = 23, maxHour = 0;
+    let minMinute = 59, maxMinute = 0;
+    let hasSchedule = false;
+    
+    const days = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+    
+    allStudents.forEach(student => {
+        if (!student.schedule) return;
+        
+        let scheduleObj = student.schedule;
+        if (typeof scheduleObj === 'string') {
+            try {
+                scheduleObj = JSON.parse(scheduleObj);
+            } catch (e) {
+                return;
+            }
+        }
+        
+        days.forEach(day => {
+            if (scheduleObj[day] && scheduleObj[day].enabled) {
+                hasSchedule = true;
+                const checkIn = scheduleObj[day].checkIn;
+                const checkOut = scheduleObj[day].checkOut;
+                
+                if (checkIn && checkOut) {
+                    const [inHour, inMin] = checkIn.split(':').map(Number);
+                    const [outHour, outMin] = checkOut.split(':').map(Number);
+                    
+                    // 가장 이른 시작 시간
+                    if (inHour < minHour || (inHour === minHour && inMin < minMinute)) {
+                        minHour = inHour;
+                        minMinute = inMin;
+                    }
+                    
+                    // 가장 늦은 종료 시간
+                    if (outHour > maxHour || (outHour === maxHour && outMin > maxMinute)) {
+                        maxHour = outHour;
+                        maxMinute = outMin;
+                    }
+                }
+            }
+        });
+    });
+    
+    // 스케줄이 없으면 기본 범위 사용
+    if (!hasSchedule) {
+        return { minHour: 14, minMinute: 0, maxHour: 19, maxMinute: 30 };
+    }
+    
+    // 시작 시간을 30분 단위로 내림
+    if (minMinute > 0 && minMinute < 30) {
+        minMinute = 0;
+    } else if (minMinute > 30) {
+        minMinute = 30;
+    }
+    
+    // 종료 시간을 30분 단위로 올림
+    if (maxMinute > 0 && maxMinute <= 30) {
+        maxMinute = 30;
+    } else if (maxMinute > 30) {
+        maxHour += 1;
+        maxMinute = 0;
+    }
+    
+    return { minHour, minMinute, maxHour, maxMinute };
+}
+
 async function renderScheduleByTeachers(allStudents) {
     try {
         // 선생님 목록 로드
@@ -431,6 +561,10 @@ async function renderScheduleByTeachers(allStudents) {
                 noTeacherStudents.push(student);
             }
         });
+        
+        // ===== 전체 학생의 시간 범위를 먼저 계산 =====
+        const globalTimeRange = calculateGlobalTimeRange(allStudents);
+        console.log('[renderScheduleByTeachers] 전체 시간 범위:', globalTimeRange);
         
         const container = document.getElementById('weeklyScheduleTable');
         let html = '';
@@ -455,8 +589,8 @@ async function renderScheduleByTeachers(allStudents) {
             // 스케줄 데이터 구성
             const scheduleData = buildScheduleData(teacherStudents);
             
-            // 테이블 HTML 생성
-            html += generateScheduleTableHTML(scheduleData);
+            // 테이블 HTML 생성 (전체 시간 범위 적용)
+            html += generateScheduleTableHTML(scheduleData, globalTimeRange);
             
             html += `</div>`;
         });
@@ -472,7 +606,7 @@ async function renderScheduleByTeachers(allStudents) {
             
             assignStudentColors(noTeacherStudents);
             const scheduleData = buildScheduleData(noTeacherStudents);
-            html += generateScheduleTableHTML(scheduleData);
+            html += generateScheduleTableHTML(scheduleData, globalTimeRange);
             
             html += `</div>`;
         }
@@ -487,18 +621,89 @@ async function renderScheduleByTeachers(allStudents) {
 }
 
 // 스케줄 테이블 HTML 생성 (공통 함수)
-function generateScheduleTableHTML(data) {
+function generateScheduleTableHTML(data, globalTimeRange = null) {
     const { scheduleData, hasSaturday, maxColumnsPerDay } = data;
     const days = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday'];
     if (hasSaturday) {
         days.push('saturday');
     }
     
-    // 시간대 배열 (14:00 ~ 19:30, 30분 단위)
+    let minHour, maxHour, minMinute, maxMinute;
+    
+    // globalTimeRange가 제공되면 사용, 아니면 자체 계산
+    if (globalTimeRange) {
+        ({ minHour, minMinute, maxHour, maxMinute } = globalTimeRange);
+        console.log('[generateScheduleTableHTML] 전체 시간 범위 사용:', globalTimeRange);
+    } else {
+        // 실제 스케줄의 최소/최대 시간을 계산
+        minHour = 14;
+        maxHour = 19;
+        minMinute = 0;
+        maxMinute = 30;
+        let hasSchedule = false;
+        
+        // 모든 스케줄을 순회하며 시간 범위 계산
+        days.forEach(day => {
+            if (scheduleData[day] && scheduleData[day].columns) {
+                scheduleData[day].columns.forEach(column => {
+                    column.forEach(item => {
+                        hasSchedule = true;
+                        const [inHour, inMin] = item.checkIn.split(':').map(Number);
+                        const [outHour, outMin] = item.checkOut.split(':').map(Number);
+                        
+                        // 가장 이른 시작 시간
+                        if (inHour < minHour || (inHour === minHour && inMin < minMinute)) {
+                            minHour = inHour;
+                            minMinute = inMin;
+                        }
+                        
+                        // 가장 늦은 종료 시간
+                        if (outHour > maxHour || (outHour === maxHour && outMin > maxMinute)) {
+                            maxHour = outHour;
+                            maxMinute = outMin;
+                        }
+                    });
+                });
+            }
+        });
+        
+        // 스케줄이 없으면 기본 범위 사용
+        if (!hasSchedule) {
+            minHour = 14;
+            minMinute = 0;
+            maxHour = 19;
+            maxMinute = 30;
+        }
+        
+        // 시작 시간을 30분 단위로 내림
+        if (minMinute > 0 && minMinute < 30) {
+            minMinute = 0;
+        } else if (minMinute > 30) {
+            minMinute = 30;
+        }
+        
+        // 종료 시간을 30분 단위로 올림
+        if (maxMinute > 0 && maxMinute <= 30) {
+            maxMinute = 30;
+        } else if (maxMinute > 30) {
+            maxHour += 1;
+            maxMinute = 0;
+        }
+        
+        console.log(`[generateScheduleTableHTML] 개별 시간 범위: ${minHour}:${String(minMinute).padStart(2, '0')} ~ ${maxHour}:${String(maxMinute).padStart(2, '0')}`);
+    }
+    
+    // 시간대 배열 생성 (동적 범위)
     const times = [];
-    for (let hour = 14; hour <= 19; hour++) {
+    for (let hour = minHour; hour <= maxHour; hour++) {
         for (let min = 0; min < 60; min += 30) {
-            if (hour === 19 && min > 30) break; // 19:30까지만
+            const currentTime = hour * 60 + min;
+            const startTime = minHour * 60 + minMinute;
+            const endTime = maxHour * 60 + maxMinute;
+            
+            // 시작 시간 이전이나 종료 시간 이후는 건너뛰기
+            if (currentTime < startTime || currentTime > endTime) continue;
+            
             times.push(`${String(hour).padStart(2, '0')}:${String(min).padStart(2, '0')}`);
         }
     }
