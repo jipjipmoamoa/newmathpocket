@@ -107,7 +107,7 @@ async function loadTeachersForFilter() {
 }
 
 // 선생님 필터 변경
-function filterByTeacher() {
+window.filterByTeacher = function() {
     const selectElement = document.getElementById('teacherFilter');
     currentTeacherFilter = selectElement.value;
     loadWeeklySchedule();
@@ -280,6 +280,19 @@ function buildScheduleData(students) {
         });
     });
     
+    // ===== 각 요일당 최소 4열 보장 =====
+    days.forEach(day => {
+        const currentColumns = scheduleData[day].columns.length;
+        if (currentColumns < 4) {
+            // 4열까지 빈 열 추가
+            for (let i = currentColumns; i < 4; i++) {
+                scheduleData[day].columns.push([]);
+            }
+            maxColumnsPerDay[day] = 4;
+            console.log(`[buildScheduleData] ${day}: ${currentColumns}열 → 4열로 확장`);
+        }
+    });
+    
     return { scheduleData, hasSaturday, maxColumnsPerDay };
 }
 
@@ -389,9 +402,9 @@ function renderWeeklyScheduleTable_OLD(data) {
                     <th class="time-header-cell" rowspan="1"></th>
     `;
     
-    // 요일 헤더 (실제 열 개수만큼)
+    // 요일 헤더 (최소 4열 보장)
     days.forEach(day => {
-        const colCount = Math.max(maxColumnsPerDay[day], 1);
+        const colCount = Math.max(maxColumnsPerDay[day] || 0, 4);
         html += `<th colspan="${colCount}" class="day-header">${dayLabelsShort[day]}</th>`;
     });
     
@@ -415,7 +428,7 @@ function renderWeeklyScheduleTable_OLD(data) {
         // 각 요일의 열
         days.forEach((day, dayIndex) => {
             const columns = scheduleData[day] ? scheduleData[day].columns : [];
-            const colCount = Math.max(columns.length, 1);
+            const colCount = Math.max(maxColumnsPerDay[day] || 0, 4);
             
             // 각 열을 렌더링
             for (let col = 0; col < colCount; col++) {
@@ -728,9 +741,9 @@ function generateScheduleTableHTML(data, globalTimeRange = null) {
                     <th class="time-header-cell" rowspan="1"></th>
     `;
     
-    // 요일 헤더 (실제 열 개수만큼)
+    // 요일 헤더 (최소 4열 보장)
     days.forEach(day => {
-        const colCount = Math.max(maxColumnsPerDay[day], 1);
+        const colCount = Math.max(maxColumnsPerDay[day] || 0, 4);
         html += `<th colspan="${colCount}" class="day-header">${dayLabelsShort[day]}</th>`;
     });
     
@@ -754,7 +767,7 @@ function generateScheduleTableHTML(data, globalTimeRange = null) {
         // 각 요일의 열
         days.forEach((day, dayIndex) => {
             const columns = scheduleData[day] ? scheduleData[day].columns : [];
-            const colCount = Math.max(columns.length, 1);
+            const colCount = Math.max(maxColumnsPerDay[day] || 0, 4);
             
             // 각 열을 렌더링
             for (let col = 0; col < colCount; col++) {
@@ -810,7 +823,7 @@ function generateScheduleTableHTML(data, globalTimeRange = null) {
 }
 
 // 스케줄표 인쇄
-function printScheduleTable() {
+window.printScheduleTable = function() {
     window.print();
 }
 
