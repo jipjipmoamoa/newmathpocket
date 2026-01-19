@@ -609,12 +609,20 @@ function renderAttendanceTable() {
             }
         }
         
-        // 재실시간 색상 결정
-        let durationColor = '';
-        let durationText = actualDuration ? `${actualDuration}분` : '';
-        if (actualDuration && actualDuration < scheduledDuration) {
-            durationColor = 'style="color: red; font-weight: bold;"';
-        }
+            // 재실시간 표시
+            let durationText = '';
+            if (actualDuration) {
+                durationText = `${actualDuration}분`;
+            } else if (scheduledDuration) {
+                // 실제 재실시간이 없으면 스케줄 기준 시간 표시
+                durationText = `${scheduledDuration}분`;
+                durationColor = 'style="color: #999;"'; // 회색으로 표시
+            }
+            
+            // 재실시간 색상 결정
+            if (actualDuration && actualDuration < scheduledDuration) {
+                durationColor = 'style="color: red; font-weight: bold;"';
+            }
         
         // 상태별 색상 및 텍스트
         let statusColor = '';
@@ -646,6 +654,7 @@ function renderAttendanceTable() {
             <td>
                 <span class="display-mode" id="display-checkin-${student.id}">${checkInTime || '-'}</span>
                 <input type="text" class="form-input edit-mode" id="edit-checkin-${student.id}" value="${checkInTime}" placeholder="14:00" style="display: none;"
+                    oninput="autoUpdateExpectedOutTime('${student.id}', this.value, ${scheduledDuration})"
                     onblur="this.value = formatTimeInput(this.value)" />
             </td>
             <td>
@@ -858,6 +867,45 @@ function calculateDurationInMinutes(startTime, endTime) {
     const diffMinutes = endMinutes - startMinutes;
     
     return diffMinutes > 0 ? diffMinutes : 0;
+}
+
+// 입실시간 입력 시 퇴실예정시간 자동 계산
+function autoUpdateExpectedOutTime(studentId, checkInTime, scheduledDuration) {
+    // 시간 형식 자동 변환 (1400 → 14:00)
+    const formattedTime = formatTimeInput(checkInTime);
+    
+    if (!formattedTime || !/^\d{2}:\d{2}$/.test(formattedTime)) {
+        return; // 유효하지 않은 시간 형식이면 중단
+    }
+    
+    // 퇴실예정시간 계산
+    const duration = scheduledDuration || 90; // 기본 90분
+    const expectedOutTime = addMinutesToTime(formattedTime, duration);
+    
+    // 퇴실예정시간 입력란 업데이트
+    const expectedOutInput = document.getElementById(`edit-expected-${studentId}`);
+    if (expectedOutInput) {
+        expectedOutInput.value = expectedOutTime;
+    }
+    
+    // 표시 영역도 업데이트 (편집 모드에서 보이지 않지만 저장 시 사용)
+    const expectedOutDisplay = document.getElementById(`display-expected-${studentId}`);
+    if (expectedOutDisplay) {
+        expectedOutDisplay.textContent = expectedOutTime;
+    }
+}
+
+// 시간에 분을 더하는 함수
+function addMinutesToTime(timeStr, minutes) {
+    if (!timeStr || !/^\d{2}:\d{2}$/.test(timeStr)) return '';
+    
+    const [hours, mins] = timeStr.split(':').map(Number);
+    const totalMinutes = hours * 60 + mins + minutes;
+    
+    const newHours = Math.floor(totalMinutes / 60) % 24;
+    const newMins = totalMinutes % 60;
+    
+    return `${String(newHours).padStart(2, '0')}:${String(newMins).padStart(2, '0')}`;
 }
 
 // ============================================
