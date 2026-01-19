@@ -31,7 +31,9 @@
             <!-- 로그인 영역 -->
             <div class="login-area" id="loginArea">
                 <div class="login-form" id="loginForm">
-                    <input type="text" id="username" placeholder="아이디" autocomplete="username">
+                    <input type="text" id="username" placeholder="아이디" autocomplete="username" 
+                           oninput="this.value = this.value.replace(/[^a-zA-Z0-9]/g, '')"
+                           onpaste="setTimeout(() => this.value = this.value.replace(/[^a-zA-Z0-9]/g, ''), 0)">
                     <input type="password" id="password" placeholder="비밀번호" autocomplete="current-password">
                     <button onclick="login()" class="btn-login">로그인</button>
                 </div>
@@ -151,7 +153,7 @@
     <script src="js/upgrade-students.js?t=1737276500"></script>
     <script src="js/attendance.js?t=1737276800"></script>
     <script src="js/tuition.js?t=1737276500"></script>
-    <script src="js/schedule.js?v=9.0.9"></script>
+    <script src="js/schedule.js?v=9.0.10"></script>
     <script src="js/curriculum.js?t=1737276500"></script>
     <script src="js/settings.js?t=1737276500"></script>
     <script src="js/navigation.js?t=1737276500"></script>
