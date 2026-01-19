@@ -7,8 +7,18 @@ document.addEventListener('DOMContentLoaded', () => {
     // 인증 상태 확인
     updateUIBasedOnAuth();
     
+    // 선생님 색상 초기화
+    initializeTeacherColors();
+    
     // 출석체크 페이지 표시 (홈 화면)
-    showPage('attendance-check');
+    // attendance.js 로드를 기다리기 위해 약간 지연
+    setTimeout(() => {
+        if (typeof showAttendanceCheckPage === 'function') {
+            showPage('attendance-check');
+        } else {
+            console.error('showAttendanceCheckPage is not loaded yet');
+        }
+    }, 100);
     
     // 전역 에러 핸들러
     window.addEventListener('error', (event) => {
