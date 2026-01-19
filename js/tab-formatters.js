@@ -1,45 +1,36 @@
 // ===== 날짜 포맷 변환 함수 =====
 
 /**
- * 날짜 입력을 "YY.MM" 또는 "YY.MM.DD" 형식으로 변환
- * 예: "2511" -> "25.11" (2025년 11월)
- * 예: "251102" -> "25.11.02" (2025년 11월 2일)
+ * 날짜 입력을 "YYYY.MM" 형식으로 변환 (4자리만)
+ * 예: "2601" -> "2026.01" (2026년 1월)
+ * 예: "2512" -> "2025.12" (2025년 12월)
  */
 function formatDateInput(input) {
     if (!input) return '';
     
-    // 숫자만 추출
-    const cleaned = input.replace(/[^0-9]/g, '');
-    
-    // 4자리: YYMM -> YYYY.MM (2601 → 2026.01)
-    if (cleaned.length === 4) {
-        const yy = cleaned.substring(0, 2);
-        const mm = cleaned.substring(2, 4);
-        return `20${yy}.${mm}`;
-    }
-    
-    // 6자리: YYMMDD -> YYYY.MM.DD (260115 → 2026.01.15)
-    if (cleaned.length === 6) {
-        const yy = cleaned.substring(0, 2);
-        const mm = cleaned.substring(2, 4);
-        const dd = cleaned.substring(4, 6);
-        return `20${yy}.${mm}.${dd}`;
-    }
-    
-    // 8자리: YYYYMMDD -> YYYY.MM.DD (20260115 → 2026.01.15)
-    if (cleaned.length === 8) {
-        const yyyy = cleaned.substring(0, 4);
-        const mm = cleaned.substring(4, 6);
-        const dd = cleaned.substring(6, 8);
-        return `${yyyy}.${mm}.${dd}`;
-    }
+    console.log('[formatDateInput] 입력:', input);
     
     // 이미 YYYY.MM 또는 YYYY.MM.DD 형식이면 그대로 반환
-    if (/^\d{4}\.\d{2}(\.\d{2})?$/.test(input)) {
+    if (/^\d{4}\.\d{1,2}(\.\d{1,2})?$/.test(input)) {
+        console.log('[formatDateInput] 이미 형식화됨, 그대로 반환:', input);
         return input;
     }
     
-    // 그 외에는 입력 그대로 반환
+    // 숫자만 추출
+    const cleaned = input.replace(/[^0-9]/g, '');
+    console.log('[formatDateInput] 숫자만 추출:', cleaned, '길이:', cleaned.length);
+    
+    // 4자리만 변환: YYMM -> YYYY.MM (2601 → 2026.01)
+    if (cleaned.length === 4) {
+        const yy = cleaned.substring(0, 2);
+        const mm = cleaned.substring(2, 4).padStart(2, '0');
+        const result = `20${yy}.${mm}`;
+        console.log('[formatDateInput] 변환 결과:', result);
+        return result;
+    }
+    
+    // 4자리가 아니면 입력 그대로 반환
+    console.log('[formatDateInput] 변환 안 함 (4자리 아님), 그대로 반환:', input);
     return input;
 }
 
