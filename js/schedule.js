@@ -41,10 +41,14 @@ window.showScheduleCurrentPage = async function() {
         document.head.appendChild(schedulePrintCSS);
     }
     
+    // 일반 선생님인 경우 필터 숨김
+    const isTeacher = Auth.isTeacher();
+    const filterDisplay = isTeacher ? 'display: none;' : '';
+    
     mainContent.innerHTML = `
         <div class="page-container" id="schedulePageContainer" style="max-width: 98%; margin: 0 auto;">
             <div class="page-header" style="display: flex; justify-content: space-between; align-items: center; gap: 1rem; margin-bottom: 1rem;">
-                <div id="teacherCheckboxList" style="display: flex; gap: 1rem; flex-wrap: wrap; align-items: center;">
+                <div id="teacherCheckboxList" style="${filterDisplay} display: flex; gap: 1rem; flex-wrap: wrap; align-items: center;">
                     <!-- 체크박스 목록이 여기에 동적으로 추가됩니다 -->
                 </div>
                 <button class="btn btn-primary" onclick="printScheduleTable()">
@@ -55,7 +59,10 @@ window.showScheduleCurrentPage = async function() {
         </div>
     `;
     
-    await loadTeachersForCheckboxFilter();
+    // 일반 선생님인 경우 필터 로드 안 함
+    if (!Auth.isTeacher()) {
+        await loadTeachersForCheckboxFilter();
+    }
     await loadWeeklySchedule();
     
     // 테이블 크기에 맞춰 자동 스케일 조정
