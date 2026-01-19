@@ -33,7 +33,10 @@
                 <div class="login-form" id="loginForm">
                     <input type="text" id="username" placeholder="아이디" autocomplete="username" 
                            oninput="this.value = this.value.replace(/[^a-zA-Z0-9]/g, '')"
-                           onpaste="setTimeout(() => this.value = this.value.replace(/[^a-zA-Z0-9]/g, ''), 0)">
+                           onpaste="setTimeout(() => this.value = this.value.replace(/[^a-zA-Z0-9]/g, ''), 0)"
+                           onfocus="this.setAttribute('inputmode', 'latin'); this.style.imeMode='disabled';"
+                           style="ime-mode: disabled;"
+                           inputmode="latin">
                     <input type="password" id="password" placeholder="비밀번호" autocomplete="current-password">
                     <button onclick="login()" class="btn-login">로그인</button>
                 </div>
@@ -149,7 +152,7 @@
     <script src="js/tab-formatters.js?t=1737276500"></script>
     <script src="js/tab-renderers-new.js?t=1737276500"></script>
     <script src="js/tab-crud-new.js?t=1737276500"></script>
-    <script src="js/members.js?t=1737276700"></script>
+    <script src="js/members.js?t=1737276900"></script>
     <script src="js/upgrade-students.js?t=1737276500"></script>
     <script src="js/attendance.js?t=1737276800"></script>
     <script src="js/tuition.js?t=1737276500"></script>
