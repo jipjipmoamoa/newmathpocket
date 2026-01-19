@@ -2252,13 +2252,13 @@ function renderTeachers(teachers) {
         const colorOptions = [
             { value: '', label: '색상 없음', color: '#FFFFFF' },
             { value: '#FFE6F0', label: '연분홍', color: '#FFE6F0' },
-            { value: '#FFE5E5', label: '연빨강', color: '#FFE5E5' },
+            { value: '#FFD0D0', label: '연빨강', color: '#FFD0D0' },  // 더 빨갛게 조정
             { value: '#FFE8D6', label: '연주황', color: '#FFE8D6' },
             { value: '#FFF9E5', label: '연노랑', color: '#FFF9E5' },
             { value: '#E8F5E9', label: '연두', color: '#E8F5E9' },
-            { value: '#E0F2F1', label: '연초록', color: '#E0F2F1' },
+            { value: '#C8E6C9', label: '연초록', color: '#C8E6C9' },  // 더 초록색으로 조정
             { value: '#E3F2FD', label: '연하늘', color: '#E3F2FD' },
-            { value: '#E3F0FF', label: '연파랑', color: '#E3F0FF' },
+            { value: '#BBDEFB', label: '연파랑', color: '#BBDEFB' },  // 더 파랗게 조정
             { value: '#F3E5F5', label: '연보라', color: '#F3E5F5' }
         ];
         
@@ -2268,7 +2268,7 @@ function renderTeachers(teachers) {
         
         return `
         <tr id="teacher-row-${teacher.id}" class="teacher-data-row">
-            <td class="teacher-status-cell">
+            <td class="teacher-status-cell" style="background-color: ${currentColor};">
                 <span class="${statusBadgeClass}" onclick="toggleTeacherStatus('${teacher.id}')" style="cursor: pointer; font-size: 0.85rem; padding: 0.2rem 0.4rem;">
                     ${statusText}
                 </span>
@@ -2293,7 +2293,7 @@ function renderTeachers(teachers) {
                     ${colorOptionsHtml}
                 </select>
             </td>
-            <td style="white-space: nowrap;">
+            <td style="white-space: nowrap; background-color: ${currentColor};">
                 <button class="btn btn-primary btn-sm" onclick="editTeacher('${teacher.id}')" style="padding: 0.2rem 0.4rem; margin-right: 0.2rem; font-size: 0.75rem;">
                     <i class="fas fa-edit"></i>
                 </button>
