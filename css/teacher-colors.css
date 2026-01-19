@@ -1,0 +1,54 @@
+/* ============================================
+   선생님별 색상 스타일
+   ============================================ */
+
+/* 선생님별 배경색 (연한 색상) */
+.teacher-color-0 { background-color: #FFE6F0 !important; } /* 연한 분홍 */
+.teacher-color-1 { background-color: #FFE5E5 !important; } /* 연한 빨강 */
+.teacher-color-2 { background-color: #FFE8D6 !important; } /* 연한 주황 */
+.teacher-color-3 { background-color: #FFF9E5 !important; } /* 연한 노랑 */
+.teacher-color-4 { background-color: #E8F5E9 !important; } /* 연두 */
+.teacher-color-5 { background-color: #E3F2FD !important; } /* 연한 하늘 */
+.teacher-color-6 { background-color: #F3E5F5 !important; } /* 연한 보라 */
+.teacher-color-7 { background-color: #E8EAF6 !important; } /* 연한 남색 */
+.teacher-color-8 { background-color: #FFF3E0 !important; } /* 연한 오렌지 */
+.teacher-color-9 { background-color: #E0F2F1 !important; } /* 연한 민트 */
+.teacher-color-none { background-color: #F5F5F5 !important; } /* 연한 회색 (담당 없음) */
+
+/* 통계표 스크롤 컨테이너 */
+.stats-scroll-container {
+    overflow-x: auto;
+    overflow-y: hidden;
+    max-width: 100%;
+    margin: 1rem 0;
+}
+
+/* 아주 연한 회색 스크롤바 */
+.stats-scroll-container::-webkit-scrollbar {
+    height: 8px;
+}
+
+.stats-scroll-container::-webkit-scrollbar-track {
+    background: #FAFAFA;
+}
+
+.stats-scroll-container::-webkit-scrollbar-thumb {
+    background: #E8E8E8;
+    border-radius: 4px;
+}
+
+.stats-scroll-container::-webkit-scrollbar-thumb:hover {
+    background: #DEDEDE;
+}
+
+/* Firefox 스크롤바 */
+.stats-scroll-container {
+    scrollbar-width: thin;
+    scrollbar-color: #E8E8E8 #FAFAFA;
+}
+
+/* 통계 테이블 최소 너비 설정 */
+.stats-scroll-container table {
+    min-width: 100%;
+    white-space: nowrap;
+}
