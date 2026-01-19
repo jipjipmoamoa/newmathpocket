@@ -106,6 +106,7 @@ const API = {
     // PATCH - 부분 업데이트
     async patch(table, id, data) {
         try {
+            console.log(`API patch: ${table}/${id}`, data);
             const response = await fetch(`${this.baseURL}/${table}?id=eq.${id}`, {
                 method: 'PATCH',
                 headers: {
@@ -116,8 +117,15 @@ const API = {
                 },
                 body: JSON.stringify(data)
             });
-            if (!response.ok) throw new Error('데이터 수정 실패');
+            
+            if (!response.ok) {
+                const errorText = await response.text();
+                console.error('API patch error response:', errorText);
+                throw new Error(`데이터 수정 실패: ${errorText}`);
+            }
+            
             const result = await response.json();
+            console.log('API patch result:', result);
             return result[0];
         } catch (error) {
             console.error('API patch error:', error);
