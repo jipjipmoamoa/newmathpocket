@@ -25,7 +25,7 @@ const studentColors = [
 ];
 
 let studentColorMap = {}; // 학생 ID -> 색상 매핑
-let currentTeacherFilter = 'all'; // 현재 선생님 필터
+let scheduleTeacherFilter = 'all'; // 스케줄 페이지 선생님 필터
 
 // 이번달 스케줄표 페이지
 window.showScheduleCurrentPage = async function() {
@@ -236,7 +236,7 @@ async function loadTeachersForFilter() {
 // 선생님 필터 변경
 window.filterByTeacher = function() {
     const selectElement = document.getElementById('teacherFilter');
-    currentTeacherFilter = selectElement.value;
+    scheduleTeacherFilter = selectElement.value;
     loadWeeklySchedule();
 }
 
