@@ -2934,26 +2934,37 @@ async function loadTeachersForAttendanceFilter() {
         
         console.log('[loadTeachersForAttendanceFilter] 전체 선생님:', teachers.length, '명');
         
-        // 선생님 데이터 샘플 출력
+        // 선생님 데이터 상세 출력
         if (teachers.length > 0) {
             console.log('[loadTeachersForAttendanceFilter] 첫 번째 선생님 샘플:', teachers[0]);
-            console.log('[loadTeachersForAttendanceFilter] 모든 선생님 status:', teachers.map(t => `${t.name}: ${t.status}`).join(', '));
+            console.log('[loadTeachersForAttendanceFilter] 모든 선생님 정보:');
+            teachers.forEach(t => {
+                console.log(`  - ${t.name}: role=${t.role}, status=${t.status}`);
+            });
+        } else {
+            console.warn('[loadTeachersForAttendanceFilter] ⚠️ teachers 데이터가 비어있습니다!');
         }
         
-        // 선생님 필터링: status가 '재직'이거나, status가 없거나, role이 있으면 포함
+        // 선생님 필터링: role이 있으면서 퇴사하지 않은 모든 선생님 포함
         const activeTeachers = teachers.filter(t => {
-            // role이 있는 선생님은 모두 포함 (관리자, 부관리자, 선생님)
+            // role이 있는 선생님만 포함 (관리자, 부관리자, 선생님)
             const hasRole = t.role && (t.role === '관리자' || t.role === '부관리자' || t.role === '선생님');
-            // status가 '재직'이거나 없는 경우
-            const isActive = !t.status || t.status === '재직' || t.status === '활동중' || t.status === '근무중';
-            return hasRole && isActive;
+            // status가 '퇴사'가 아닌 경우 (status가 없거나, '재직', '활동중', '근무중' 등)
+            const notResigned = !t.status || (t.status !== '퇴사' && t.status !== '퇴직');
+            return hasRole && notResigned;
         });
         
         console.log('[loadTeachersForAttendanceFilter] 필터링된 선생님:', activeTeachers.length, '명');
         
         // 재직 중인 선생님 목록 출력
         if (activeTeachers.length > 0) {
-            console.log('[loadTeachersForAttendanceFilter] 재직 중인 선생님 목록:', activeTeachers.map(t => `${t.name}(${t.role})`).join(', '));
+            console.log('[loadTeachersForAttendanceFilter] 재직 중인 선생님 목록:');
+            activeTeachers.forEach(t => {
+                console.log(`  ✓ ${t.name} (role: ${t.role}, status: ${t.status || '없음'})`);
+            });
+        } else {
+            console.error('[loadTeachersForAttendanceFilter] ⚠️ 필터링 후 선생님이 0명입니다!');
+            console.error('[loadTeachersForAttendanceFilter] 필터 조건: role이 있고, status가 퇴사/퇴직이 아닌 선생님');
         }
         
         // 역할별로 그룹화
@@ -2966,12 +2977,13 @@ async function loadTeachersForAttendanceFilter() {
         // 드롭다운 구성
         const select = document.getElementById('attendanceTeacherFilterSelect');
         if (!select) {
-            console.error('[loadTeachersForAttendanceFilter] 드롭다운을 찾을 수 없습니다.');
-            console.error('[loadTeachersForAttendanceFilter] DOM 요소 확인:', document.querySelector('.attendance-check-container'));
+            console.error('[loadTeachersForAttendanceFilter] ❌ 드롭다운을 찾을 수 없습니다!');
+            console.error('[loadTeachersForAttendanceFilter] attendance-check-container 존재:', !!document.querySelector('.attendance-check-container'));
+            console.error('[loadTeachersForAttendanceFilter] 관리자 여부:', Auth.isAdmin(), '부관리자 여부:', Auth.isSubAdmin());
             return;
         }
         
-        console.log('[loadTeachersForAttendanceFilter] 드롭다운 발견:', select);
+        console.log('[loadTeachersForAttendanceFilter] ✓ 드롭다운 요소 발견');
         
         let options = '<option value="all">전체 선생님</option>';
         
@@ -3003,7 +3015,8 @@ async function loadTeachersForAttendanceFilter() {
         }
         
         select.innerHTML = options;
-        console.log('[loadTeachersForAttendanceFilter] 드롭다운 구성 완료');
+        console.log('[loadTeachersForAttendanceFilter] ✓ 드롭다운 구성 완료');
+        console.log('[loadTeachersForAttendanceFilter] 추가된 옵션 수:', select.options.length, '개');
     } catch (error) {
         console.error('[loadTeachersForAttendanceFilter] 선생님 목록 로드 실패:', error);
     }
