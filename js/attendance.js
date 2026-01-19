@@ -480,7 +480,7 @@ function renderAttendanceTable() {
         <td><input type="text" id="registerExpectedOutTime" class="form-input" placeholder="15:30" readonly /></td>
         <td><input type="text" id="registerCheckOutTime" class="form-input" placeholder="15:30"
             onblur="this.value = formatTimeInput(this.value)" /></td>
-        <td></td>
+        <td style="background-color: #fffbf0;"></td>
         <td>
             <select id="registerStatus" class="form-select" onchange="handleRegisterStatusChange()">
                 <option value="">상태</option>
@@ -502,6 +502,7 @@ function renderAttendanceTable() {
         <td>
             <button class="btn-register" onclick="registerNewAttendance()">등록</button>
         </td>
+        <td style="background-color: #fffbf0;"></td>
     `;
     tbody.appendChild(registerRow);
     
