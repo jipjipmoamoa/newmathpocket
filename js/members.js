@@ -2570,7 +2570,7 @@ async function renderTeacherStudentsGrid(teachers) {
                 <div class="teacher-student-card" ${cardStyle}>
                     <div class="teacher-card-header">
                         <h4>${teacher.name} 선생님</h4>
-                        <span style="color: #FF6B35; font-weight: 600; font-size: 0.95rem;">${teacherStudents.length}명</span>
+                        <span class="student-count">${teacherStudents.length}명</span>
                     </div>
                     <div class="teacher-card-body">
                         ${sortedStudents.length > 0 ? 
