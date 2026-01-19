@@ -586,7 +586,7 @@ async function renderScheduleByTeachers(allStudents) {
         activeTeachers.forEach(teacher => {
             const teacherStudents = studentsByTeacher[teacher.id] || [];
             
-            if (teacherStudents.length === 0) return; // 담당 학생이 없으면 건너뛰기
+            // 모든 재직 선생님의 스케줄 표시 (담당 학생이 없어도 표시)
             
             // 선생님 이름 헤더
             html += `
