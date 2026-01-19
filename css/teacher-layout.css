@@ -35,10 +35,10 @@
     background: var(--white);
 }
 
-/* 담당 학생 그리드 (가로 5단 세로 2단 고정) */
+/* 담당 학생 그리드 (가로 6단) */
 .teacher-students-grid {
     display: grid;
-    grid-template-columns: repeat(5, 1fr);
+    grid-template-columns: repeat(6, 1fr);
     gap: 1.5rem;
     margin-top: 1rem;
 }
@@ -47,7 +47,7 @@
 .teacher-student-card {
     background: var(--white);
     border-radius: 8px;
-    padding: 1.5rem;
+    padding: 1.2rem;
     box-shadow: var(--shadow);
 }
 
@@ -61,17 +61,15 @@
 }
 
 .teacher-card-header h4 {
-    font-size: 1.1rem;
+    font-size: 0.9rem;
     color: var(--text-dark);
     margin: 0;
 }
 
 .student-count {
-    background: var(--primary-color);
-    color: var(--white);
-    padding: 0.25rem 0.75rem;
-    border-radius: 12px;
-    font-size: 0.85rem;
+    /* 배경색 제거 - 주황색 글자만 표시 */
+    color: #FF6B35;
+    font-size: 0.95rem;
     font-weight: 600;
 }
 
@@ -117,23 +115,23 @@
     font-style: italic;
 }
 
-/* 반응형은 5단 고정 유지 */
+/* 반응형은 6단 고정 유지 */
 @media (max-width: 1400px) {
     .teacher-students-grid {
-        grid-template-columns: repeat(5, 1fr);
+        grid-template-columns: repeat(6, 1fr);
     }
 }
 
-/* 반응형 - 작은 화면에서도 5단 유지 */
+/* 반응형 - 작은 화면에서도 6단 유지 */
 @media (max-width: 1024px) {
     .teacher-students-grid {
-        grid-template-columns: repeat(5, 1fr);
+        grid-template-columns: repeat(6, 1fr);
     }
 }
 
-/* 반응형 - 모바일에서도 5단 유지 */
+/* 반응형 - 모바일에서도 6단 유지 */
 @media (max-width: 768px) {
     .teacher-students-grid {
-        grid-template-columns: repeat(5, 1fr);
+        grid-template-columns: repeat(6, 1fr);
     }
 }
