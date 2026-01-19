@@ -90,13 +90,36 @@ async function loadTeachersForCheckboxFilter() {
     try {
         const result = await API.getList('teachers', { limit: 1000 });
         const allTeachers = Array.isArray(result) ? result : (result.data || []);
-        const teachers = allTeachers.filter(t => (t.status || '재직') === '재직');
+        
+        // status가 '재직', '재직중', 또는 비어있으면 재직으로 간주
+        const teachers = allTeachers.filter(t => {
+            const status = t.status || '재직';
+            return status === '재직' || status === '재직중';
+        });
+        
+        console.log('[loadTeachersForCheckboxFilter] 재직 선생님:', teachers.map(t => `${t.name}(${t.status || '재직'})`));
         
         const checkboxContainer = document.getElementById('teacherCheckboxList');
         if (!checkboxContainer) return;
         
-        // 체크박스 HTML 생성
-        let checkboxHtml = teachers.map(teacher => `
+        // 선생님을 3개 그룹으로 분류
+        const teachersWithDash = teachers.filter(t => t.name.includes('-')); // 이름에 "-"가 있는 선생님
+        const teachersWithoutDash = teachers.filter(t => !t.name.includes('-')); // 나머지 선생님
+        
+        // 전체 선택 체크박스 HTML
+        const selectAllHtml = `
+            <label style="display: flex; align-items: center; gap: 0.3rem; cursor: pointer; white-space: nowrap; font-weight: 600;">
+                <input type="checkbox" 
+                       id="selectAllTeachers" 
+                       checked
+                       onchange="toggleAllTeachers()"
+                       style="cursor: pointer; width: 18px; height: 18px;">
+                <span style="font-size: 1rem;">전체 선택</span>
+            </label>
+        `;
+        
+        // 일반 선생님 체크박스 생성
+        const normalTeachersHtml = teachersWithoutDash.map(teacher => `
             <label style="display: flex; align-items: center; gap: 0.3rem; cursor: pointer; white-space: nowrap;">
                 <input type="checkbox" 
                        class="teacher-checkbox" 
@@ -108,10 +131,55 @@ async function loadTeachersForCheckboxFilter() {
             </label>
         `).join('');
         
-        checkboxContainer.innerHTML = checkboxHtml;
+        // "-"가 있는 선생님 체크박스 생성
+        const dashTeachersHtml = teachersWithDash.map(teacher => `
+            <label style="display: flex; align-items: center; gap: 0.3rem; cursor: pointer; white-space: nowrap;">
+                <input type="checkbox" 
+                       class="teacher-checkbox" 
+                       value="${teacher.id}" 
+                       checked
+                       onchange="filterByTeacherCheckbox()"
+                       style="cursor: pointer; width: 16px; height: 16px;">
+                <span style="font-size: 0.95rem;">${teacher.name}</span>
+            </label>
+        `).join('');
+        
+        // 3줄 구조로 렌더링
+        checkboxContainer.innerHTML = `
+            <div style="display: flex; flex-direction: column; gap: 0.5rem; width: 100%;">
+                <!-- 첫 번째 줄: 전체 선택 -->
+                <div style="display: flex; gap: 1rem; flex-wrap: wrap; align-items: center; padding-bottom: 0.3rem; border-bottom: 1px solid #e0e0e0;">
+                    ${selectAllHtml}
+                </div>
+                
+                <!-- 두 번째 줄: 일반 선생님 -->
+                <div style="display: flex; gap: 1rem; flex-wrap: wrap; align-items: center;">
+                    ${normalTeachersHtml}
+                </div>
+                
+                <!-- 세 번째 줄: "-"가 있는 선생님 -->
+                ${teachersWithDash.length > 0 ? `
+                    <div style="display: flex; gap: 1rem; flex-wrap: wrap; align-items: center; padding-top: 0.3rem; border-top: 1px solid #e0e0e0;">
+                        ${dashTeachersHtml}
+                    </div>
+                ` : ''}
+            </div>
+        `;
     } catch (error) {
         console.error('선생님 목록 로드 실패:', error);
     }
+}
+
+// 전체 선택/해제 토글
+window.toggleAllTeachers = function() {
+    const selectAllCheckbox = document.getElementById('selectAllTeachers');
+    const teacherCheckboxes = document.querySelectorAll('.teacher-checkbox');
+    
+    teacherCheckboxes.forEach(checkbox => {
+        checkbox.checked = selectAllCheckbox.checked;
+    });
+    
+    filterByTeacherCheckbox();
 }
 
 // 체크된 선생님 ID 목록 가져오기
@@ -122,7 +190,21 @@ function getCheckedTeacherIds() {
 
 // 체크박스 필터 변경
 window.filterByTeacherCheckbox = function() {
+    // 전체 선택 체크박스 상태 업데이트
+    updateSelectAllCheckbox();
+    
     loadWeeklySchedule();
+}
+
+// 전체 선택 체크박스 상태 업데이트
+function updateSelectAllCheckbox() {
+    const selectAllCheckbox = document.getElementById('selectAllTeachers');
+    if (!selectAllCheckbox) return;
+    
+    const teacherCheckboxes = document.querySelectorAll('.teacher-checkbox');
+    const checkedCount = document.querySelectorAll('.teacher-checkbox:checked').length;
+    
+    selectAllCheckbox.checked = checkedCount === teacherCheckboxes.length;
 }
 
 // 선생님 필터 목록 로드 (기존 방식 - 다른 페이지용)
@@ -130,7 +212,12 @@ async function loadTeachersForFilter() {
     try {
         const result = await API.getList('teachers', { limit: 1000 });
         const allTeachers = Array.isArray(result) ? result : (result.data || []);
-        const teachers = allTeachers.filter(t => (t.status || '재직') === '재직');
+        
+        // status가 '재직', '재직중', 또는 비어있으면 재직으로 간주
+        const teachers = allTeachers.filter(t => {
+            const status = t.status || '재직';
+            return status === '재직' || status === '재직중';
+        });
         
         const selectElement = document.getElementById('teacherFilter');
         if (!selectElement) return;
@@ -592,7 +679,14 @@ async function renderScheduleByTeachers(allStudents) {
         // 선생님 목록 로드
         const teachersResult = await API.getList('teachers', { limit: 1000 });
         const allTeachers = Array.isArray(teachersResult) ? teachersResult : (teachersResult.data || []);
-        const activeTeachers = allTeachers.filter(t => (t.status || '재직') === '재직');
+        
+        // status가 '재직', '재직중', 또는 비어있으면 재직으로 간주
+        const activeTeachers = allTeachers.filter(t => {
+            const status = t.status || '재직';
+            return status === '재직' || status === '재직중';
+        });
+        
+        console.log('[renderScheduleByTeachers] 전체 재직 선생님:', activeTeachers.map(t => `${t.name}(${t.status || '재직'})`));
         
         // 체크된 선생님만 필터링
         const checkedTeacherIds = getCheckedTeacherIds();
