@@ -340,10 +340,10 @@ function renderStudentList(students) {
 
 // 아코디언 토글 함수 제거 (항상 열린 상태이므로 불필요)
 
-// 학교명 짧게 표시 (예: "서울중학교" -> "서울중")
+// 학교명 짧게 표시 (예: "서울중학교" -> "서울")
 function formatSchoolName(school) {
     if (!school) return '-';
-    return school.replace('초등학교', '초').replace('중학교', '중').replace('고등학교', '고');
+    return school.replace('초등학교', '').replace('중학교', '').replace('고등학교', '');
 }
 
 // 학생 상세 정보 표시 (오른쪽 4단) - 5칸 탭 구조
@@ -2067,14 +2067,14 @@ async function showTeachersPage() {
                 <table>
                     <thead>
                         <tr>
-                            <th style="width: 80px;">상태</th>
-                            <th style="width: 100px;">이름</th>
-                            <th style="width: 120px;">전화번호</th>
+                            <th style="width: 60px;">상태</th>
+                            <th style="width: 120px;">이름</th>
+                            <th style="width: 150px;">전화번호</th>
                             <th style="width: 150px;">근무시간</th>
                             <th style="width: 100px;">아이디</th>
                             <th style="width: 100px;">비밀번호</th>
                             <th style="width: 100px;">색상</th>
-                            <th style="width: 250px;">관리</th>
+                            <th style="width: 125px;">관리</th>
                         </tr>
                     </thead>
                     <tbody id="teachersTableBody">
@@ -2468,6 +2468,16 @@ async function renderTeacherStudentsGrid(teachers) {
     try {
         const studentsResult = await API.getList('students', { limit: 1000 });
         const students = Array.isArray(studentsResult) ? studentsResult : (studentsResult.data || []);
+        
+        // 선생님 수에 따라 data 속성 설정
+        const teacherCount = teachers.length;
+        if (teacherCount <= 5) {
+            grid.setAttribute('data-teacher-count', teacherCount);
+            grid.removeAttribute('data-teacher-count-6plus');
+        } else {
+            grid.setAttribute('data-teacher-count-6plus', 'true');
+            grid.removeAttribute('data-teacher-count');
+        }
         
         grid.innerHTML = teachers.map(teacher => {
             // 해당 선생님이 담당하는 학생들 필터링
