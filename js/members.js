@@ -3132,32 +3132,10 @@ async function loadTeachersForFilter() {
         
         let options = '<option value="all">전체 선생님</option>';
         
-        // 관리자
-        if (admins.length > 0) {
-            options += '<optgroup label="관리자">';
-            admins.forEach(t => {
-                options += `<option value="${t.id}">${t.name}</option>`;
-            });
-            options += '</optgroup>';
-        }
-        
-        // 부관리자
-        if (subAdmins.length > 0) {
-            options += '<optgroup label="부관리자">';
-            subAdmins.forEach(t => {
-                options += `<option value="${t.id}">${t.name}</option>`;
-            });
-            options += '</optgroup>';
-        }
-        
-        // 선생님
-        if (regularTeachers.length > 0) {
-            options += '<optgroup label="재직중 선생님">';
-            regularTeachers.forEach(t => {
-                options += `<option value="${t.id}">${t.name}</option>`;
-            });
-            options += '</optgroup>';
-        }
+        // 모든 선생님을 그룹 없이 나열 (관리자, 부관리자, 선생님 순서)
+        [...admins, ...subAdmins, ...regularTeachers].forEach(t => {
+            options += `<option value="${t.id}">${t.name}</option>`;
+        });
         
         select.innerHTML = options;
     } catch (error) {
@@ -3207,32 +3185,10 @@ async function loadTeachersForAllMembersFilter() {
         
         let options = '<option value="all">전체 선생님</option>';
         
-        // 관리자
-        if (admins.length > 0) {
-            options += '<optgroup label="관리자">';
-            admins.forEach(t => {
-                options += `<option value="${t.id}">${t.name}</option>`;
-            });
-            options += '</optgroup>';
-        }
-        
-        // 부관리자
-        if (subAdmins.length > 0) {
-            options += '<optgroup label="부관리자">';
-            subAdmins.forEach(t => {
-                options += `<option value="${t.id}">${t.name}</option>`;
-            });
-            options += '</optgroup>';
-        }
-        
-        // 선생님
-        if (regularTeachers.length > 0) {
-            options += '<optgroup label="재직중 선생님">';
-            regularTeachers.forEach(t => {
-                options += `<option value="${t.id}">${t.name}</option>`;
-            });
-            options += '</optgroup>';
-        }
+        // 모든 선생님을 그룹 없이 나열 (관리자, 부관리자, 선생님 순서)
+        [...admins, ...subAdmins, ...regularTeachers].forEach(t => {
+            options += `<option value="${t.id}">${t.name}</option>`;
+        });
         
         select.innerHTML = options;
     } catch (error) {
