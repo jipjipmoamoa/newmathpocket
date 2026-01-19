@@ -35,12 +35,38 @@
     background: var(--white);
 }
 
-/* 담당 학생 그리드 (4단 배열) */
+/* 담당 학생 그리드 (동적 단수) */
 .teacher-students-grid {
     display: grid;
-    grid-template-columns: repeat(4, 1fr);
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
     gap: 1.5rem;
     margin-top: 1rem;
+}
+
+/* 선생님이 5명 이하일 때는 가변 단수 */
+.teacher-students-grid[data-teacher-count="1"] {
+    grid-template-columns: repeat(1, 1fr);
+}
+
+.teacher-students-grid[data-teacher-count="2"] {
+    grid-template-columns: repeat(2, 1fr);
+}
+
+.teacher-students-grid[data-teacher-count="3"] {
+    grid-template-columns: repeat(3, 1fr);
+}
+
+.teacher-students-grid[data-teacher-count="4"] {
+    grid-template-columns: repeat(4, 1fr);
+}
+
+.teacher-students-grid[data-teacher-count="5"] {
+    grid-template-columns: repeat(5, 1fr);
+}
+
+/* 선생님이 6명 이상일 때는 5단 고정 */
+.teacher-students-grid[data-teacher-count-6plus="true"] {
+    grid-template-columns: repeat(5, 1fr);
 }
 
 /* 선생님 카드 */
