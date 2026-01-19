@@ -43,10 +43,10 @@ window.showScheduleCurrentPage = async function() {
     
     mainContent.innerHTML = `
         <div class="page-container" id="schedulePageContainer" style="max-width: 98%; margin: 0 auto;">
-            <div class="page-header" style="display: flex; justify-content: flex-end; gap: 1rem; margin-bottom: 1rem;">
-                <select id="teacherFilter" onchange="filterByTeacher()" style="padding: 0.5rem; border: 1px solid var(--border-color); border-radius: 4px;">
-                    <option value="all">전체 선생님</option>
-                </select>
+            <div class="page-header" style="display: flex; justify-content: space-between; align-items: center; gap: 1rem; margin-bottom: 1rem;">
+                <div id="teacherCheckboxList" style="display: flex; gap: 1rem; flex-wrap: wrap; align-items: center;">
+                    <!-- 체크박스 목록이 여기에 동적으로 추가됩니다 -->
+                </div>
                 <button class="btn btn-primary" onclick="printScheduleTable()">
                     <i class="fas fa-print"></i> 인쇄
                 </button>
@@ -55,7 +55,7 @@ window.showScheduleCurrentPage = async function() {
         </div>
     `;
     
-    await loadTeachersForFilter();
+    await loadTeachersForCheckboxFilter();
     await loadWeeklySchedule();
     
     // 테이블 크기에 맞춰 자동 스케일 조정
@@ -85,7 +85,47 @@ function adjustTableScale() {
     }
 }
 
-// 선생님 필터 목록 로드
+// 선생님 체크박스 목록 로드 (새로운 방식)
+async function loadTeachersForCheckboxFilter() {
+    try {
+        const result = await API.getList('teachers', { limit: 1000 });
+        const allTeachers = Array.isArray(result) ? result : (result.data || []);
+        const teachers = allTeachers.filter(t => (t.status || '재직') === '재직');
+        
+        const checkboxContainer = document.getElementById('teacherCheckboxList');
+        if (!checkboxContainer) return;
+        
+        // 체크박스 HTML 생성
+        let checkboxHtml = teachers.map(teacher => `
+            <label style="display: flex; align-items: center; gap: 0.3rem; cursor: pointer; white-space: nowrap;">
+                <input type="checkbox" 
+                       class="teacher-checkbox" 
+                       value="${teacher.id}" 
+                       checked
+                       onchange="filterByTeacherCheckbox()"
+                       style="cursor: pointer; width: 16px; height: 16px;">
+                <span style="font-size: 0.95rem;">${teacher.name}</span>
+            </label>
+        `).join('');
+        
+        checkboxContainer.innerHTML = checkboxHtml;
+    } catch (error) {
+        console.error('선생님 목록 로드 실패:', error);
+    }
+}
+
+// 체크된 선생님 ID 목록 가져오기
+function getCheckedTeacherIds() {
+    const checkboxes = document.querySelectorAll('.teacher-checkbox:checked');
+    return Array.from(checkboxes).map(cb => cb.value);
+}
+
+// 체크박스 필터 변경
+window.filterByTeacherCheckbox = function() {
+    loadWeeklySchedule();
+}
+
+// 선생님 필터 목록 로드 (기존 방식 - 다른 페이지용)
 async function loadTeachersForFilter() {
     try {
         const result = await API.getList('teachers', { limit: 1000 });
@@ -138,17 +178,11 @@ async function loadWeeklySchedule() {
             console.log(`[학생 확인] 이름: ${s.name}, 상태: ${s.status}, ID: ${s.id}`);
         });
         
-        // 선생님 필터 적용
-        if (currentTeacherFilter !== 'all') {
-            students = students.filter(s => s.teacher_id === currentTeacherFilter);
-            console.log('[loadWeeklySchedule] 필터링 후 학생 수:', students.length);
-        }
-        
-        // 🔥 관리자/부관리자인 경우 선생님별로 그룹화하여 표시
-        if (Auth.isAdminOrSubAdmin() && currentTeacherFilter === 'all') {
+        // 🔥 관리자/부관리자인 경우 체크박스 필터 적용하여 선생님별로 그룹화하여 표시
+        if (Auth.isAdminOrSubAdmin()) {
             await renderScheduleByTeachers(students);
         } else {
-            // 선생님이거나 필터가 적용된 경우 기존 방식으로 표시
+            // 선생님인 경우 기존 방식으로 표시
             // 학생들에게 색상 할당
             assignStudentColors(students);
             
@@ -560,6 +594,14 @@ async function renderScheduleByTeachers(allStudents) {
         const allTeachers = Array.isArray(teachersResult) ? teachersResult : (teachersResult.data || []);
         const activeTeachers = allTeachers.filter(t => (t.status || '재직') === '재직');
         
+        // 체크된 선생님만 필터링
+        const checkedTeacherIds = getCheckedTeacherIds();
+        const filteredTeachers = checkedTeacherIds.length > 0 
+            ? activeTeachers.filter(t => checkedTeacherIds.includes(t.id))
+            : activeTeachers;
+        
+        console.log('[renderScheduleByTeachers] 체크된 선생님:', filteredTeachers.map(t => t.name));
+        
         // 선생님별로 학생 그룹화
         const studentsByTeacher = {};
         const noTeacherStudents = [];
@@ -582,9 +624,9 @@ async function renderScheduleByTeachers(allStudents) {
         const container = document.getElementById('weeklyScheduleTable');
         let html = '';
         
-        // 선생님별로 순회하면서 스케줄 테이블 생성
-        console.log('[renderScheduleByTeachers] activeTeachers:', activeTeachers.map(t => t.name));
-        activeTeachers.forEach(teacher => {
+        // 체크된 선생님별로 순회하면서 스케줄 테이블 생성
+        console.log('[renderScheduleByTeachers] filteredTeachers:', filteredTeachers.map(t => t.name));
+        filteredTeachers.forEach(teacher => {
             const teacherStudents = studentsByTeacher[teacher.id] || [];
             console.log(`[renderScheduleByTeachers] ${teacher.name} 선생님 - 담당 학생 수: ${teacherStudents.length}`);
             
