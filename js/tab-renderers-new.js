@@ -90,6 +90,14 @@ function renderBooksTab(student) {
     
     return `
         <div class="tab-panel">
+            <div style="background-color: #fff3cd; border: 1px solid #ffc107; border-radius: 4px; padding: 0.75rem 1rem; margin-bottom: 1rem; font-size: 0.9rem;">
+                <i class="fas fa-info-circle" style="color: #856404; margin-right: 0.5rem;"></i>
+                <strong>입력 방법:</strong> 
+                <span style="color: #856404;">
+                    선행개념, 선행복습, 현행심화 칸에 <strong>0</strong>을 입력하면 해당 항목을 비워둡니다. 
+                    비워둔 항목은 회원정보나 전체회원관리에서 이전 행의 기록을 표시하지 않습니다.
+                </span>
+            </div>
             <table class="data-table books-table">
                 <thead>
                     <tr>
@@ -104,9 +112,9 @@ function renderBooksTab(student) {
                     <!-- 입력 행 (2행) -->
                     <tr class="input-row">
                         <td><input type="text" id="new-book-date-${student.id}" placeholder="2511" class="input-field" onblur="this.value = formatDateInput(this.value)"></td>
-                        <td><input type="text" id="new-book-concept-${student.id}" placeholder="선행개념" class="input-field"></td>
-                        <td><input type="text" id="new-book-review-${student.id}" placeholder="선행복습" class="input-field"></td>
-                        <td><input type="text" id="new-book-advanced-${student.id}" placeholder="현행심화" class="input-field"></td>
+                        <td><input type="text" id="new-book-concept-${student.id}" placeholder="선행개념 (0 입력 시 비워둠)" class="input-field"></td>
+                        <td><input type="text" id="new-book-review-${student.id}" placeholder="선행복습 (0 입력 시 비워둠)" class="input-field"></td>
+                        <td><input type="text" id="new-book-advanced-${student.id}" placeholder="현행심화 (0 입력 시 비워둠)" class="input-field"></td>
                         <td><button class="btn-register" onclick="addBook('${student.id}')">등록</button></td>
                     </tr>
                     
