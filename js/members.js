@@ -2921,7 +2921,7 @@ async function saveTeacherInline(teacherId) {
 }
 
 // 수정 버튼 클릭 시 - 토글 방식 (수정 ↔ 저장)
-window.editTeacher = function(teacherId) {
+window.editTeacher = async function(teacherId) {
     const row = document.getElementById(`teacher-row-${teacherId}`);
     if (!row) return;
     
@@ -2955,7 +2955,7 @@ window.editTeacher = function(teacherId) {
         
     } else {
         // 현재 저장 모드 → 모든 셀 저장 후 편집 모드로 전환
-        saveAllTeacherCells(teacherId);
+        await saveAllTeacherCells(teacherId);
     }
 }
 
