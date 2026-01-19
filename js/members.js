@@ -2273,20 +2273,25 @@ function renderTeachers(teachers) {
                     ${statusText}
                 </span>
             </td>
-            <td class="teacher-name-cell" style="background-color: ${currentColor};">
-                ${teacher.name}
+            <td class="teacher-name-cell" style="background-color: ${currentColor};" ondblclick="editTeacherCell('${teacher.id}', 'name', this)">
+                <span class="display-value">${teacher.name}</span>
+                <input type="text" class="edit-input" value="${teacher.name}" style="display: none; width: 100%; padding: 0.3rem; border: 1px solid var(--border-color); border-radius: 4px;" onblur="saveTeacherCell('${teacher.id}', 'name', this)" onkeypress="if(event.key==='Enter') this.blur()">
             </td>
-            <td class="teacher-phone-cell" style="background-color: ${currentColor};">
-                ${Utils.formatPhone(teacher.phone)}
+            <td class="teacher-phone-cell" style="background-color: ${currentColor};" ondblclick="editTeacherCell('${teacher.id}', 'phone', this)">
+                <span class="display-value">${Utils.formatPhone(teacher.phone)}</span>
+                <input type="tel" class="edit-input" value="${teacher.phone}" style="display: none; width: 100%; padding: 0.3rem; border: 1px solid var(--border-color); border-radius: 4px;" onblur="saveTeacherCell('${teacher.id}', 'phone', this)" onkeypress="if(event.key==='Enter') this.blur()">
             </td>
-            <td class="teacher-workhours-cell" style="background-color: ${currentColor};">
-                ${teacher.work_hours || '-'}
+            <td class="teacher-workhours-cell" style="background-color: ${currentColor};" ondblclick="editTeacherCell('${teacher.id}', 'work_hours', this)">
+                <span class="display-value">${teacher.work_hours || '-'}</span>
+                <input type="text" class="edit-input" value="${teacher.work_hours || ''}" style="display: none; width: 100%; padding: 0.3rem; border: 1px solid var(--border-color); border-radius: 4px;" onblur="saveTeacherCell('${teacher.id}', 'work_hours', this)" onkeypress="if(event.key==='Enter') this.blur()">
             </td>
-            <td class="teacher-username-cell" style="background-color: ${currentColor};">
-                ${teacher.username || '-'}
+            <td class="teacher-username-cell" style="background-color: ${currentColor};" ondblclick="editTeacherCell('${teacher.id}', 'username', this)">
+                <span class="display-value">${teacher.username || '-'}</span>
+                <input type="text" class="edit-input" value="${teacher.username || ''}" style="display: none; width: 100%; padding: 0.3rem; border: 1px solid var(--border-color); border-radius: 4px;" onblur="saveTeacherCell('${teacher.id}', 'username', this)" onkeypress="if(event.key==='Enter') this.blur()">
             </td>
-            <td class="teacher-password-cell" style="background-color: ${currentColor};">
-                ${teacher.password ? '●●●●●●' : '-'}
+            <td class="teacher-password-cell" style="background-color: ${currentColor};" ondblclick="editTeacherCell('${teacher.id}', 'password', this)">
+                <span class="display-value">${teacher.password ? '●●●●●●' : '-'}</span>
+                <input type="password" class="edit-input" value="${teacher.password || ''}" placeholder="새 비밀번호" style="display: none; width: 100%; padding: 0.3rem; border: 1px solid var(--border-color); border-radius: 4px;" onblur="saveTeacherCell('${teacher.id}', 'password', this)" onkeypress="if(event.key==='Enter') this.blur()">
             </td>
             <td style="text-align: center; background-color: ${currentColor};">
                 <select onchange="updateTeacherColor('${teacher.id}', this.value)" style="width: 90%; padding: 0.3rem; border: 1px solid var(--border-color); border-radius: 4px; font-size: 0.85rem; background-color: ${currentColor || '#FFFFFF'};">
@@ -2294,9 +2299,6 @@ function renderTeachers(teachers) {
                 </select>
             </td>
             <td style="white-space: nowrap; background-color: ${currentColor};">
-                <button class="btn btn-primary btn-sm" onclick="editTeacher('${teacher.id}')" style="padding: 0.2rem 0.4rem; margin-right: 0.2rem; font-size: 0.75rem;">
-                    <i class="fas fa-edit"></i>
-                </button>
                 <button class="btn btn-danger btn-sm" onclick="deleteTeacher('${teacher.id}')" style="padding: 0.2rem 0.4rem; margin-right: 0.2rem; font-size: 0.75rem;">
                     <i class="fas fa-trash"></i>
                 </button>
@@ -2450,6 +2452,80 @@ async function clearTeacherColor(teacherId) {
     }
 }
 
+// 선생님 셀 편집 모드로 전환 (더블클릭 시)
+window.editTeacherCell = function(teacherId, field, cell) {
+    const displayValue = cell.querySelector('.display-value');
+    const editInput = cell.querySelector('.edit-input');
+    
+    if (displayValue && editInput) {
+        displayValue.style.display = 'none';
+        editInput.style.display = 'block';
+        editInput.focus();
+        editInput.select();
+    }
+}
+
+// 선생님 셀 저장 (blur 또는 Enter 시)
+window.saveTeacherCell = async function(teacherId, field, input) {
+    const cell = input.parentElement;
+    const displayValue = cell.querySelector('.display-value');
+    const newValue = input.value.trim();
+    
+    try {
+        const teacher = allTeachers.find(t => t.id === teacherId);
+        if (!teacher) return;
+        
+        // 값이 변경되었는지 확인
+        const oldValue = teacher[field] || '';
+        if (newValue === oldValue) {
+            // 변경 없음 - 편집 모드 종료
+            input.style.display = 'none';
+            displayValue.style.display = 'block';
+            return;
+        }
+        
+        // API 업데이트
+        const updateData = {};
+        updateData[field] = newValue || null;
+        await API.patch('teachers', teacherId, updateData);
+        
+        // 로컬 데이터 업데이트
+        teacher[field] = newValue;
+        
+        // window.allTeachersCache도 업데이트
+        if (window.allTeachersCache) {
+            const cachedTeacher = window.allTeachersCache.find(t => t.id === teacherId);
+            if (cachedTeacher) {
+                cachedTeacher[field] = newValue;
+            }
+        }
+        
+        // 표시값 업데이트
+        if (field === 'phone') {
+            displayValue.textContent = Utils.formatPhone(newValue);
+        } else if (field === 'password') {
+            displayValue.textContent = newValue ? '●●●●●●' : '-';
+        } else {
+            displayValue.textContent = newValue || '-';
+        }
+        
+        // 편집 모드 종료
+        input.style.display = 'none';
+        displayValue.style.display = 'block';
+        
+        console.log(`${field} 업데이트 완료:`, newValue);
+        
+    } catch (error) {
+        console.error('셀 저장 실패:', error);
+        alert('저장에 실패했습니다');
+        
+        // 편집 모드 종료
+        input.style.display = 'none';
+        displayValue.style.display = 'block';
+    }
+}
+
+
 // 담당 학생 그리드 렌더링 (4단 배열)
 async function renderTeacherStudentsGrid(teachers) {
     const grid = document.getElementById('teacherStudentsGrid');
@@ -2468,16 +2544,6 @@ async function renderTeacherStudentsGrid(teachers) {
     try {
         const studentsResult = await API.getList('students', { limit: 1000 });
         const students = Array.isArray(studentsResult) ? studentsResult : (studentsResult.data || []);
-        
-        // 선생님 수에 따라 data 속성 설정
-        const teacherCount = teachers.length;
-        if (teacherCount <= 5) {
-            grid.setAttribute('data-teacher-count', teacherCount);
-            grid.removeAttribute('data-teacher-count-6plus');
-        } else {
-            grid.setAttribute('data-teacher-count-6plus', 'true');
-            grid.removeAttribute('data-teacher-count');
-        }
         
         grid.innerHTML = teachers.map(teacher => {
             // 해당 선생님이 담당하는 학생들 필터링
