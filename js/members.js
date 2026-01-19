@@ -1515,7 +1515,7 @@ async function updateStudentTeacher(studentId, teacherId) {
 }
 
 // 학생 필드 업데이트
-// 학교명 자동 변환 및 구분 설정
+// 학교명 업데이트 (사용자가 입력한 그대로 저장)
 async function updateStudentSchool(studentId, inputSchool) {
     if (!Auth.isLoggedIn()) {
         alert('로그인이 필요합니다');
@@ -1523,24 +1523,15 @@ async function updateStudentSchool(studentId, inputSchool) {
     }
     
     try {
-        let school = inputSchool;
+        let school = inputSchool.trim();
         let schoolType = null;
         
-        // 축약형 입력 처리 ("서울중" → "서울중학교", 구분: "중")
-        if (school.endsWith('초') && !school.endsWith('초등학교')) {
-            school = school + '등학교';
+        // 학교명으로 구분 자동 인식 (변환 없이 인식만)
+        if (school.includes('초등학교') || school.endsWith('초')) {
             schoolType = '초';
-        } else if (school.endsWith('중') && !school.endsWith('중학교')) {
-            school = school + '학교';
+        } else if (school.includes('중학교') || school.endsWith('중')) {
             schoolType = '중';
-        } else if (school.endsWith('고') && !school.endsWith('고등학교')) {
-            school = school + '등학교';
-            schoolType = '고';
-        } else if (school.includes('초등학교')) {
-            schoolType = '초';
-        } else if (school.includes('중학교')) {
-            schoolType = '중';
-        } else if (school.includes('고등학교')) {
+        } else if (school.includes('고등학교') || school.endsWith('고')) {
             schoolType = '고';
         }
         
