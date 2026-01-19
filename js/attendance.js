@@ -601,6 +601,14 @@ function renderAttendanceTable() {
         row.dataset.recordId = existingRecord ? existingRecord.id : '';
         row.dataset.scheduledDuration = scheduledDuration;
         
+        // 담당 선생님 색상 적용
+        if (student.teacher_id && typeof getTeacherColorClass === 'function') {
+            const teacherColor = getTeacherColorClass(student.teacher_id);
+            if (teacherColor) {
+                row.style.backgroundColor = teacherColor;
+            }
+        }
+        
         // 재실시간 색상 결정
         let durationColor = '';
         let durationText = actualDuration ? `${actualDuration}분` : '';
@@ -732,6 +740,17 @@ function renderAttendanceTable() {
             row.dataset.studentId = record.student_id || 'unknown';
             row.dataset.studentName = record.student_name || '';
             row.dataset.recordId = record.id;
+            
+            // 담당 선생님 색상 적용 (수동 등록 학생)
+            if (record.student_id) {
+                const student = attendanceStudents.find(s => s.id === record.student_id);
+                if (student && student.teacher_id && typeof getTeacherColorClass === 'function') {
+                    const teacherColor = getTeacherColorClass(student.teacher_id);
+                    if (teacherColor) {
+                        row.style.backgroundColor = teacherColor;
+                    }
+                }
+            }
             
             row.innerHTML = `
                 <td style="text-align: center;">${record.student_name || '-'}</td>
