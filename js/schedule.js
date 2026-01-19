@@ -125,11 +125,35 @@ async function loadTeachersForCheckboxFilter() {
             </label>
         `;
         
+        // 2번째 줄 전체 선택 체크박스
+        const selectAllNormalHtml = `
+            <label style="display: flex; align-items: center; gap: 0.3rem; cursor: pointer; white-space: nowrap; font-weight: 600;">
+                <input type="checkbox" 
+                       id="selectAllNormalTeachers" 
+                       checked
+                       onchange="toggleNormalTeachers()"
+                       style="cursor: pointer; width: 18px; height: 18px;">
+                <span style="font-size: 1rem;">전체</span>
+            </label>
+        `;
+        
+        // 3번째 줄 전체 선택 체크박스
+        const selectAllDashHtml = `
+            <label style="display: flex; align-items: center; gap: 0.3rem; cursor: pointer; white-space: nowrap; font-weight: 600;">
+                <input type="checkbox" 
+                       id="selectAllDashTeachers" 
+                       checked
+                       onchange="toggleDashTeachers()"
+                       style="cursor: pointer; width: 18px; height: 18px;">
+                <span style="font-size: 1rem;">전체</span>
+            </label>
+        `;
+        
         // 일반 선생님 체크박스 생성
         const normalTeachersHtml = teachersWithoutDash.map(teacher => `
             <label style="display: flex; align-items: center; gap: 0.3rem; cursor: pointer; white-space: nowrap;">
                 <input type="checkbox" 
-                       class="teacher-checkbox" 
+                       class="teacher-checkbox normal-teacher-checkbox" 
                        value="${teacher.id}" 
                        checked
                        onchange="filterByTeacherCheckbox()"
@@ -142,7 +166,7 @@ async function loadTeachersForCheckboxFilter() {
         const dashTeachersHtml = teachersWithDash.map(teacher => `
             <label style="display: flex; align-items: center; gap: 0.3rem; cursor: pointer; white-space: nowrap;">
                 <input type="checkbox" 
-                       class="teacher-checkbox" 
+                       class="teacher-checkbox dash-teacher-checkbox" 
                        value="${teacher.id}" 
                        checked
                        onchange="filterByTeacherCheckbox()"
@@ -159,14 +183,16 @@ async function loadTeachersForCheckboxFilter() {
                     ${selectAllHtml}
                 </div>
                 
-                <!-- 두 번째 줄: 일반 선생님 -->
+                <!-- 두 번째 줄: 일반 선생님 전체 선택 + 일반 선생님 -->
                 <div style="display: flex; gap: 1rem; flex-wrap: wrap; align-items: center;">
+                    ${selectAllNormalHtml}
                     ${normalTeachersHtml}
                 </div>
                 
-                <!-- 세 번째 줄: "-"가 있는 선생님 -->
+                <!-- 세 번째 줄: "-"가 있는 선생님 전체 선택 + "-"가 있는 선생님 -->
                 ${teachersWithDash.length > 0 ? `
                     <div style="display: flex; gap: 1rem; flex-wrap: wrap; align-items: center; padding-top: 0.3rem; border-top: 1px solid #e0e0e0;">
+                        ${selectAllDashHtml}
                         ${dashTeachersHtml}
                     </div>
                 ` : ''}
@@ -186,6 +212,38 @@ window.toggleAllTeachers = function() {
         checkbox.checked = selectAllCheckbox.checked;
     });
     
+    // 2번째 줄, 3번째 줄 전체 선택도 업데이트
+    const selectAllNormal = document.getElementById('selectAllNormalTeachers');
+    const selectAllDash = document.getElementById('selectAllDashTeachers');
+    if (selectAllNormal) selectAllNormal.checked = selectAllCheckbox.checked;
+    if (selectAllDash) selectAllDash.checked = selectAllCheckbox.checked;
+    
+    filterByTeacherCheckbox();
+}
+
+// 2번째 줄 (일반 선생님) 전체 선택/해제 토글
+window.toggleNormalTeachers = function() {
+    const selectAllNormalCheckbox = document.getElementById('selectAllNormalTeachers');
+    const normalCheckboxes = document.querySelectorAll('.normal-teacher-checkbox');
+    
+    normalCheckboxes.forEach(checkbox => {
+        checkbox.checked = selectAllNormalCheckbox.checked;
+    });
+    
+    updateSelectAllCheckbox();
+    filterByTeacherCheckbox();
+}
+
+// 3번째 줄 ("-"가 있는 선생님) 전체 선택/해제 토글
+window.toggleDashTeachers = function() {
+    const selectAllDashCheckbox = document.getElementById('selectAllDashTeachers');
+    const dashCheckboxes = document.querySelectorAll('.dash-teacher-checkbox');
+    
+    dashCheckboxes.forEach(checkbox => {
+        checkbox.checked = selectAllDashCheckbox.checked;
+    });
+    
+    updateSelectAllCheckbox();
     filterByTeacherCheckbox();
 }
 
@@ -206,12 +264,31 @@ window.filterByTeacherCheckbox = function() {
 // 전체 선택 체크박스 상태 업데이트
 function updateSelectAllCheckbox() {
     const selectAllCheckbox = document.getElementById('selectAllTeachers');
+    const selectAllNormalCheckbox = document.getElementById('selectAllNormalTeachers');
+    const selectAllDashCheckbox = document.getElementById('selectAllDashTeachers');
+    
     if (!selectAllCheckbox) return;
     
     const teacherCheckboxes = document.querySelectorAll('.teacher-checkbox');
-    const checkedCount = document.querySelectorAll('.teacher-checkbox:checked').length;
+    const normalCheckboxes = document.querySelectorAll('.normal-teacher-checkbox');
+    const dashCheckboxes = document.querySelectorAll('.dash-teacher-checkbox');
     
+    const checkedCount = document.querySelectorAll('.teacher-checkbox:checked').length;
+    const normalCheckedCount = document.querySelectorAll('.normal-teacher-checkbox:checked').length;
+    const dashCheckedCount = document.querySelectorAll('.dash-teacher-checkbox:checked').length;
+    
+    // 전체 선택 체크박스 업데이트
     selectAllCheckbox.checked = checkedCount === teacherCheckboxes.length;
+    
+    // 2번째 줄 전체 선택 체크박스 업데이트
+    if (selectAllNormalCheckbox && normalCheckboxes.length > 0) {
+        selectAllNormalCheckbox.checked = normalCheckedCount === normalCheckboxes.length;
+    }
+    
+    // 3번째 줄 전체 선택 체크박스 업데이트
+    if (selectAllDashCheckbox && dashCheckboxes.length > 0) {
+        selectAllDashCheckbox.checked = dashCheckedCount === dashCheckboxes.length;
+    }
 }
 
 // 선생님 필터 목록 로드 (기존 방식 - 다른 페이지용)
