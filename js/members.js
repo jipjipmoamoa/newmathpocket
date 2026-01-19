@@ -309,6 +309,13 @@ function renderStudentList(students) {
                         const isComplete = isStudentInfoComplete(student);
                         const nameClass = isComplete ? 'student-name' : 'student-name incomplete';
                         
+                        // 담당 선생님 색상 (담당 선생님이 없으면 연회색)
+                        let teacherColor = getTeacherColorClass(student.teacher_id);
+                        if (!teacherColor && !student.teacher_id) {
+                            teacherColor = '#F5F5F5'; // 담당 선생님 없음 = 연회색
+                        }
+                        const colorStyle = teacherColor ? `style="background-color: ${teacherColor};"` : '';
+                        
                         // 담당 선생님 이름 가져오기
                         let teacherName = '';
                         if (student.teacher_id && window.allTeachersCache) {
@@ -319,7 +326,7 @@ function renderStudentList(students) {
                         }
                         
                         return `
-                        <div class="student-list-item ${selectedStudentId === student.id ? 'active' : ''}" 
+                        <div class="student-list-item ${selectedStudentId === student.id ? 'active' : ''}" ${colorStyle}
                              onclick="console.log('클릭됨:', '${student.id}'); showStudentDetail('${student.id}')">
                             <div class="student-info-inline">
                                 <span class="${nameClass}">${student.name || 'undefined'}</span>
@@ -2064,15 +2071,15 @@ async function showTeachersPage() {
                     <thead>
                         <tr>
                             <th style="width: 80px;">상태</th>
-                            <th style="width: 120px;">이름</th>
-                            <th style="width: 150px;">전화번호</th>
-                            <th style="width: 200px;">근무시간</th>
-                            <th style="width: 300px;">관리</th>
+                            <th style="width: 100px;">이름</th>
+                            <th style="width: 120px;">전화번호</th>
+                            <th style="width: 150px;">근무시간</th>
+                            <th style="width: 100px;">아이디</th>
+                            <th style="width: 100px;">비밀번호</th>
+                            <th style="width: 100px;">색상</th>
+                            <th style="width: 250px;">관리</th>
                         </tr>
                     </thead>
-                    <tbody><tr><td colspan="5" style="background: #fff3cd; padding: 1rem; text-align: center; color: #856404;">
-                        ⚠️ 권한/아이디/비밀번호 기능을 사용하려면 Supabase에서 teachers 테이블에 role, username, password, assigned_students 컬럼을 추가해주세요.
-                    </td></tr></tbody>
                     <tbody id="teachersTableBody">
                         <!-- 등록 행 -->
                         <tr class="teacher-register-row">
@@ -2197,16 +2204,11 @@ function renderTeachers(teachers) {
         <tr class="teacher-register-row">
             <td></td>
             <td><input type="text" id="newTeacherName" placeholder="이름" style="width: 100%; padding: 0.5rem; border: 1px solid var(--border-color); border-radius: 4px;"></td>
-            <td>
-                <select id="newTeacherRole" style="width: 100%; padding: 0.5rem; border: 1px solid var(--border-color); border-radius: 4px;">
-                    <option value="teacher" selected>선생님</option>
-                    <option value="subadmin">부관리자</option>
-                </select>
-            </td>
             <td><input type="tel" id="newTeacherPhone" placeholder="010-0000-0000" style="width: 100%; padding: 0.5rem; border: 1px solid var(--border-color); border-radius: 4px;"></td>
             <td><input type="text" id="newTeacherWorkHours" placeholder="예: 월~금 14:00-18:00" style="width: 100%; padding: 0.5rem; border: 1px solid var(--border-color); border-radius: 4px;"></td>
             <td><input type="text" id="newTeacherUsername" placeholder="아이디" style="width: 100%; padding: 0.5rem; border: 1px solid var(--border-color); border-radius: 4px;"></td>
             <td><input type="password" id="newTeacherPassword" placeholder="비밀번호" style="width: 100%; padding: 0.5rem; border: 1px solid var(--border-color); border-radius: 4px;"></td>
+            <td></td>
             <td>
                 <button class="btn btn-primary btn-sm" onclick="quickAddTeacher()" style="padding: 0.5rem 1rem;">
                     <i class="fas fa-plus"></i> 등록
@@ -2247,6 +2249,24 @@ function renderTeachers(teachers) {
         const statusText = normalizedStatus;
         const role = teacher.role || 'teacher';
         const roleText = role === 'subadmin' ? '부관리자' : '선생님';
+        const currentColor = teacher.color || '';
+        
+        // 색상 옵션 정의
+        const colorOptions = [
+            { value: '', label: '색상 없음', color: '#FFFFFF' },
+            { value: '#FFE6F0', label: '연분홍', color: '#FFE6F0' },
+            { value: '#FFE5E5', label: '연빨강', color: '#FFE5E5' },
+            { value: '#FFF9E5', label: '연노랑', color: '#FFF9E5' },
+            { value: '#E8F5E9', label: '연두', color: '#E8F5E9' },
+            { value: '#E0F2F1', label: '연초록', color: '#E0F2F1' },
+            { value: '#E3F2FD', label: '연하늘', color: '#E3F2FD' },
+            { value: '#E8EAF6', label: '연남색', color: '#E8EAF6' },
+            { value: '#F3E5F5', label: '연보라', color: '#F3E5F5' }
+        ];
+        
+        const colorOptionsHtml = colorOptions.map(opt => 
+            `<option value="${opt.value}" ${currentColor === opt.value ? 'selected' : ''} style="background-color: ${opt.color};">${opt.label}</option>`
+        ).join('');
         
         return `
         <tr id="teacher-row-${teacher.id}" class="teacher-data-row">
@@ -2255,42 +2275,35 @@ function renderTeachers(teachers) {
                     ${statusText}
                 </span>
             </td>
-            <td class="teacher-name-cell">
-                <span class="display-value">${teacher.name}</span>
-                <input type="text" class="edit-input" value="${teacher.name}" style="display: none; width: 100%; padding: 0.3rem; border: 1px solid var(--border-color); border-radius: 4px;">
+            <td class="teacher-name-cell" style="background-color: ${currentColor};">
+                ${teacher.name}
             </td>
-            <td class="teacher-role-cell">
-                <span class="display-value">${roleText}</span>
-                <select class="edit-input" style="display: none; width: 100%; padding: 0.3rem; border: 1px solid var(--border-color); border-radius: 4px;">
-                    <option value="teacher" ${role === 'teacher' ? 'selected' : ''}>선생님</option>
-                    <option value="subadmin" ${role === 'subadmin' ? 'selected' : ''}>부관리자</option>
+            <td class="teacher-phone-cell" style="background-color: ${currentColor};">
+                ${Utils.formatPhone(teacher.phone)}
+            </td>
+            <td class="teacher-workhours-cell" style="background-color: ${currentColor};">
+                ${teacher.work_hours || '-'}
+            </td>
+            <td class="teacher-username-cell" style="background-color: ${currentColor};">
+                ${teacher.username || '-'}
+            </td>
+            <td class="teacher-password-cell" style="background-color: ${currentColor};">
+                ${teacher.password ? '●●●●●●' : '-'}
+            </td>
+            <td style="text-align: center; background-color: ${currentColor};">
+                <select onchange="updateTeacherColor('${teacher.id}', this.value)" style="width: 90%; padding: 0.3rem; border: 1px solid var(--border-color); border-radius: 4px; font-size: 0.85rem; background-color: ${currentColor || '#FFFFFF'};">
+                    ${colorOptionsHtml}
                 </select>
             </td>
-            <td class="teacher-phone-cell">
-                <span class="display-value">${Utils.formatPhone(teacher.phone)}</span>
-                <input type="tel" class="edit-input" value="${teacher.phone}" style="display: none; width: 100%; padding: 0.3rem; border: 1px solid var(--border-color); border-radius: 4px;">
-            </td>
-            <td class="teacher-workhours-cell">
-                <span class="display-value">${teacher.work_hours || '-'}</span>
-                <input type="text" class="edit-input" value="${teacher.work_hours || ''}" style="display: none; width: 100%; padding: 0.3rem; border: 1px solid var(--border-color); border-radius: 4px;">
-            </td>
-            <td class="teacher-username-cell">
-                <span class="display-value">${teacher.username || '-'}</span>
-                <input type="text" class="edit-input" value="${teacher.username || ''}" style="display: none; width: 100%; padding: 0.3rem; border: 1px solid var(--border-color); border-radius: 4px;">
-            </td>
-            <td class="teacher-password-cell">
-                <span class="display-value">${teacher.password ? '●●●●●●' : '-'}</span>
-                <input type="password" class="edit-input" value="" placeholder="변경 시에만 입력" style="display: none; width: 100%; padding: 0.3rem; border: 1px solid var(--border-color); border-radius: 4px;">
-            </td>
             <td style="white-space: nowrap;">
-                <button class="btn btn-primary btn-sm edit-btn" onclick="toggleEditTeacher('${teacher.id}')" style="padding: 0.3rem 0.5rem; margin-right: 0.3rem; font-size: 0.85rem;">
-                    <i class="fas fa-edit"></i> 수정
+                <button class="btn btn-primary btn-sm" onclick="editTeacher('${teacher.id}')" style="padding: 0.2rem 0.4rem; margin-right: 0.2rem; font-size: 0.75rem;">
+                    <i class="fas fa-edit"></i>
                 </button>
-                <button class="btn btn-danger btn-sm" onclick="deleteTeacher('${teacher.id}')" style="padding: 0.3rem 0.5rem; margin-right: 0.3rem; font-size: 0.85rem;">
-                    <i class="fas fa-trash"></i> 삭제
+                <button class="btn btn-danger btn-sm" onclick="deleteTeacher('${teacher.id}')" style="padding: 0.2rem 0.4rem; margin-right: 0.2rem; font-size: 0.75rem;">
+                    <i class="fas fa-trash"></i>
                 </button>
-                <button class="btn btn-secondary btn-sm" onclick="showTeacherStudents('${teacher.id}')" style="padding: 0.3rem 0.5rem; font-size: 0.85rem;">
-                    <i class="fas fa-users"></i> 담당학생
+                <button class="btn btn-secondary btn-sm" onclick="showTeacherStudents('${teacher.id}')" style="padding: 0.2rem 0.4rem; font-size: 0.75rem;">
+                    <i class="fas fa-users"></i>
                 </button>
             </td>
         </tr>
@@ -2354,6 +2367,91 @@ async function toggleTeacherStatus(teacherId) {
     }
 }
 
+// 선생님 색상 업데이트
+async function updateTeacherColor(teacherId, color) {
+    if (!Auth.isLoggedIn()) {
+        alert('로그인이 필요합니다');
+        return;
+    }
+    
+    try {
+        const teacher = allTeachers.find(t => t.id === teacherId);
+        if (!teacher) return;
+        
+        // 빈 값이면 null로 저장
+        const colorValue = color === '' ? null : color;
+        
+        console.log(`선생님 ${teacher.name}의 색상 변경:`, colorValue);
+        
+        // PATCH를 사용하여 color만 업데이트
+        await API.patch('teachers', teacherId, { color: colorValue });
+        
+        // 로컬 데이터 업데이트
+        teacher.color = colorValue;
+        
+        // window.allTeachersCache도 업데이트
+        if (window.allTeachersCache) {
+            const cachedTeacher = window.allTeachersCache.find(t => t.id === teacherId);
+            if (cachedTeacher) {
+                cachedTeacher.color = colorValue;
+            }
+        }
+        
+        // 재렌더링
+        renderTeachers(allTeachers);
+        
+        // 현재 학생 목록이 표시 중이면 재원생 목록도 업데이트
+        if (typeof renderStudentList === 'function' && window.allStudents) {
+            renderStudentList(window.allStudents);
+        }
+        
+    } catch (error) {
+        console.error('색상 변경 실패:', error);
+        alert('색상 변경에 실패했습니다');
+    }
+}
+
+// 선생님 색상 제거
+async function clearTeacherColor(teacherId) {
+    if (!Auth.isLoggedIn()) {
+        alert('로그인이 필요합니다');
+        return;
+    }
+    
+    try {
+        const teacher = allTeachers.find(t => t.id === teacherId);
+        if (!teacher) return;
+        
+        console.log(`선생님 ${teacher.name}의 색상 제거`);
+        
+        // PATCH를 사용하여 color를 null로 업데이트
+        await API.patch('teachers', teacherId, { color: null });
+        
+        // 로컬 데이터 업데이트
+        teacher.color = null;
+        
+        // window.allTeachersCache도 업데이트
+        if (window.allTeachersCache) {
+            const cachedTeacher = window.allTeachersCache.find(t => t.id === teacherId);
+            if (cachedTeacher) {
+                cachedTeacher.color = null;
+            }
+        }
+        
+        // 재렌더링
+        renderTeachers(allTeachers);
+        
+        // 현재 학생 목록이 표시 중이면 재원생 목록도 업데이트
+        if (typeof renderStudentList === 'function' && window.allStudents) {
+            renderStudentList(window.allStudents);
+        }
+        
+    } catch (error) {
+        console.error('색상 제거 실패:', error);
+        alert('색상 제거에 실패했습니다');
+    }
+}
+
 // 담당 학생 그리드 렌더링 (4단 배열)
 async function renderTeacherStudentsGrid(teachers) {
     const grid = document.getElementById('teacherStudentsGrid');
@@ -2388,8 +2486,11 @@ async function renderTeacherStudentsGrid(teachers) {
                 return a.name.localeCompare(b.name, 'ko');
             });
             
+            const teacherColor = teacher.color || '';
+            const cardStyle = teacherColor ? `style="background-color: ${teacherColor};"` : '';
+            
             return `
-                <div class="teacher-student-card">
+                <div class="teacher-student-card" ${cardStyle}>
                     <div class="teacher-card-header">
                         <h4>${teacher.name} 선생님</h4>
                         <span class="student-count">${teacherStudents.length}명</span>
@@ -2948,36 +3049,84 @@ function renderAllMembersByGrade(students) {
         );
         
         sortedStudents.forEach((student, index) => {
-            // 최신 교재 정보 가져오기
-            const books = Array.isArray(student.books) ? student.books : [];
-            const latestBook = books.length > 0 
-                ? [...books].sort((a, b) => (b.date || 0) - (a.date || 0))[0]
-                : {};
+            // 사용책 데이터 파싱 및 최신 데이터 추출
+            let bookConcept = '-';
+            let bookReview = '-';
+            let bookAdvanced = '-';
+            
+            try {
+                let books = [];
+                if (student.books && typeof student.books === 'string' && student.books.trim() !== '') {
+                    books = JSON.parse(student.books);
+                } else if (Array.isArray(student.books)) {
+                    books = student.books;
+                }
+                
+                if (books.length > 0) {
+                    // 최신순 정렬 (날짜 문자열 비교)
+                    const sortedBooks = [...books].sort((a, b) => {
+                        return (b.date || '').localeCompare(a.date || '');
+                    });
+                    
+                    // 선행개념 찾기: 최신 항목부터 내용이 있는 것 찾기
+                    for (const book of sortedBooks) {
+                        if (book.concept && book.concept.trim() !== '' && book.concept.trim() !== '0') {
+                            bookConcept = book.concept;
+                            break;
+                        }
+                    }
+                    
+                    // 선행복습 찾기
+                    for (const book of sortedBooks) {
+                        if (book.review && book.review.trim() !== '' && book.review.trim() !== '0') {
+                            bookReview = book.review;
+                            break;
+                        }
+                    }
+                    
+                    // 현행심화 찾기
+                    for (const book of sortedBooks) {
+                        if (book.advanced && book.advanced.trim() !== '' && book.advanced.trim() !== '0') {
+                            bookAdvanced = book.advanced;
+                            break;
+                        }
+                    }
+                }
+            } catch (e) {
+                console.error('[renderAllMembersByGrade] 사용책 파싱 오류:', e);
+            }
+            
+            // 담당 선생님 색상 (담당 선생님이 없으면 연회색)
+            let teacherColor = getTeacherColorClass(student.teacher_id);
+            if (!teacherColor && !student.teacher_id) {
+                teacherColor = '#F5F5F5'; // 담당 선생님 없음 = 연회색
+            }
+            const colorStyle = teacherColor ? `style="background-color: ${teacherColor};"` : '';
             
             // 첫 번째 학생 행에만 분류 표시 (rowspan)
             if (index === 0) {
                 tableRows += `
-                    <tr>
+                    <tr ${colorStyle}>
                         <td class="category-cell" rowspan="${sortedStudents.length}">${group.schoolType}${group.grade}</td>
                         <td>${student.name || '-'}</td>
                         <td>${formatSchoolName(student.school) || '-'}</td>
                         <td>${student.parent_phone || '-'}</td>
                         <td>${student.phone || '-'}</td>
-                        <td>${latestBook.concept || '-'}</td>
-                        <td>${latestBook.review || '-'}</td>
-                        <td>${latestBook.advanced || '-'}</td>
+                        <td>${bookConcept}</td>
+                        <td>${bookReview}</td>
+                        <td>${bookAdvanced}</td>
                     </tr>
                 `;
             } else {
                 tableRows += `
-                    <tr>
+                    <tr ${colorStyle}>
                         <td>${student.name || '-'}</td>
                         <td>${formatSchoolName(student.school) || '-'}</td>
                         <td>${student.parent_phone || '-'}</td>
                         <td>${student.phone || '-'}</td>
-                        <td>${latestBook.concept || '-'}</td>
-                        <td>${latestBook.review || '-'}</td>
-                        <td>${latestBook.advanced || '-'}</td>
+                        <td>${bookConcept}</td>
+                        <td>${bookReview}</td>
+                        <td>${bookAdvanced}</td>
                     </tr>
                 `;
             }
