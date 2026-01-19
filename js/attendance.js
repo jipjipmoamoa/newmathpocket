@@ -1526,8 +1526,8 @@ async function renderMonthlyCalendar() {
     
     title.textContent = `${currentYear}년 ${currentMonth + 1}월`;
     
-    // 해당 월의 출석 기록 로드
-    await loadMonthAttendance(currentYear, currentMonth);
+    // 해당 월의 출석 기록 로드 (출석체크 페이지)
+    await loadMonthAttendance(currentYear, currentMonth, 'check');
     
     // 달력 생성
     const firstDay = new Date(currentYear, currentMonth, 1);
@@ -1651,7 +1651,7 @@ async function renderMonthlyCalendar() {
 }
 
 // 해당 월의 출석 기록 로드
-async function loadMonthAttendance(year, month) {
+async function loadMonthAttendance(year, month, pageType = 'check') {
     try {
         const response = await API.getList('attendance', { limit: 1000 });
         let allAttendance = Array.isArray(response) ? response : (response.data || []);
@@ -1662,19 +1662,24 @@ async function loadMonthAttendance(year, month) {
         
         // ✅ 선생님인 경우 담당 학생만 필터링
         allStudentsData = Permissions.filterStudentsByTeacher(allStudentsData);
-        console.log('[loadMonthAttendance] 권한 필터링 후 학생 수:', allStudentsData.length);
+        console.log(`[loadMonthAttendance:${pageType}] 권한 필터링 후 학생 수:`, allStudentsData.length);
         
         // ✅ 관리자/부관리자인 경우 선택된 선생님으로 추가 필터링
-        if ((Auth.isAdmin() || Auth.isSubAdmin()) && currentAttendanceTeacherFilter !== 'all') {
-            allStudentsData = allStudentsData.filter(s => s.teacher_id === currentAttendanceTeacherFilter);
-            console.log('[loadMonthAttendance] 선생님 필터링 후 학생 수:', allStudentsData.length);
+        if (Auth.isAdmin() || Auth.isSubAdmin()) {
+            // 페이지 타입에 따라 적절한 필터 변수 사용
+            const teacherFilter = pageType === 'view' ? currentAttendanceViewTeacherFilter : currentAttendanceTeacherFilter;
+            
+            if (teacherFilter !== 'all') {
+                allStudentsData = allStudentsData.filter(s => s.teacher_id === teacherFilter);
+                console.log(`[loadMonthAttendance:${pageType}] 선생님 필터링 후 학생 수:`, allStudentsData.length, '선생님 ID:', teacherFilter);
+            }
         }
         
         const myStudentIds = allStudentsData.map(s => s.id);
         
         // 필터링된 학생들의 출석 기록만 표시
         allAttendance = allAttendance.filter(record => myStudentIds.includes(record.student_id));
-        console.log('[loadMonthAttendance] 필터링된 학생 출석 기록:', allAttendance.length);
+        console.log(`[loadMonthAttendance:${pageType}] 필터링된 학생 출석 기록:`, allAttendance.length);
         
         // 해당 월의 데이터만 필터링
         const monthStart = `${year}-${String(month + 1).padStart(2, '0')}-01`;
@@ -1684,7 +1689,7 @@ async function loadMonthAttendance(year, month) {
             return record.date >= monthStart && record.date <= monthEnd;
         });
         
-        console.log(`${year}년 ${month + 1}월 출석 기록:`, allMonthAttendance.length);
+        console.log(`[loadMonthAttendance:${pageType}] ${year}년 ${month + 1}월 출석 기록:`, allMonthAttendance.length);
         
     } catch (error) {
         console.error('월별 출석 기록 로드 실패:', error);
@@ -1884,7 +1889,7 @@ function checkStudentActiveInMonth(student, year, month) {
 function renderUnifiedStatsTable(elementary, middle, high, year, month) {
     const MAX_COLUMNS = 9; // 학생 열 개수 (라벨 제외)
     
-    let html = '<table class="stats-table">';
+    let html = '<div class="stats-scroll-container"><table class="stats-table">';
     
     // ===== 초등학생 섹션 (1-4행) =====
     // 1행: 헤더 (초등학생 + 학생 이름) - 연노랑색 (더 파스텔)
@@ -2042,7 +2047,7 @@ function renderUnifiedStatsTable(elementary, middle, high, year, month) {
     }
     html += '</tr>';
     
-    html += '</tbody></table>';
+    html += '</tbody></table></div>'; // 스크롤 컨테이너 닫기
     return html;
 }
 
@@ -2050,7 +2055,7 @@ function renderUnifiedStatsTable(elementary, middle, high, year, month) {
 
 function renderStatsTable(students, year, month, gradeLabel = '') {
     const MAX_COLUMNS = 9; // 학생 열 개수 (라벨 제외)
-    let html = '<table class="stats-table">';
+    let html = '<div class="stats-scroll-container"><table class="stats-table">';
     
     // 1행: 학년 구분 + 학생 이름 + 학교/학년
     html += '<thead><tr><th>' + gradeLabel + '</th>';
@@ -2111,7 +2116,7 @@ function renderStatsTable(students, year, month, gradeLabel = '') {
     }
     html += '</tr>';
     
-    html += '</tbody></table>';
+    html += '</tbody></table></div>'; // 스크롤 컨테이너 닫기
     return html;
 }
 
@@ -2489,8 +2494,8 @@ async function loadAttendanceViewData() {
     statsContainer.innerHTML = '';
     
     try {
-        // 해당 월의 출석 기록 로드
-        await loadMonthAttendance(year, month - 1); // month는 0-based
+        // 해당 월의 출석 기록 로드 (출석조회 페이지)
+        await loadMonthAttendance(year, month - 1, 'view'); // month는 0-based
         
         // 달력 렌더링
         renderViewMonthlyCalendar(year, month - 1);
