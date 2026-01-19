@@ -2299,7 +2299,7 @@ function renderTeachers(teachers) {
                 </select>
             </td>
             <td style="white-space: nowrap; background-color: ${currentColor};">
-                <button class="btn btn-primary btn-sm" onclick="editTeacher('${teacher.id}')" style="padding: 0.2rem 0.4rem; margin-right: 0.2rem; font-size: 0.75rem;">
+                <button class="btn btn-primary btn-sm edit-teacher-btn" data-mode="edit" onclick="editTeacher('${teacher.id}')" style="padding: 0.2rem 0.4rem; margin-right: 0.2rem; font-size: 0.75rem;">
                     <i class="fas fa-edit"></i>
                 </button>
                 <button class="btn btn-danger btn-sm" onclick="deleteTeacher('${teacher.id}')" style="padding: 0.2rem 0.4rem; margin-right: 0.2rem; font-size: 0.75rem;">
@@ -2920,8 +2920,69 @@ async function saveTeacherInline(teacherId) {
     }
 }
 
-function editTeacher(teacherId) {
-    openTeacherModal(teacherId);
+// 수정 버튼 클릭 시 - 토글 방식 (수정 ↔ 저장)
+window.editTeacher = function(teacherId) {
+    const row = document.getElementById(`teacher-row-${teacherId}`);
+    if (!row) return;
+    
+    const editButton = row.querySelector('.edit-teacher-btn');
+    const isEditMode = editButton.getAttribute('data-mode') === 'edit';
+    
+    if (isEditMode) {
+        // 현재 편집 모드 → 저장 모드로 전환
+        const editableCells = row.querySelectorAll('td[ondblclick]');
+        editableCells.forEach(cell => {
+            const displayValue = cell.querySelector('.display-value');
+            const editInput = cell.querySelector('.edit-input');
+            
+            if (displayValue && editInput) {
+                displayValue.style.display = 'none';
+                editInput.style.display = 'block';
+                
+                // 첫 번째 입력란에 포커스
+                if (!row.querySelector('.edit-input:focus')) {
+                    editInput.focus();
+                    editInput.select();
+                }
+            }
+        });
+        
+        // 버튼을 저장 모드로 변경
+        editButton.innerHTML = '<i class="fas fa-save"></i>';
+        editButton.setAttribute('data-mode', 'save');
+        editButton.classList.remove('btn-primary');
+        editButton.classList.add('btn-success');
+        
+    } else {
+        // 현재 저장 모드 → 모든 셀 저장 후 편집 모드로 전환
+        saveAllTeacherCells(teacherId);
+    }
+}
+
+// 해당 행의 모든 셀 저장
+async function saveAllTeacherCells(teacherId) {
+    const row = document.getElementById(`teacher-row-${teacherId}`);
+    if (!row) return;
+    
+    const editButton = row.querySelector('.edit-teacher-btn');
+    const editableCells = row.querySelectorAll('td[ondblclick]');
+    
+    // 모든 입력란을 표시 모드로 전환
+    editableCells.forEach(cell => {
+        const displayValue = cell.querySelector('.display-value');
+        const editInput = cell.querySelector('.edit-input');
+        
+        if (displayValue && editInput && editInput.style.display === 'block') {
+            // 각 셀 저장 (blur 이벤트 트리거)
+            editInput.blur();
+        }
+    });
+    
+    // 버튼을 편집 모드로 변경
+    editButton.innerHTML = '<i class="fas fa-edit"></i>';
+    editButton.setAttribute('data-mode', 'edit');
+    editButton.classList.remove('btn-success');
+    editButton.classList.add('btn-primary');
 }
 
 // 선생님 저장
