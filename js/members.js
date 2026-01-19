@@ -1515,7 +1515,7 @@ async function updateStudentTeacher(studentId, teacherId) {
 }
 
 // 학생 필드 업데이트
-// 학교명 업데이트 (사용자가 입력한 그대로 저장)
+// 학교명 업데이트 (스마트 변환)
 async function updateStudentSchool(studentId, inputSchool) {
     if (!Auth.isLoggedIn()) {
         alert('로그인이 필요합니다');
@@ -1526,13 +1526,34 @@ async function updateStudentSchool(studentId, inputSchool) {
         let school = inputSchool.trim();
         let schoolType = null;
         
-        // 학교명으로 구분 자동 인식 (변환 없이 인식만)
-        if (school.includes('초등학교') || school.endsWith('초')) {
-            schoolType = '초';
-        } else if (school.includes('중학교') || school.endsWith('중')) {
-            schoolType = '중';
-        } else if (school.includes('고등학교') || school.endsWith('고')) {
-            schoolType = '고';
+        // 현재 학생 정보 가져오기
+        const student = allStudents.find(s => s.id === studentId);
+        if (!student) return;
+        
+        // 구분이 이미 설정되어 있는 경우
+        const currentSchoolType = student.school_type;
+        
+        // 학교명에 초/중/고가 없고, 구분이 설정되어 있으면 자동 추가
+        if (currentSchoolType && !school.includes('초') && !school.includes('중') && !school.includes('고')) {
+            if (currentSchoolType === '초') {
+                school = school + '초';
+                schoolType = '초';
+            } else if (currentSchoolType === '중') {
+                school = school + '중';
+                schoolType = '중';
+            } else if (currentSchoolType === '고') {
+                school = school + '고';
+                schoolType = '고';
+            }
+        } else {
+            // 학교명으로 구분 자동 인식
+            if (school.includes('초등학교') || school.endsWith('초')) {
+                schoolType = '초';
+            } else if (school.includes('중학교') || school.endsWith('중')) {
+                schoolType = '중';
+            } else if (school.includes('고등학교') || school.endsWith('고')) {
+                schoolType = '고';
+            }
         }
         
         const updateData = { school: school };
@@ -1545,7 +1566,6 @@ async function updateStudentSchool(studentId, inputSchool) {
         await API.update('students', studentId, updateData);
         
         // 로컬 데이터 업데이트
-        const student = allStudents.find(s => s.id === studentId);
         if (student) {
             student.school = school;
             if (schoolType) {
