@@ -104,7 +104,10 @@ async function showAttendanceCheckPage() {
     // 관리자/부관리자인 경우 선생님 목록 로드 (DOM 렌더링 후)
     if (Auth.isAdmin() || Auth.isSubAdmin()) {
         console.log('[showAttendanceCheckPage] 선생님 목록 로드 시작');
-        await loadTeachersForAttendanceFilter();
+        // DOM 렌더링 완료를 위해 짧은 지연 추가
+        setTimeout(async () => {
+            await loadTeachersForAttendanceFilter();
+        }, 100);
     }
     
     console.log('=== 출석 체크 페이지 로드 완료 ===');
@@ -2979,9 +2982,23 @@ async function loadTeachersForAttendanceFilter() {
         console.log('[loadTeachersForAttendanceFilter] 관리자:', admins.length, '명, 부관리자:', subAdmins.length, '명, 선생님:', regularTeachers.length, '명');
         
         // 드롭다운 구성
-        const select = document.getElementById('attendanceTeacherFilterSelect');
+        let select = document.getElementById('attendanceTeacherFilterSelect');
+        
+        // 드롭다운이 없으면 최대 3초 동안 재시도
         if (!select) {
-            console.error('[loadTeachersForAttendanceFilter] ❌ 드롭다운을 찾을 수 없습니다!');
+            console.log('[loadTeachersForAttendanceFilter] 드롭다운 대기 중...');
+            for (let i = 0; i < 30; i++) {
+                await new Promise(resolve => setTimeout(resolve, 100));
+                select = document.getElementById('attendanceTeacherFilterSelect');
+                if (select) {
+                    console.log(`[loadTeachersForAttendanceFilter] ✓ 드롭다운 발견 (${i * 100}ms 후)`);
+                    break;
+                }
+            }
+        }
+        
+        if (!select) {
+            console.error('[loadTeachersForAttendanceFilter] ❌ 드롭다운을 찾을 수 없습니다! (3초 대기 후)');
             console.error('[loadTeachersForAttendanceFilter] attendance-check-container 존재:', !!document.querySelector('.attendance-check-container'));
             console.error('[loadTeachersForAttendanceFilter] 관리자 여부:', Auth.isAdmin(), '부관리자 여부:', Auth.isSubAdmin());
             return;
