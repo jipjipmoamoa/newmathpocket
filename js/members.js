@@ -309,9 +309,12 @@ function renderStudentList(students) {
                         const isComplete = isStudentInfoComplete(student);
                         const nameClass = isComplete ? 'student-name' : 'student-name incomplete';
                         
-                        // 담당 선생님 색상 (담당 선생님이 없으면 색상 없음 = 흰색 유지)
-                        const teacherColor = getTeacherColorClass(student.teacher_id);
-                        const colorStyle = teacherColor ? `style="background-color: ${teacherColor};"` : '';
+                        // 담당 선생님 색상 (관리자/부관리자만 표시)
+                        let colorStyle = '';
+                        if (Auth.isAdminOrSubAdmin()) {
+                            const teacherColor = getTeacherColorClass(student.teacher_id);
+                            colorStyle = teacherColor ? `style="background-color: ${teacherColor};"` : '';
+                        }
                         
                         // 담당 선생님 이름 가져오기
                         let teacherName = '';
@@ -3250,9 +3253,12 @@ function renderAllMembersByGrade(students) {
                 console.error('[renderAllMembersByGrade] 사용책 파싱 오류:', e);
             }
             
-            // 담당 선생님 색상 (담당 선생님이 없으면 색상 없음 = 흰색 유지)
-            const teacherColor = getTeacherColorClass(student.teacher_id);
-            const colorStyle = teacherColor ? `style="background-color: ${teacherColor};"` : '';
+            // 담당 선생님 색상 (관리자/부관리자만 표시)
+            let colorStyle = '';
+            if (Auth.isAdminOrSubAdmin()) {
+                const teacherColor = getTeacherColorClass(student.teacher_id);
+                colorStyle = teacherColor ? `style="background-color: ${teacherColor};"` : '';
+            }
             
             // 첫 번째 학생 행에만 분류 표시 (rowspan)
             if (index === 0) {
