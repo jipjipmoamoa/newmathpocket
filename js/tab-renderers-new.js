@@ -93,7 +93,7 @@ function renderBooksTab(student) {
             <table class="data-table books-table">
                 <thead>
                     <tr>
-                        <th>책 안내 날짜</th>
+                        <th>안내 날짜</th>
                         <th>선행개념</th>
                         <th>선행복습</th>
                         <th>현행심화</th>
@@ -115,7 +115,7 @@ function renderBooksTab(student) {
                     ${books.map(book => `
                         <tr id="book-row-${book.id}" class="data-row">
                             <td class="book-date-cell" data-book-id="${book.id}">
-                                <span class="display-value">${book.date || '-'}</span>
+                                <span class="display-value">${book.date ? formatDateInput(book.date) : '-'}</span>
                                 <input type="text" class="edit-input" value="${book.date || ''}" style="display:none;" placeholder="2511" onblur="this.value = formatDateInput(this.value)">
                             </td>
                             <td class="book-concept-cell" data-book-id="${book.id}">
