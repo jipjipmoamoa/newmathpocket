@@ -309,11 +309,8 @@ function renderStudentList(students) {
                         const isComplete = isStudentInfoComplete(student);
                         const nameClass = isComplete ? 'student-name' : 'student-name incomplete';
                         
-                        // 담당 선생님 색상 (담당 선생님이 없으면 연회색)
-                        let teacherColor = getTeacherColorClass(student.teacher_id);
-                        if (!teacherColor && !student.teacher_id) {
-                            teacherColor = '#F5F5F5'; // 담당 선생님 없음 = 연회색
-                        }
+                        // 담당 선생님 색상 (담당 선생님이 없으면 색상 없음 = 흰색 유지)
+                        const teacherColor = getTeacherColorClass(student.teacher_id);
                         const colorStyle = teacherColor ? `style="background-color: ${teacherColor};"` : '';
                         
                         // 담당 선생님 이름 가져오기
@@ -2251,16 +2248,17 @@ function renderTeachers(teachers) {
         const roleText = role === 'subadmin' ? '부관리자' : '선생님';
         const currentColor = teacher.color || '';
         
-        // 색상 옵션 정의
+        // 9가지 색상 옵션 정의
         const colorOptions = [
             { value: '', label: '색상 없음', color: '#FFFFFF' },
             { value: '#FFE6F0', label: '연분홍', color: '#FFE6F0' },
             { value: '#FFE5E5', label: '연빨강', color: '#FFE5E5' },
+            { value: '#FFE8D6', label: '연주황', color: '#FFE8D6' },
             { value: '#FFF9E5', label: '연노랑', color: '#FFF9E5' },
             { value: '#E8F5E9', label: '연두', color: '#E8F5E9' },
             { value: '#E0F2F1', label: '연초록', color: '#E0F2F1' },
             { value: '#E3F2FD', label: '연하늘', color: '#E3F2FD' },
-            { value: '#E8EAF6', label: '연남색', color: '#E8EAF6' },
+            { value: '#E3F0FF', label: '연파랑', color: '#E3F0FF' },
             { value: '#F3E5F5', label: '연보라', color: '#F3E5F5' }
         ];
         
@@ -3096,11 +3094,8 @@ function renderAllMembersByGrade(students) {
                 console.error('[renderAllMembersByGrade] 사용책 파싱 오류:', e);
             }
             
-            // 담당 선생님 색상 (담당 선생님이 없으면 연회색)
-            let teacherColor = getTeacherColorClass(student.teacher_id);
-            if (!teacherColor && !student.teacher_id) {
-                teacherColor = '#F5F5F5'; // 담당 선생님 없음 = 연회색
-            }
+            // 담당 선생님 색상 (담당 선생님이 없으면 색상 없음 = 흰색 유지)
+            const teacherColor = getTeacherColorClass(student.teacher_id);
             const colorStyle = teacherColor ? `style="background-color: ${teacherColor};"` : '';
             
             // 첫 번째 학생 행에만 분류 표시 (rowspan)
