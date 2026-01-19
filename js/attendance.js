@@ -26,32 +26,20 @@ async function showAttendanceCheckPage() {
     // 페이지 HTML 구조
     mainContent.innerHTML = `
         <div class="attendance-check-container">
-            <!-- 1단: 출결번호 입력 -->
-            <div class="attendance-input-section">
-                <div class="input-group">
-                    <input 
-                        type="text" 
-                        id="attendanceNumberInput" 
-                        class="attendance-number-input"
-                        placeholder="출결번호"
-                        maxlength="5"
-                        autofocus
-                    />
-                    <button onclick="processCheckIn()" class="btn-check-in">입실</button>
-                    <button onclick="processCheckOut()" class="btn-check-out">퇴실</button>
-                </div>
+            <!-- 관리자용 드롭다운 (2단 위 우측 상단) -->
+            ${Auth.isAdmin() || Auth.isSubAdmin() ? `
+            <div style="display: flex; justify-content: flex-end; margin-bottom: 1rem;">
+                <select id="attendanceTeacherFilterSelect" class="form-select" style="width: 200px;" onchange="filterAttendanceByTeacher()">
+                    <option value="all">전체 선생님</option>
+                </select>
             </div>
+            ` : ''}
 
             <!-- 2단: 출석 테이블 -->
             <div class="attendance-table-section">
                 <div class="table-header">
                     <div style="display: flex; align-items: center; gap: 1rem;">
                         <h2>출석 현황&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span id="attendanceSummary" style="font-size: 0.9rem; background-color: #fff3cd; padding: 2px 8px; border-radius: 3px;"></span></h2>
-                        ${Auth.isAdmin() || Auth.isSubAdmin() ? `
-                        <select id="attendanceTeacherFilterSelect" class="form-select" style="width: 200px;" onchange="filterAttendanceByTeacher()">
-                            <option value="all">전체 선생님</option>
-                        </select>
-                        ` : ''}
                     </div>
                     <div class="date-selector">
                         <button class="date-nav-btn" onclick="changeAttendanceDate(-1)" title="전날">◀</button>
@@ -97,15 +85,6 @@ async function showAttendanceCheckPage() {
     `;
 
     // 이벤트 바인딩
-    const numberInput = document.getElementById('attendanceNumberInput');
-    if (numberInput) {
-        numberInput.addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') {
-                processCheckIn();
-            }
-        });
-    }
-
     const checkInInput = document.getElementById('registerCheckInTime');
     if (checkInInput) {
         checkInInput.addEventListener('change', calculateExpectedOutTime);
@@ -118,14 +97,15 @@ async function showAttendanceCheckPage() {
         updateDateDisplay(getTodayDateString());
     }
 
-    // 관리자/부관리자인 경우 선생님 목록 로드
-    if (Auth.isAdmin() || Auth.isSubAdmin()) {
-        await loadTeachersForAttendanceFilter();
-    }
-
     // 데이터 로드
     await loadAttendanceData();
     await renderMonthlyCalendar();
+
+    // 관리자/부관리자인 경우 선생님 목록 로드 (DOM 렌더링 후)
+    if (Auth.isAdmin() || Auth.isSubAdmin()) {
+        console.log('[showAttendanceCheckPage] 선생님 목록 로드 시작');
+        await loadTeachersForAttendanceFilter();
+    }
     
     console.log('=== 출석 체크 페이지 로드 완료 ===');
 }
@@ -664,6 +644,10 @@ function renderAttendanceTable() {
                 
                 if (checkInTime && checkOutTime) {
                     actualDuration = calculateDurationInMinutes(checkInTime, checkOutTime);
+                    // 재실시간이 60분이면 스케줄 기준 시간으로 계산
+                    if (actualDuration === 60 && scheduledDuration) {
+                        actualDuration = scheduledDuration;
+                    }
                 }
             }
         
@@ -1728,18 +1712,25 @@ async function loadMonthAttendance(year, month) {
         const response = await API.getList('attendance', { limit: 1000 });
         let allAttendance = Array.isArray(response) ? response : (response.data || []);
         
-        // 선생님인 경우 담당 학생의 출석 기록만 필터링
-        if (Auth.isTeacher()) {
-            const teacherId = Auth.getUserId();
-            // 학생 목록 로드
-            const studentsResponse = await API.getList('students', { limit: 1000 });
-            const allStudentsData = Array.isArray(studentsResponse) ? studentsResponse : (studentsResponse.data || []);
-            const myStudents = allStudentsData.filter(s => s.teacher_id === teacherId);
-            const myStudentIds = myStudents.map(s => s.id);
-            
-            allAttendance = allAttendance.filter(record => myStudentIds.includes(record.student_id));
-            console.log('[loadMonthAttendance] 선생님 담당 학생 출석 기록:', allAttendance.length);
+        // 학생 목록 로드
+        const studentsResponse = await API.getList('students', { limit: 1000 });
+        let allStudentsData = Array.isArray(studentsResponse) ? studentsResponse : (studentsResponse.data || []);
+        
+        // ✅ 선생님인 경우 담당 학생만 필터링
+        allStudentsData = Permissions.filterStudentsByTeacher(allStudentsData);
+        console.log('[loadMonthAttendance] 권한 필터링 후 학생 수:', allStudentsData.length);
+        
+        // ✅ 관리자/부관리자인 경우 선택된 선생님으로 추가 필터링
+        if ((Auth.isAdmin() || Auth.isSubAdmin()) && currentAttendanceTeacherFilter !== 'all') {
+            allStudentsData = allStudentsData.filter(s => s.teacher_id === currentAttendanceTeacherFilter);
+            console.log('[loadMonthAttendance] 선생님 필터링 후 학생 수:', allStudentsData.length);
         }
+        
+        const myStudentIds = allStudentsData.map(s => s.id);
+        
+        // 필터링된 학생들의 출석 기록만 표시
+        allAttendance = allAttendance.filter(record => myStudentIds.includes(record.student_id));
+        console.log('[loadMonthAttendance] 필터링된 학생 출석 기록:', allAttendance.length);
         
         // 해당 월의 데이터만 필터링
         const monthStart = `${year}-${String(month + 1).padStart(2, '0')}-01`;
@@ -2936,20 +2927,51 @@ function renderViewCalendar(year, month, attendanceRecords) {
 // 출석관리 페이지: 선생님 목록 로드 및 드롭다운 구성
 async function loadTeachersForAttendanceFilter() {
     try {
+        console.log('[loadTeachersForAttendanceFilter] 선생님 목록 로드 시작');
+        
         const result = await API.getList('teachers', { limit: 1000 });
         const teachers = Array.isArray(result) ? result : (result.data || []);
         
-        // 재직중인 선생님만 필터링
-        const activeTeachers = teachers.filter(t => t.status === '재직');
+        console.log('[loadTeachersForAttendanceFilter] 전체 선생님:', teachers.length, '명');
+        
+        // 선생님 데이터 샘플 출력
+        if (teachers.length > 0) {
+            console.log('[loadTeachersForAttendanceFilter] 첫 번째 선생님 샘플:', teachers[0]);
+            console.log('[loadTeachersForAttendanceFilter] 모든 선생님 status:', teachers.map(t => `${t.name}: ${t.status}`).join(', '));
+        }
+        
+        // 선생님 필터링: status가 '재직'이거나, status가 없거나, role이 있으면 포함
+        const activeTeachers = teachers.filter(t => {
+            // role이 있는 선생님은 모두 포함 (관리자, 부관리자, 선생님)
+            const hasRole = t.role && (t.role === '관리자' || t.role === '부관리자' || t.role === '선생님');
+            // status가 '재직'이거나 없는 경우
+            const isActive = !t.status || t.status === '재직' || t.status === '활동중' || t.status === '근무중';
+            return hasRole && isActive;
+        });
+        
+        console.log('[loadTeachersForAttendanceFilter] 필터링된 선생님:', activeTeachers.length, '명');
+        
+        // 재직 중인 선생님 목록 출력
+        if (activeTeachers.length > 0) {
+            console.log('[loadTeachersForAttendanceFilter] 재직 중인 선생님 목록:', activeTeachers.map(t => `${t.name}(${t.role})`).join(', '));
+        }
         
         // 역할별로 그룹화
         const admins = activeTeachers.filter(t => t.role === '관리자');
         const subAdmins = activeTeachers.filter(t => t.role === '부관리자');
         const regularTeachers = activeTeachers.filter(t => t.role === '선생님');
         
+        console.log('[loadTeachersForAttendanceFilter] 관리자:', admins.length, '명, 부관리자:', subAdmins.length, '명, 선생님:', regularTeachers.length, '명');
+        
         // 드롭다운 구성
         const select = document.getElementById('attendanceTeacherFilterSelect');
-        if (!select) return;
+        if (!select) {
+            console.error('[loadTeachersForAttendanceFilter] 드롭다운을 찾을 수 없습니다.');
+            console.error('[loadTeachersForAttendanceFilter] DOM 요소 확인:', document.querySelector('.attendance-check-container'));
+            return;
+        }
+        
+        console.log('[loadTeachersForAttendanceFilter] 드롭다운 발견:', select);
         
         let options = '<option value="all">전체 선생님</option>';
         
@@ -2981,15 +3003,19 @@ async function loadTeachersForAttendanceFilter() {
         }
         
         select.innerHTML = options;
+        console.log('[loadTeachersForAttendanceFilter] 드롭다운 구성 완료');
     } catch (error) {
         console.error('[loadTeachersForAttendanceFilter] 선생님 목록 로드 실패:', error);
     }
 }
 
-// 출석관리 페이지: 선생님 필터 변경 핸들러
-function filterAttendanceByTeacher() {
+// 출석관리 페이지: 선생님 필터 변경 핸들러 (전역 노출)
+window.filterAttendanceByTeacher = function() {
     const select = document.getElementById('attendanceTeacherFilterSelect');
-    if (!select) return;
+    if (!select) {
+        console.error('[filterAttendanceByTeacher] 드롭다운을 찾을 수 없습니다.');
+        return;
+    }
     
     currentAttendanceTeacherFilter = select.value;
     console.log('[filterAttendanceByTeacher] 선택된 선생님 ID:', currentAttendanceTeacherFilter);
