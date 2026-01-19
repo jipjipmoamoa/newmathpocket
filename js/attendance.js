@@ -357,79 +357,17 @@ async function loadAttendanceData() {
         const selectedDayKey = dayKeys[dateObj.getDay()];
         console.log('선택된 요일 키:', selectedDayKey, '(인덱스:', dateObj.getDay(), ')');
         
-        // 해당 날짜에 스케줄이 있는 학생만 필터링
+        // ✅ 재원생만 필터링 (스케줄 유무와 관계없이 담당 학생은 모두 표시)
         attendanceStudents = allStudents.filter(student => {
-            // 재원생이거나, 휴원/퇴원 날짜가 선택된 날짜 이후인 경우
+            // 재원생만 표시
             const isActive = student.status === '재원';
-            const isWithinActiveDate = checkStudentActiveOnDate(student, selectedDate);
-            
-            console.log(`[${student.name}] 상태: ${student.status}, 활성: ${isActive || isWithinActiveDate}`);
-            
-            if (!isActive && !isWithinActiveDate) {
-                return false;
-            }
-            
-            // 스케줄 등록/수정 날짜 확인 (해당 날짜가 스케줄 등록 시간 이후인지)
-            if (student.schedule_updated_at) {
-                const scheduleUpdatedDate = new Date(student.schedule_updated_at);
-                const selectedDateObj = new Date(selectedDate);
-                
-                // 스케줄 등록 날짜 00:00:00으로 설정
-                scheduleUpdatedDate.setHours(0, 0, 0, 0);
-                selectedDateObj.setHours(0, 0, 0, 0);
-                
-                if (selectedDateObj < scheduleUpdatedDate) {
-                    console.log(`[${student.name}] 스케줄 등록 전 날짜 (${selectedDate} < ${scheduleUpdatedDate.toISOString().split('T')[0]})`);
-                    return false;
-                }
-            } else {
-                // schedule_updated_at이 없으면 오늘 이후만 표시
-                console.log(`[${student.name}] schedule_updated_at 없음 - 오늘 이후만 표시`);
-                const today = new Date();
-                const selectedDateObj = new Date(selectedDate);
-                
-                today.setHours(0, 0, 0, 0);
-                selectedDateObj.setHours(0, 0, 0, 0);
-                
-                if (selectedDateObj < today) {
-                    console.log(`[${student.name}] 오늘 이전 날짜 (${selectedDate} < ${today.toISOString().split('T')[0]})`);
-                    return false;
-                }
-            }
-            
-            // schedule이 JSON 문자열이면 파싱
-            let schedule = student.schedule;
-            console.log(`[${student.name}] 원본 schedule 타입: ${typeof schedule}`, schedule);
-            
-            if (typeof schedule === 'string' && schedule.trim() !== '') {
-                try {
-                    schedule = JSON.parse(schedule);
-                    console.log(`[${student.name}] 파싱된 schedule:`, schedule);
-                } catch (e) {
-                    console.error('스케줄 파싱 오류:', e, 'student:', student.name, 'schedule:', student.schedule);
-                    return false;
-                }
-            }
-            
-            if (!schedule) {
-                console.log(`[${student.name}] 스케줄 데이터가 없음`);
-                return false;
-            }
-            
-            if (!schedule[selectedDayKey]) {
-                console.log(`[${student.name}] ${selectedDayKey} 요일 데이터가 없음. 스케줄 키:`, Object.keys(schedule));
-                return false;
-            }
-            
-            const daySchedule = schedule[selectedDayKey];
-            const isEnabled = daySchedule.enabled === true;
-            console.log(`[${student.name}] ${selectedDayKey} 스케줄:`, daySchedule, '| enabled:', isEnabled);
-            
-            return isEnabled;
+            console.log(`[${student.name}] 상태: ${student.status}, 재원생: ${isActive}`);
+            return isActive;
         });
         
-        console.log(`선택 날짜(${selectedDayKey}) 스케줄이 있는 학생:`, attendanceStudents.length);
+        console.log(`재원생 학생 수:`, attendanceStudents.length);
         console.log('필터링된 학생:', attendanceStudents.map(s => s.name));
+        console.log('선택된 요일:', selectedDayKey);
         
         // 선택된 날짜의 출석 기록 로드
         const attendanceResponse = await API.getList('attendance', { limit: 1000 });
@@ -573,13 +511,12 @@ function renderAttendanceTable() {
     // 3행부터: 모든 출석 기록을 입실시간 빠른 순으로 정렬
     // 1. 스케줄이 있는 학생들의 출석 정보 수집
     const allAttendanceRows = [];
+    const selectedDate = getSelectedDateString();
+    const dateObj = new Date(selectedDate);
+    const dayKeys = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+    const selectedDayKey = dayKeys[dateObj.getDay()];
     
     attendanceStudents.forEach(student => {
-        const selectedDate = getSelectedDateString();
-        const dateObj = new Date(selectedDate);
-        const dayKeys = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
-        const selectedDayKey = dayKeys[dateObj.getDay()];
-        
         let schedule = student.schedule;
         if (typeof schedule === 'string' && schedule.trim() !== '') {
             try { schedule = JSON.parse(schedule); } catch (e) { schedule = {}; }
@@ -590,8 +527,8 @@ function renderAttendanceTable() {
         const daySchedule = schedule[selectedDayKey] || {};
         const existingRecord = todayAttendanceRecords.find(r => r.student_id === student.id);
         
-        // 스케줄이 있거나 출석 기록이 있으면 추가
-        if (daySchedule.enabled || existingRecord) {
+        // ✅ 해당 날짜에 스케줄이 있는 학생만 표시
+        if (daySchedule.enabled) {
             const checkInTime = existingRecord?.check_in_time || daySchedule.checkIn || '23:59';
             allAttendanceRows.push({
                 type: 'scheduled',
@@ -603,10 +540,14 @@ function renderAttendanceTable() {
         }
     });
     
-    // 2. 스케줄이 없는 출석 기록 추가
+    // 2. 스케줄이 없지만 수동으로 등록된 출석 기록 추가
+    // ✅ 선생님 필터가 적용된 경우, 해당 선생님 학생의 기록만 표시
     const studentsWithSchedule = new Set(attendanceStudents.map(s => s.id));
+    const allowedStudentIds = new Set(attendanceStudents.map(s => s.id));
+    
     todayAttendanceRecords.forEach(record => {
-        if (!studentsWithSchedule.has(record.student_id)) {
+        // 스케줄에 없고, 필터링된 학생 목록에 포함된 경우만 추가
+        if (!studentsWithSchedule.has(record.student_id) && allowedStudentIds.has(record.student_id)) {
             allAttendanceRows.push({
                 type: 'manual',
                 record: record,
@@ -3008,32 +2949,10 @@ async function loadTeachersForAttendanceFilter() {
         
         let options = '<option value="all">전체 선생님</option>';
         
-        // 관리자
-        if (admins.length > 0) {
-            options += '<optgroup label="관리자">';
-            admins.forEach(t => {
-                options += `<option value="${t.id}">${t.name}</option>`;
-            });
-            options += '</optgroup>';
-        }
-        
-        // 부관리자
-        if (subAdmins.length > 0) {
-            options += '<optgroup label="부관리자">';
-            subAdmins.forEach(t => {
-                options += `<option value="${t.id}">${t.name}</option>`;
-            });
-            options += '</optgroup>';
-        }
-        
-        // 선생님
-        if (regularTeachers.length > 0) {
-            options += '<optgroup label="재직중 선생님">';
-            regularTeachers.forEach(t => {
-                options += `<option value="${t.id}">${t.name}</option>`;
-            });
-            options += '</optgroup>';
-        }
+        // 모든 선생님을 그룹 없이 나열 (관리자, 부관리자, 선생님 순서)
+        [...admins, ...subAdmins, ...regularTeachers].forEach(t => {
+            options += `<option value="${t.id}">${t.name}</option>`;
+        });
         
         select.innerHTML = options;
         console.log('[loadTeachersForAttendanceFilter] ✓ 드롭다운 구성 완료');
@@ -3079,32 +2998,10 @@ async function loadTeachersForAttendanceViewFilter() {
         
         let options = '<option value="all">전체 선생님</option>';
         
-        // 관리자
-        if (admins.length > 0) {
-            options += '<optgroup label="관리자">';
-            admins.forEach(t => {
-                options += `<option value="${t.id}">${t.name}</option>`;
-            });
-            options += '</optgroup>';
-        }
-        
-        // 부관리자
-        if (subAdmins.length > 0) {
-            options += '<optgroup label="부관리자">';
-            subAdmins.forEach(t => {
-                options += `<option value="${t.id}">${t.name}</option>`;
-            });
-            options += '</optgroup>';
-        }
-        
-        // 선생님
-        if (regularTeachers.length > 0) {
-            options += '<optgroup label="재직중 선생님">';
-            regularTeachers.forEach(t => {
-                options += `<option value="${t.id}">${t.name}</option>`;
-            });
-            options += '</optgroup>';
-        }
+        // 모든 선생님을 그룹 없이 나열 (관리자, 부관리자, 선생님 순서)
+        [...admins, ...subAdmins, ...regularTeachers].forEach(t => {
+            options += `<option value="${t.id}">${t.name}</option>`;
+        });
         
         select.innerHTML = options;
     } catch (error) {
