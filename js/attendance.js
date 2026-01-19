@@ -469,19 +469,19 @@ function renderAttendanceTable() {
     registerRow.className = 'register-row';
     registerRow.style.backgroundColor = '#fffbf0';
     registerRow.innerHTML = `
-        <td style="padding: 0.5rem;">
+        <td style="padding: 0.5rem; background-color: #fffbf0;">
             <select id="registerStudentSelect" class="form-select" style="width: 100%; margin-bottom: 0.3rem;" onchange="handleRegisterStudentChange()">
                 <option value="">재원생 선택</option>
             </select>
             <input type="text" id="registerManualName" class="form-input" placeholder="또는 이름 입력" style="width: 100%;" />
         </td>
-        <td><input type="text" id="registerCheckInTime" class="form-input" placeholder="14:00" 
+        <td style="background-color: #fffbf0;"><input type="text" id="registerCheckInTime" class="form-input" placeholder="14:00" 
             onblur="this.value = formatTimeInput(this.value)" /></td>
-        <td><input type="text" id="registerExpectedOutTime" class="form-input" placeholder="15:30" readonly /></td>
-        <td><input type="text" id="registerCheckOutTime" class="form-input" placeholder="15:30"
+        <td style="background-color: #fffbf0;"><input type="text" id="registerExpectedOutTime" class="form-input" placeholder="15:30" readonly /></td>
+        <td style="background-color: #fffbf0;"><input type="text" id="registerCheckOutTime" class="form-input" placeholder="15:30"
             onblur="this.value = formatTimeInput(this.value)" /></td>
         <td style="background-color: #fffbf0;"></td>
-        <td>
+        <td style="background-color: #fffbf0;">
             <select id="registerStatus" class="form-select" onchange="handleRegisterStatusChange()">
                 <option value="">상태</option>
                 <option value="출석">출석</option>
@@ -499,7 +499,7 @@ function renderAttendanceTable() {
                 <input type="date" id="registerMakeupDateInput" class="form-input" style="width: 100%;" placeholder="보강 날짜" />
             </div>
         </td>
-        <td>
+        <td style="background-color: #fffbf0;">
             <button class="btn-register" onclick="registerNewAttendance()">등록</button>
         </td>
         <td style="background-color: #fffbf0;"></td>
@@ -602,8 +602,8 @@ function renderAttendanceTable() {
         row.dataset.recordId = existingRecord ? existingRecord.id : '';
         row.dataset.scheduledDuration = scheduledDuration;
         
-        // 담당 선생님 색상 적용
-        if (student.teacher_id && typeof getTeacherColorClass === 'function') {
+        // 담당 선생님 색상 적용 (관리자/부관리자만)
+        if (Auth.isAdminOrSubAdmin() && student.teacher_id && typeof getTeacherColorClass === 'function') {
             const teacherColor = getTeacherColorClass(student.teacher_id);
             if (teacherColor) {
                 row.style.backgroundColor = teacherColor;
@@ -751,8 +751,8 @@ function renderAttendanceTable() {
             row.dataset.studentName = record.student_name || '';
             row.dataset.recordId = record.id;
             
-            // 담당 선생님 색상 적용 (수동 등록 학생)
-            if (record.student_id) {
+            // 담당 선생님 색상 적용 (수동 등록 학생 - 관리자/부관리자만)
+            if (Auth.isAdminOrSubAdmin() && record.student_id) {
                 const student = attendanceStudents.find(s => s.id === record.student_id);
                 if (student && student.teacher_id && typeof getTeacherColorClass === 'function') {
                     const teacherColor = getTeacherColorClass(student.teacher_id);
