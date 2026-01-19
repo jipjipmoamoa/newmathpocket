@@ -2947,8 +2947,12 @@ async function loadTeachersForAttendanceFilter() {
         
         // 선생님 필터링: role이 있으면서 퇴사하지 않은 모든 선생님 포함
         const activeTeachers = teachers.filter(t => {
-            // role이 있는 선생님만 포함 (관리자, 부관리자, 선생님)
-            const hasRole = t.role && (t.role === '관리자' || t.role === '부관리자' || t.role === '선생님');
+            // role이 있는 선생님만 포함 (한글: 관리자/부관리자/선생님, 영어: admin/sub-admin/teacher)
+            const hasRole = t.role && (
+                t.role === '관리자' || t.role === 'admin' || 
+                t.role === '부관리자' || t.role === 'sub-admin' || 
+                t.role === '선생님' || t.role === 'teacher'
+            );
             // status가 '퇴사'가 아닌 경우 (status가 없거나, '재직', '활동중', '근무중' 등)
             const notResigned = !t.status || (t.status !== '퇴사' && t.status !== '퇴직');
             return hasRole && notResigned;
@@ -2967,10 +2971,10 @@ async function loadTeachersForAttendanceFilter() {
             console.error('[loadTeachersForAttendanceFilter] 필터 조건: role이 있고, status가 퇴사/퇴직이 아닌 선생님');
         }
         
-        // 역할별로 그룹화
-        const admins = activeTeachers.filter(t => t.role === '관리자');
-        const subAdmins = activeTeachers.filter(t => t.role === '부관리자');
-        const regularTeachers = activeTeachers.filter(t => t.role === '선생님');
+        // 역할별로 그룹화 (한글/영어 모두 지원)
+        const admins = activeTeachers.filter(t => t.role === '관리자' || t.role === 'admin');
+        const subAdmins = activeTeachers.filter(t => t.role === '부관리자' || t.role === 'sub-admin');
+        const regularTeachers = activeTeachers.filter(t => t.role === '선생님' || t.role === 'teacher');
         
         console.log('[loadTeachersForAttendanceFilter] 관리자:', admins.length, '명, 부관리자:', subAdmins.length, '명, 선생님:', regularTeachers.length, '명');
         
@@ -3047,10 +3051,10 @@ async function loadTeachersForAttendanceViewFilter() {
         // 재직중인 선생님만 필터링
         const activeTeachers = teachers.filter(t => t.status === '재직');
         
-        // 역할별로 그룹화
-        const admins = activeTeachers.filter(t => t.role === '관리자');
-        const subAdmins = activeTeachers.filter(t => t.role === '부관리자');
-        const regularTeachers = activeTeachers.filter(t => t.role === '선생님');
+        // 역할별로 그룹화 (한글/영어 모두 지원)
+        const admins = activeTeachers.filter(t => t.role === '관리자' || t.role === 'admin');
+        const subAdmins = activeTeachers.filter(t => t.role === '부관리자' || t.role === 'sub-admin');
+        const regularTeachers = activeTeachers.filter(t => t.role === '선생님' || t.role === 'teacher');
         
         // 드롭다운 구성
         const select = document.getElementById('attendanceViewTeacherFilterSelect');
