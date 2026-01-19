@@ -2299,6 +2299,9 @@ function renderTeachers(teachers) {
                 </select>
             </td>
             <td style="white-space: nowrap; background-color: ${currentColor};">
+                <button class="btn btn-primary btn-sm" onclick="editTeacher('${teacher.id}')" style="padding: 0.2rem 0.4rem; margin-right: 0.2rem; font-size: 0.75rem;">
+                    <i class="fas fa-edit"></i>
+                </button>
                 <button class="btn btn-danger btn-sm" onclick="deleteTeacher('${teacher.id}')" style="padding: 0.2rem 0.4rem; margin-right: 0.2rem; font-size: 0.75rem;">
                     <i class="fas fa-trash"></i>
                 </button>
@@ -2573,8 +2576,8 @@ async function renderTeacherStudentsGrid(teachers) {
                         ${sortedStudents.length > 0 ? 
                             sortedStudents.map(student => `
                                 <div class="student-mini-item">
-                                    <span class="student-name">${student.name}</span>
-                                    <span class="student-info">${formatSchoolName(student.school)} ${student.grade}</span>
+                                    <div class="student-name">${student.name}</div>
+                                    <div class="student-info">${formatSchoolName(student.school)} ${student.grade}</div>
                                 </div>
                             `).join('') 
                             : '<p class="text-muted">담당 학생이 없습니다</p>'
