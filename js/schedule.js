@@ -583,8 +583,10 @@ async function renderScheduleByTeachers(allStudents) {
         let html = '';
         
         // 선생님별로 순회하면서 스케줄 테이블 생성
+        console.log('[renderScheduleByTeachers] activeTeachers:', activeTeachers.map(t => t.name));
         activeTeachers.forEach(teacher => {
             const teacherStudents = studentsByTeacher[teacher.id] || [];
+            console.log(`[renderScheduleByTeachers] ${teacher.name} 선생님 - 담당 학생 수: ${teacherStudents.length}`);
             
             // 모든 재직 선생님의 스케줄 표시 (담당 학생이 없어도 표시)
             
