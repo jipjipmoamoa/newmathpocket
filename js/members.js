@@ -2921,7 +2921,7 @@ async function saveTeacherInline(teacherId) {
 }
 
 // 수정 버튼 클릭 시 - 토글 방식 (수정 ↔ 저장)
-window.editTeacher = async function(teacherId) {
+window.editTeacher = function(teacherId) {
     const row = document.getElementById(`teacher-row-${teacherId}`);
     if (!row) return;
     
@@ -2955,7 +2955,7 @@ window.editTeacher = async function(teacherId) {
         
     } else {
         // 현재 저장 모드 → 모든 셀 저장 후 편집 모드로 전환
-        await saveAllTeacherCells(teacherId);
+        saveAllTeacherCells(teacherId);
     }
 }
 
@@ -2967,40 +2967,21 @@ async function saveAllTeacherCells(teacherId) {
     const editButton = row.querySelector('.edit-teacher-btn');
     const editableCells = row.querySelectorAll('td[ondblclick]');
     
-    // 모든 입력란을 저장하고 표시 모드로 전환
-    const savePromises = [];
+    // 모든 입력란을 표시 모드로 전환
     editableCells.forEach(cell => {
         const displayValue = cell.querySelector('.display-value');
         const editInput = cell.querySelector('.edit-input');
         
-        if (displayValue && editInput && editInput.style.display === 'block') {
-            // blur 이벤트로 저장 트리거
-            const promise = new Promise((resolve) => {
-                // blur 이벤트가 완료될 때까지 대기
-                setTimeout(() => {
-                    editInput.blur();
-                    resolve();
-                }, 50);
-            });
-            savePromises.push(promise);
+        if (displayValue && editInput) {
+            // 입력값이 변경되었으면 blur로 저장 트리거
+            if (editInput.style.display === 'block') {
+                editInput.blur();
+            }
+            // 즉시 표시 모드로 전환
+            editInput.style.display = 'none';
+            displayValue.style.display = 'inline';
         }
     });
-    
-    // 모든 저장이 완료될 때까지 대기
-    await Promise.all(savePromises);
-    
-    // 추가로 모든 입력란을 명시적으로 표시 모드로 전환
-    setTimeout(() => {
-        editableCells.forEach(cell => {
-            const displayValue = cell.querySelector('.display-value');
-            const editInput = cell.querySelector('.edit-input');
-            
-            if (displayValue && editInput) {
-                editInput.style.display = 'none';
-                displayValue.style.display = 'inline';
-            }
-        });
-    }, 200);
     
     // 버튼을 편집 모드로 변경
     editButton.innerHTML = '<i class="fas fa-edit"></i>';
