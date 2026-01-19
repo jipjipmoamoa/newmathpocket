@@ -3108,13 +3108,23 @@ async function loadTeachersForFilter() {
         const result = await API.getList('teachers', { limit: 1000 });
         const teachers = Array.isArray(result) ? result : (result.data || []);
         
-        // 재직중인 선생님만 필터링
-        const activeTeachers = teachers.filter(t => t.status === '재직');
+        // 재직중인 선생님만 필터링 (한글/영어 모두 지원)
+        const activeTeachers = teachers.filter(t => {
+            // role이 있는 선생님만 포함
+            const hasRole = t.role && (
+                t.role === '관리자' || t.role === 'admin' || 
+                t.role === '부관리자' || t.role === 'sub-admin' || 
+                t.role === '선생님' || t.role === 'teacher'
+            );
+            // status가 '퇴사'가 아닌 경우
+            const notResigned = !t.status || (t.status !== '퇴사' && t.status !== '퇴직');
+            return hasRole && notResigned;
+        });
         
-        // 역할별로 그룹화
-        const admins = activeTeachers.filter(t => t.role === '관리자');
-        const subAdmins = activeTeachers.filter(t => t.role === '부관리자');
-        const regularTeachers = activeTeachers.filter(t => t.role === '선생님');
+        // 역할별로 그룹화 (한글/영어 모두 지원)
+        const admins = activeTeachers.filter(t => t.role === '관리자' || t.role === 'admin');
+        const subAdmins = activeTeachers.filter(t => t.role === '부관리자' || t.role === 'sub-admin');
+        const regularTeachers = activeTeachers.filter(t => t.role === '선생님' || t.role === 'teacher');
         
         // 드롭다운 구성
         const select = document.getElementById('teacherFilterSelect');
@@ -3173,13 +3183,23 @@ async function loadTeachersForAllMembersFilter() {
         const result = await API.getList('teachers', { limit: 1000 });
         const teachers = Array.isArray(result) ? result : (result.data || []);
         
-        // 재직중인 선생님만 필터링
-        const activeTeachers = teachers.filter(t => t.status === '재직');
+        // 재직중인 선생님만 필터링 (한글/영어 모두 지원)
+        const activeTeachers = teachers.filter(t => {
+            // role이 있는 선생님만 포함
+            const hasRole = t.role && (
+                t.role === '관리자' || t.role === 'admin' || 
+                t.role === '부관리자' || t.role === 'sub-admin' || 
+                t.role === '선생님' || t.role === 'teacher'
+            );
+            // status가 '퇴사'가 아닌 경우
+            const notResigned = !t.status || (t.status !== '퇴사' && t.status !== '퇴직');
+            return hasRole && notResigned;
+        });
         
-        // 역할별로 그룹화
-        const admins = activeTeachers.filter(t => t.role === '관리자');
-        const subAdmins = activeTeachers.filter(t => t.role === '부관리자');
-        const regularTeachers = activeTeachers.filter(t => t.role === '선생님');
+        // 역할별로 그룹화 (한글/영어 모두 지원)
+        const admins = activeTeachers.filter(t => t.role === '관리자' || t.role === 'admin');
+        const subAdmins = activeTeachers.filter(t => t.role === '부관리자' || t.role === 'sub-admin');
+        const regularTeachers = activeTeachers.filter(t => t.role === '선생님' || t.role === 'teacher');
         
         // 드롭다운 구성
         const select = document.getElementById('allMembersTeacherFilterSelect');
