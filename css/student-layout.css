@@ -52,10 +52,7 @@
     border-radius: 8px;
     padding: 1rem;
     box-shadow: var(--shadow);
-     height: auto;
-    max-height: none;
-    overflow-y: visible;
-
+    height: fit-content;
 }
 
 .accordion-group {
@@ -115,7 +112,6 @@
     background: #FFE4B5;
     border-left-color: var(--primary-color);
 }
-
 
 .student-list-item.active .student-name {
     font-weight: 700;
