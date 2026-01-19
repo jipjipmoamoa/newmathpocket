@@ -442,13 +442,23 @@ async function showStudentDetail(studentId) {
 async function showStudentForm(studentId = null) {
     selectedStudentId = null;
     
-    // 선생님 목록 가져오기 (재직 중인 선생님만)
+    // 선생님 목록 가져오기 (재직 중인 선생님만, 관리자/부관리자 제외)
     let teachers = [];
     try {
         const teachersResult = await API.getList('teachers', { limit: 1000 });
         const allTeachers = Array.isArray(teachersResult) ? teachersResult : (teachersResult.data || []);
-        teachers = allTeachers.filter(t => (t.status || '재직') === '재직');
-        console.log('[showStudentForm] 재직중인 선생님 수:', teachers.length);
+        
+        // status가 '재직', '재직중', 또는 비어있으면 재직으로 간주
+        // role이 'teacher' 또는 '선생님'인 경우만 포함 (관리자/부관리자 제외)
+        teachers = allTeachers.filter(t => {
+            const status = t.status || '재직';
+            const isActive = status === '재직' || status === '재직중';
+            const isTeacher = t.role === 'teacher' || t.role === '선생님' || !t.role; // role이 없으면 일반 선생님으로 간주
+            return isActive && isTeacher;
+        });
+        
+        console.log('[showStudentForm] 재직중인 선생님(관리자 제외) 수:', teachers.length);
+        console.log('[showStudentForm] 재직중인 선생님 목록:', teachers.map(t => `${t.name}(${t.role || '선생님'})`));
     } catch (error) {
         console.error('[showStudentForm] 선생님 정보 로드 실패:', error);
     }
@@ -1858,10 +1868,22 @@ async function openStudentModal(studentId = null) {
         const modal = document.getElementById('studentModal');
         const title = document.getElementById('studentModalTitle');
         
-        // 선생님 목록 로드
+        // 선생님 목록 로드 (재직 중인 선생님만, 관리자/부관리자 제외)
         try {
             const teachersResult = await API.getList('teachers', { limit: 1000 });
-            const teachers = teachersResult.data || [];
+            const allTeachers = Array.isArray(teachersResult) ? teachersResult : (teachersResult.data || []);
+            
+            // status가 '재직', '재직중', 또는 비어있으면 재직으로 간주
+            // role이 'teacher' 또는 '선생님'인 경우만 포함 (관리자/부관리자 제외)
+            const teachers = allTeachers.filter(t => {
+                const status = t.status || '재직';
+                const isActive = status === '재직' || status === '재직중';
+                const isTeacher = t.role === 'teacher' || t.role === '선생님' || !t.role; // role이 없으면 일반 선생님으로 간주
+                return isActive && isTeacher;
+            });
+            
+            console.log('[openStudentModal] 재직중인 선생님(관리자 제외) 수:', teachers.length);
+            
             const teacherSelect = document.getElementById('studentTeacher');
             teacherSelect.innerHTML = '<option value="">선택하세요</option>' + 
                 teachers.map(t => `<option value="${t.id}">${t.name}</option>`).join('');
@@ -3414,23 +3436,13 @@ async function loadTeachersForFilter() {
         const result = await API.getList('teachers', { limit: 1000 });
         const teachers = Array.isArray(result) ? result : (result.data || []);
         
-        // 재직중인 선생님만 필터링 (한글/영어 모두 지원)
+        // status가 '재직', '재직중', 또는 비어있으면 재직으로 간주
         const activeTeachers = teachers.filter(t => {
-            // role이 있는 선생님만 포함
-            const hasRole = t.role && (
-                t.role === '관리자' || t.role === 'admin' || 
-                t.role === '부관리자' || t.role === 'sub-admin' || 
-                t.role === '선생님' || t.role === 'teacher'
-            );
-            // status가 '퇴사'가 아닌 경우
-            const notResigned = !t.status || (t.status !== '퇴사' && t.status !== '퇴직');
-            return hasRole && notResigned;
+            const status = t.status || '재직';
+            return status === '재직' || status === '재직중';
         });
         
-        // 역할별로 그룹화 (한글/영어 모두 지원)
-        const admins = activeTeachers.filter(t => t.role === '관리자' || t.role === 'admin');
-        const subAdmins = activeTeachers.filter(t => t.role === '부관리자' || t.role === 'sub-admin');
-        const regularTeachers = activeTeachers.filter(t => t.role === '선생님' || t.role === 'teacher');
+        console.log('[loadTeachersForFilter] 재직 선생님:', activeTeachers.map(t => `${t.name}(${t.status || '재직'})`));
         
         // 드롭다운 구성
         const select = document.getElementById('teacherFilterSelect');
@@ -3438,8 +3450,8 @@ async function loadTeachersForFilter() {
         
         let options = '<option value="all">전체 선생님</option>';
         
-        // 모든 선생님을 그룹 없이 나열 (관리자, 부관리자, 선생님 순서)
-        [...admins, ...subAdmins, ...regularTeachers].forEach(t => {
+        // 모든 재직 선생님 나열
+        activeTeachers.forEach(t => {
             options += `<option value="${t.id}">${t.name}</option>`;
         });
         
