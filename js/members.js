@@ -946,6 +946,9 @@ function renderScheduleSection(student) {
         { key: 'saturday', label: '토요일' }
     ];
 
+    // 추가 행용 스케줄 데이터 가져오기
+    const extraSchedule = schedule.extra || { dayKey: '', enabled: false, checkIn: '', checkOut: '', duration: 90 };
+
     return `
         <div style="margin-top: 2rem; padding-top: 2rem; border-top: 2px solid #E1E8ED;">
             <h3 style="margin-bottom: 1rem; color: #333;">주간 스케줄</h3>
@@ -996,10 +999,55 @@ function renderScheduleSection(student) {
                             </tr>
                         `;
                     }).join('')}
+                    <!-- 추가 수업 행 (요일 선택 가능) -->
+                    <tr>
+                        <td>
+                            <select id="schedule-extra-day" class="time-input" 
+                                    onchange="updateScheduleExtraDay('${student.id}', this.value)"
+                                    style="width: 100%; padding: 0.5rem;">
+                                <option value="">요일 선택</option>
+                                <option value="monday" ${extraSchedule.dayKey === 'monday' ? 'selected' : ''}>월요일</option>
+                                <option value="tuesday" ${extraSchedule.dayKey === 'tuesday' ? 'selected' : ''}>화요일</option>
+                                <option value="wednesday" ${extraSchedule.dayKey === 'wednesday' ? 'selected' : ''}>수요일</option>
+                                <option value="thursday" ${extraSchedule.dayKey === 'thursday' ? 'selected' : ''}>목요일</option>
+                                <option value="friday" ${extraSchedule.dayKey === 'friday' ? 'selected' : ''}>금요일</option>
+                                <option value="saturday" ${extraSchedule.dayKey === 'saturday' ? 'selected' : ''}>토요일</option>
+                            </select>
+                        </td>
+                        <td class="checkbox-cell">
+                            <input type="checkbox" 
+                                id="schedule-extra-enabled"
+                                ${extraSchedule.enabled ? 'checked' : ''}
+                                onchange="updateScheduleExtraEnabled('${student.id}', this.checked)">
+                        </td>
+                        <td>
+                            <input type="text" class="time-input"
+                                id="schedule-extra-checkin"
+                                value="${extraSchedule.checkIn || ''}"
+                                placeholder="14:00"
+                                oninput="updateScheduleExtraCheckoutRealtime('${student.id}')"
+                                onchange="updateScheduleExtraCheckIn('${student.id}', this.value)">
+                        </td>
+                        <td>
+                            <input type="text" class="time-input"
+                                id="schedule-extra-checkout"
+                                value="${extraSchedule.checkOut || ''}"
+                                readonly>
+                        </td>
+                        <td>
+                            <input type="number" 
+                                id="schedule-extra-duration"
+                                value="${extraSchedule.duration || 90}"
+                                min="30" max="300" step="10"
+                                oninput="updateScheduleExtraCheckoutRealtime('${student.id}')"
+                                onchange="updateScheduleExtraDuration('${student.id}', this.value)">
+                        </td>
+                    </tr>
                 </tbody>
             </table>
             <div class="schedule-note">
                 <p><i class="fas fa-info-circle"></i> 재실시간은 기본 90분이며, 입실시간을 입력하면 자동으로 퇴실시간이 계산됩니다.</p>
+                <p><i class="fas fa-info-circle"></i> 같은 요일에 2번 수업이 있을 경우, 맨 아래 행에서 요일을 선택하여 등록하세요.</p>
             </div>
         </div>
     `;
@@ -3437,12 +3485,15 @@ async function loadTeachersForFilter() {
         const teachers = Array.isArray(result) ? result : (result.data || []);
         
         // status가 '재직', '재직중', 또는 비어있으면 재직으로 간주
+        // role이 'teacher' 또는 '선생님'인 경우만 포함 (관리자/부관리자 제외)
         const activeTeachers = teachers.filter(t => {
             const status = t.status || '재직';
-            return status === '재직' || status === '재직중';
+            const isActive = status === '재직' || status === '재직중';
+            const isTeacher = t.role === 'teacher' || t.role === '선생님' || !t.role; // role이 없으면 일반 선생님으로 간주
+            return isActive && isTeacher;
         });
         
-        console.log('[loadTeachersForFilter] 재직 선생님:', activeTeachers.map(t => `${t.name}(${t.status || '재직'})`));
+        console.log('[loadTeachersForFilter] 재직 선생님(관리자 제외):', activeTeachers.map(t => `${t.name}(${t.role || '선생님'}/${t.status || '재직'})`));
         
         // 드롭다운 구성
         const select = document.getElementById('teacherFilterSelect');
@@ -3479,23 +3530,16 @@ async function loadTeachersForAllMembersFilter() {
         const result = await API.getList('teachers', { limit: 1000 });
         const teachers = Array.isArray(result) ? result : (result.data || []);
         
-        // 재직중인 선생님만 필터링 (한글/영어 모두 지원)
+        // status가 '재직', '재직중', 또는 비어있으면 재직으로 간주
+        // role이 'teacher' 또는 '선생님'인 경우만 포함 (관리자/부관리자 제외)
         const activeTeachers = teachers.filter(t => {
-            // role이 있는 선생님만 포함
-            const hasRole = t.role && (
-                t.role === '관리자' || t.role === 'admin' || 
-                t.role === '부관리자' || t.role === 'sub-admin' || 
-                t.role === '선생님' || t.role === 'teacher'
-            );
-            // status가 '퇴사'가 아닌 경우
-            const notResigned = !t.status || (t.status !== '퇴사' && t.status !== '퇴직');
-            return hasRole && notResigned;
+            const status = t.status || '재직';
+            const isActive = status === '재직' || status === '재직중';
+            const isTeacher = t.role === 'teacher' || t.role === '선생님' || !t.role; // role이 없으면 일반 선생님으로 간주
+            return isActive && isTeacher;
         });
         
-        // 역할별로 그룹화 (한글/영어 모두 지원)
-        const admins = activeTeachers.filter(t => t.role === '관리자' || t.role === 'admin');
-        const subAdmins = activeTeachers.filter(t => t.role === '부관리자' || t.role === 'sub-admin');
-        const regularTeachers = activeTeachers.filter(t => t.role === '선생님' || t.role === 'teacher');
+        console.log('[loadTeachersForAllMembersFilter] 재직 선생님(관리자 제외):', activeTeachers.map(t => `${t.name}(${t.role || '선생님'}/${t.status || '재직'})`));
         
         // 드롭다운 구성
         const select = document.getElementById('allMembersTeacherFilterSelect');
@@ -3503,8 +3547,8 @@ async function loadTeachersForAllMembersFilter() {
         
         let options = '<option value="all">전체 선생님</option>';
         
-        // 모든 선생님을 그룹 없이 나열 (관리자, 부관리자, 선생님 순서)
-        [...admins, ...subAdmins, ...regularTeachers].forEach(t => {
+        // 모든 재직 선생님 나열
+        activeTeachers.forEach(t => {
             options += `<option value="${t.id}">${t.name}</option>`;
         });
         
@@ -3968,6 +4012,190 @@ async function updateScheduleDuration(studentId, dayKey, duration) {
     } catch (error) {
         console.error('스케줄 업데이트 실패:', error);
         alert('스케줄 업데이트에 실패했습니다');
+    }
+}
+
+// ===== 추가 수업 행 관련 함수들 =====
+
+// 추가 행 요일 선택
+async function updateScheduleExtraDay(studentId, dayKey) {
+    if (!Auth.isLoggedIn()) {
+        alert('로그인이 필요합니다');
+        return;
+    }
+
+    try {
+        const student = allStudents.find(s => s.id === studentId);
+        if (!student) return;
+
+        let schedule = getStudentSchedule(student);
+        
+        if (!schedule.extra) {
+            schedule.extra = { dayKey: '', enabled: false, checkIn: '', checkOut: '', duration: 90 };
+        }
+
+        schedule.extra.dayKey = dayKey;
+
+        await API.update('students', studentId, { 
+            schedule: JSON.stringify(schedule),
+            schedule_updated_at: Date.now()
+        });
+        
+        student.schedule = schedule;
+        console.log(`[updateScheduleExtraDay] 추가 수업 요일: ${dayKey}`);
+    } catch (error) {
+        console.error('추가 수업 요일 업데이트 실패:', error);
+        alert('추가 수업 요일 업데이트에 실패했습니다');
+    }
+}
+
+// 추가 행 수업 여부
+async function updateScheduleExtraEnabled(studentId, enabled) {
+    if (!Auth.isLoggedIn()) {
+        alert('로그인이 필요합니다');
+        return;
+    }
+
+    try {
+        const student = allStudents.find(s => s.id === studentId);
+        if (!student) return;
+
+        let schedule = getStudentSchedule(student);
+        
+        if (!schedule.extra) {
+            schedule.extra = { dayKey: '', enabled: false, checkIn: '', checkOut: '', duration: 90 };
+        }
+
+        schedule.extra.enabled = enabled;
+
+        await API.update('students', studentId, { 
+            schedule: JSON.stringify(schedule),
+            schedule_updated_at: Date.now()
+        });
+        
+        student.schedule = schedule;
+        console.log(`[updateScheduleExtraEnabled] 추가 수업 여부: ${enabled}`);
+    } catch (error) {
+        console.error('추가 수업 여부 업데이트 실패:', error);
+        alert('추가 수업 여부 업데이트에 실패했습니다');
+    }
+}
+
+// 추가 행 입실시간
+async function updateScheduleExtraCheckIn(studentId, checkInTime) {
+    console.log('[updateScheduleExtraCheckIn] 시작 - 입력값:', checkInTime);
+    
+    if (!Auth.isLoggedIn()) {
+        alert('로그인이 필요합니다');
+        return;
+    }
+
+    try {
+        const originalTime = checkInTime;
+        checkInTime = formatTimeString(checkInTime);
+        console.log('[updateScheduleExtraCheckIn] 변환:', originalTime, '→', checkInTime);
+        
+        const student = allStudents.find(s => s.id === studentId);
+        if (!student) {
+            console.error('[updateScheduleExtraCheckIn] 학생을 찾을 수 없음:', studentId);
+            return;
+        }
+
+        let schedule = getStudentSchedule(student);
+        
+        if (!schedule.extra) {
+            schedule.extra = { dayKey: '', enabled: false, checkIn: '', checkOut: '', duration: 90 };
+        }
+
+        schedule.extra.checkIn = checkInTime;
+        
+        const duration = schedule.extra.duration || 90;
+        const checkOutTime = calculateCheckOutTime(checkInTime, duration);
+        console.log('[updateScheduleExtraCheckIn] 퇴실시간 계산:', checkInTime, '+', duration, '분 =', checkOutTime);
+        
+        schedule.extra.checkOut = checkOutTime;
+
+        await API.update('students', studentId, { 
+            schedule: JSON.stringify(schedule),
+            schedule_updated_at: Date.now()
+        });
+        console.log('[updateScheduleExtraCheckIn] DB 저장 완료');
+        
+        student.schedule = schedule;
+        
+        const checkInInput = document.getElementById('schedule-extra-checkin');
+        if (checkInInput) {
+            checkInInput.value = checkInTime;
+            console.log('[updateScheduleExtraCheckIn] 입력 필드 업데이트:', checkInTime);
+        }
+        
+        const checkOutInput = document.getElementById('schedule-extra-checkout');
+        if (checkOutInput) {
+            checkOutInput.value = checkOutTime;
+            console.log('[updateScheduleExtraCheckIn] 퇴실시간 필드 업데이트:', checkOutTime);
+        }
+    } catch (error) {
+        console.error('[updateScheduleExtraCheckIn] 오류 발생:', error);
+        alert('추가 수업 입실시간 업데이트에 실패했습니다');
+    }
+}
+
+// 추가 행 재실시간
+async function updateScheduleExtraDuration(studentId, duration) {
+    if (!Auth.isLoggedIn()) {
+        alert('로그인이 필요합니다');
+        return;
+    }
+
+    try {
+        const student = allStudents.find(s => s.id === studentId);
+        if (!student) return;
+
+        let schedule = getStudentSchedule(student);
+        
+        if (!schedule.extra) {
+            schedule.extra = { dayKey: '', enabled: false, checkIn: '', checkOut: '', duration: 90 };
+        }
+
+        schedule.extra.duration = parseInt(duration);
+        
+        const checkInTime = schedule.extra.checkIn;
+        if (checkInTime) {
+            const checkOutTime = calculateCheckOutTime(checkInTime, parseInt(duration));
+            schedule.extra.checkOut = checkOutTime;
+            
+            const checkOutInput = document.getElementById('schedule-extra-checkout');
+            if (checkOutInput) {
+                checkOutInput.value = checkOutTime;
+            }
+        }
+
+        await API.update('students', studentId, { 
+            schedule: JSON.stringify(schedule),
+            schedule_updated_at: Date.now()
+        });
+        
+        student.schedule = schedule;
+    } catch (error) {
+        console.error('추가 수업 재실시간 업데이트 실패:', error);
+        alert('추가 수업 재실시간 업데이트에 실패했습니다');
+    }
+}
+
+// 추가 행 실시간 퇴실시간 계산
+function updateScheduleExtraCheckoutRealtime(studentId) {
+    const checkInInput = document.getElementById('schedule-extra-checkin');
+    const durationInput = document.getElementById('schedule-extra-duration');
+    const checkOutInput = document.getElementById('schedule-extra-checkout');
+    
+    if (!checkInInput || !durationInput || !checkOutInput) return;
+    
+    const checkInTime = formatTimeString(checkInInput.value);
+    const duration = parseInt(durationInput.value) || 90;
+    
+    if (checkInTime) {
+        const checkOutTime = calculateCheckOutTime(checkInTime, duration);
+        checkOutInput.value = checkOutTime;
     }
 }
 
