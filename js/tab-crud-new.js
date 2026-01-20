@@ -712,7 +712,10 @@ async function saveConsultationInline(studentId, consulId) {
         
         if (dateDisplay) dateDisplay.textContent = formattedDate || '-';
         if (personDisplay) personDisplay.textContent = newPerson || '-';
-        if (contentDisplay) contentDisplay.textContent = newContent || '-';
+        if (contentDisplay) {
+            contentDisplay.textContent = newContent || '-';
+            contentDisplay.style.whiteSpace = 'pre-wrap'; // 줄바꿈 유지
+        }
         
         // 편집 모드 종료
         row.classList.remove('editing');
