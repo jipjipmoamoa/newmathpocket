@@ -1055,15 +1055,20 @@ function renderScheduleSection(student) {
 
 // 스케줄 탭
 function renderScheduleTab(student) {
-    // 초기 스케줄 데이터 (학생 객체에 schedule 필드가 있으면 사용)
-    const schedule = student.schedule || {
-        monday: { enabled: false, checkIn: '', checkOut: '', duration: 90 },
-        tuesday: { enabled: false, checkIn: '', checkOut: '', duration: 90 },
-        wednesday: { enabled: false, checkIn: '', checkOut: '', duration: 90 },
-        thursday: { enabled: false, checkIn: '', checkOut: '', duration: 90 },
-        friday: { enabled: false, checkIn: '', checkOut: '', duration: 90 },
-        saturday: { enabled: false, checkIn: '', checkOut: '', duration: 90 }
-    };
+    // 스케줄 데이터 가져오기 (JSON 파싱 포함)
+    let schedule = getStudentSchedule(student);
+    
+    // 기본값 설정
+    if (!schedule || Object.keys(schedule).length === 0) {
+        schedule = {
+            monday: { enabled: false, checkIn: '', checkOut: '', duration: 90 },
+            tuesday: { enabled: false, checkIn: '', checkOut: '', duration: 90 },
+            wednesday: { enabled: false, checkIn: '', checkOut: '', duration: 90 },
+            thursday: { enabled: false, checkIn: '', checkOut: '', duration: 90 },
+            friday: { enabled: false, checkIn: '', checkOut: '', duration: 90 },
+            saturday: { enabled: false, checkIn: '', checkOut: '', duration: 90 }
+        };
+    }
 
     const days = [
         { key: 'monday', label: '월요일' },
@@ -1073,6 +1078,9 @@ function renderScheduleTab(student) {
         { key: 'friday', label: '금요일' },
         { key: 'saturday', label: '토요일' }
     ];
+
+    // 추가 행용 스케줄 데이터 가져오기
+    const extraSchedule = schedule.extra || { dayKey: '', enabled: false, checkIn: '', checkOut: '', duration: 90 };
 
     return `
         <div class="tab-panel">
@@ -1123,10 +1131,55 @@ function renderScheduleTab(student) {
                             </tr>
                         `;
                     }).join('')}
+                    <!-- 추가 수업 행 (요일 선택 가능) -->
+                    <tr>
+                        <td>
+                            <select id="schedule-extra-day" class="time-input" 
+                                    onchange="updateScheduleExtraDay('${student.id}', this.value)"
+                                    style="width: 100%; padding: 0.5rem;">
+                                <option value="">요일 선택</option>
+                                <option value="monday" ${extraSchedule.dayKey === 'monday' ? 'selected' : ''}>월요일</option>
+                                <option value="tuesday" ${extraSchedule.dayKey === 'tuesday' ? 'selected' : ''}>화요일</option>
+                                <option value="wednesday" ${extraSchedule.dayKey === 'wednesday' ? 'selected' : ''}>수요일</option>
+                                <option value="thursday" ${extraSchedule.dayKey === 'thursday' ? 'selected' : ''}>목요일</option>
+                                <option value="friday" ${extraSchedule.dayKey === 'friday' ? 'selected' : ''}>금요일</option>
+                                <option value="saturday" ${extraSchedule.dayKey === 'saturday' ? 'selected' : ''}>토요일</option>
+                            </select>
+                        </td>
+                        <td class="checkbox-cell">
+                            <input type="checkbox" 
+                                id="schedule-extra-enabled"
+                                ${extraSchedule.enabled ? 'checked' : ''}
+                                onchange="updateScheduleExtraEnabled('${student.id}', this.checked)">
+                        </td>
+                        <td>
+                            <input type="text" class="time-input"
+                                id="schedule-extra-checkin"
+                                value="${extraSchedule.checkIn || ''}"
+                                placeholder="14:00"
+                                oninput="updateScheduleExtraCheckoutRealtime('${student.id}')"
+                                onchange="updateScheduleExtraCheckIn('${student.id}', this.value)">
+                        </td>
+                        <td>
+                            <input type="text" class="time-input"
+                                id="schedule-extra-checkout"
+                                value="${extraSchedule.checkOut || ''}"
+                                readonly>
+                        </td>
+                        <td>
+                            <input type="number" 
+                                id="schedule-extra-duration"
+                                value="${extraSchedule.duration || 90}"
+                                min="30" max="300" step="10"
+                                oninput="updateScheduleExtraCheckoutRealtime('${student.id}')"
+                                onchange="updateScheduleExtraDuration('${student.id}', this.value)">
+                        </td>
+                    </tr>
                 </tbody>
             </table>
             <div class="schedule-note">
                 <p><i class="fas fa-info-circle"></i> 재실시간은 기본 90분이며, 입실시간을 입력하면 자동으로 퇴실시간이 계산됩니다.</p>
+                <p><i class="fas fa-info-circle"></i> 같은 요일에 2번 수업이 있을 경우, 맨 아래 행에서 요일을 선택하여 등록하세요.</p>
             </div>
         </div>
     `;
