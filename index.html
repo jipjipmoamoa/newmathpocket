@@ -9,7 +9,8 @@
     <link rel="stylesheet" href="css/student-form.css?t=1737276500">
     <link rel="stylesheet" href="css/teacher-layout.css?t=1737276500">
     <link rel="stylesheet" href="css/attendance.css?t=1737276600">
-    <link rel="stylesheet" href="css/tabs-new.css?t=1737276500">
+    <link rel="stylesheet" href="css/prints.css?t=1737355000">
+    <link rel="stylesheet" href="css/tabs-new.css?t=1737355000">
     <link rel="stylesheet" href="css/teacher-colors.css?t=1737276500">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;600;700&display=swap" rel="stylesheet">
@@ -79,6 +80,11 @@
                     <i class="fas fa-book"></i> 교육과정
                 </a>
             </li>
+            <li class="menu-item" data-menu="prints" style="display: none;">
+                <a href="#" onclick="toggleSubMenu(event, 'prints')">
+                    <i class="fas fa-print"></i> 프린트
+                </a>
+            </li>
             <li class="menu-item" data-menu="settings">
                 <a href="#" onclick="showPage('settings')">
                     <i class="fas fa-cog"></i> 설정
@@ -141,6 +147,10 @@
         </div>
     </div>
 
+    <!-- PDF 라이브러리 -->
+    <script src="https://cdn.jsdelivr.net/npm/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
+    
     <script src="js/api.js?t=1737276500"></script>
     <script src="js/auth.js?t=1737276500"></script>
     <script src="js/permissions.js?t=1737276500"></script>
@@ -149,16 +159,18 @@
     <script src="js/time-formatter.js?t=1737276500"></script>
     <script src="js/phone-formatter.js?t=1737276500"></script>
     <script src="js/date-formatter.js?t=1737276500"></script>
+    <script src="js/pdf-utils.js?t=1737280100"></script>
     <script src="js/tab-formatters.js?t=1737276500"></script>
-    <script src="js/tab-renderers-new.js?t=1737277100"></script>
-    <script src="js/tab-crud-new.js?t=1737276500"></script>
-    <script src="js/members.js?t=1737277000"></script>
+    <script src="js/tab-renderers-new.js?t=1737357000"></script>
+    <script src="js/tab-crud-new.js?t=1737357000"></script>
+    <script src="js/members.js?t=1737357000"></script>
     <script src="js/upgrade-students.js?t=1737276500"></script>
     <script src="js/attendance.js?t=1737276800"></script>
     <script src="js/tuition.js?t=1737276500"></script>
     <script src="js/schedule.js?v=9.0.10"></script>
     <script src="js/curriculum.js?t=1737276500"></script>
     <script src="js/settings.js?t=1737276500"></script>
+    <script src="js/prints.js?t=1737280200"></script>
     <script src="js/navigation.js?t=1737276500"></script>
     <script src="js/main.js?t=1737276500"></script>
     <script>
