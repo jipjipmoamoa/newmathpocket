@@ -262,6 +262,27 @@
     text-align: left;
 }
 
+/* 상담내용 textarea 스타일 */
+.consultation-table td:nth-child(3) textarea.input-field,
+.consultation-table td:nth-child(3) textarea.edit-input {
+    width: 100%;
+    padding: 0.5rem;
+    border: 1px solid #ced4da;
+    border-radius: 4px;
+    font-size: 0.9rem;
+    font-family: inherit;
+    text-align: left;
+    resize: vertical;
+    min-height: 60px;
+}
+
+.consultation-table td:nth-child(3) textarea.input-field:focus,
+.consultation-table td:nth-child(3) textarea.edit-input:focus {
+    outline: none;
+    border-color: #FF6B35;
+    box-shadow: 0 0 0 3px rgba(255, 107, 53, 0.1);
+}
+
 /* 상담내용 테이블 관리 버튼 스타일 */
 .consultation-table .btn-edit,
 .consultation-table .btn-delete {
