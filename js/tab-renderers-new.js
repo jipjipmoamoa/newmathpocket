@@ -196,7 +196,7 @@ function renderConsultationTab(student) {
                                 <option value="가족">가족</option>
                             </select>
                         </td>
-                        <td><input type="text" id="new-consul-content-${student.id}" placeholder="상담 내용" class="input-field"></td>
+                        <td><textarea id="new-consul-content-${student.id}" placeholder="상담 내용 (엔터로 행 구분 가능)" class="input-field" rows="3" style="resize: vertical;"></textarea></td>
                         <td><button class="btn-register" onclick="addConsultation('${student.id}')">등록</button></td>
                     </tr>
                     
@@ -217,8 +217,8 @@ function renderConsultationTab(student) {
                                 </select>
                             </td>
                             <td class="consul-content-cell" data-consul-id="${consul.id}">
-                                <span class="display-value">${consul.content || '-'}</span>
-                                <input type="text" class="edit-input" value="${consul.content || ''}" style="display:none;">
+                                <span class="display-value" style="white-space: pre-wrap;">${consul.content || '-'}</span>
+                                <textarea class="edit-input" style="display:none; resize: vertical;" rows="3">${consul.content || ''}</textarea>
                             </td>
                             <td class="action-buttons">
                                 <button class="btn-edit" onclick="toggleEditConsultation('${student.id}', '${consul.id}')"><i class="fas fa-pencil-alt"></i></button>
