@@ -612,6 +612,7 @@ function renderAttendanceTable() {
         
             // 재실시간 표시
             let durationText = '';
+            let durationColor = ''; // 변수 선언 추가
             if (actualDuration) {
                 durationText = `${actualDuration}분`;
             } else if (scheduledDuration) {
