@@ -525,10 +525,16 @@ function renderAttendanceTable() {
             schedule = {};
         }
         
+        // 기본 요일 스케줄
         const daySchedule = schedule[selectedDayKey] || {};
+        
+        // 추가 스케줄 (extra)
+        const extraSchedule = schedule.extra || {};
+        const isExtraForToday = extraSchedule.enabled && extraSchedule.dayKey === selectedDayKey;
+        
         const existingRecord = todayAttendanceRecords.find(r => r.student_id === student.id);
         
-        // ✅ 해당 날짜에 스케줄이 있는 학생만 표시
+        // ✅ 1) 기본 요일 스케줄이 있으면 추가
         if (daySchedule.enabled) {
             const checkInTime = existingRecord?.check_in_time || daySchedule.checkIn || '23:59';
             allAttendanceRows.push({
@@ -536,7 +542,26 @@ function renderAttendanceTable() {
                 student: student,
                 record: existingRecord,
                 daySchedule: daySchedule,
-                checkInTime: checkInTime
+                checkInTime: checkInTime,
+                scheduleType: 'main'
+            });
+        }
+        
+        // ✅ 2) 추가 스케줄(extra)이 오늘 요일과 같으면 추가
+        if (isExtraForToday) {
+            const checkInTime = extraSchedule.checkIn || '23:59';
+            allAttendanceRows.push({
+                type: 'scheduled',
+                student: student,
+                record: null, // 추가 스케줄은 별도 출석 기록 없음 (일단 null)
+                daySchedule: {
+                    enabled: true,
+                    checkIn: extraSchedule.checkIn,
+                    checkOut: extraSchedule.checkOut,
+                    duration: extraSchedule.duration || 90
+                },
+                checkInTime: checkInTime,
+                scheduleType: 'extra'
             });
         }
     });
