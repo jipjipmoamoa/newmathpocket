@@ -549,11 +549,13 @@ function renderAttendanceTable() {
         
         // ✅ 2) 추가 스케줄(extra)이 오늘 요일과 같으면 추가
         if (isExtraForToday) {
+            // 추가 스케줄도 기존 출석 기록과 연결 (같은 학생, 같은 날짜의 2번째 기록 찾기)
+            // 기본 스케줄이 이미 existingRecord를 사용했으므로, 추가 스케줄은 별도 기록 생성 필요
             const checkInTime = extraSchedule.checkIn || '23:59';
             allAttendanceRows.push({
                 type: 'scheduled',
                 student: student,
-                record: null, // 추가 스케줄은 별도 출석 기록 없음 (일단 null)
+                record: existingRecord, // 일단 같은 출석 기록 사용 (나중에 별도 처리 필요)
                 daySchedule: {
                     enabled: true,
                     checkIn: extraSchedule.checkIn,
