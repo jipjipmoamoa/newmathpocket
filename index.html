@@ -174,15 +174,12 @@
     <script src="js/navigation.js?t=1737276500"></script>
     <script src="js/main.js?t=1737276500"></script>
     <script>
-    // schedule.js 함수가 로드되었는지 확인하고, 없으면 강제 로드
+    // schedule.js 로드 확인
     document.addEventListener('DOMContentLoaded', function() {
         if (typeof window.showScheduleCurrentPage === 'undefined') {
-            console.warn('⚠️ showScheduleCurrentPage가 정의되지 않음. 강제 로드 시도...');
-            fetch('js/schedule.js?v=9.0.8.1')
-                .then(r => r.text())
-                .then(code => eval(code))
-                .then(() => console.log('✅ schedule.js 강제 로드 완료'))
-                .catch(e => console.error('❌ schedule.js 로드 실패:', e));
+            console.error('❌ schedule.js 로드 실패');
+        } else {
+            console.log('✅ schedule.js 로드 완료');
         }
     });
     </script>
