@@ -2554,28 +2554,33 @@ async function showAttendanceViewPage() {
                     </select>
                     
                     <button onclick="loadAttendanceViewData()" class="btn-primary">조회</button>
-                    
-                    <div style="display: flex; flex-direction: column; align-items: flex-end; gap: 0.3rem; margin-left: 0.5rem;">
-                        <label style="display: flex; align-items: center; gap: 0.3rem; cursor: pointer; font-size: 0.85rem;">
-                            <input type="checkbox" id="printStatsCheckbox" checked style="cursor: pointer;" />
-                            <span>통계포함</span>
-                        </label>
-                        <button onclick="printAttendanceView()" class="btn-secondary">인쇄</button>
-                    </div>
+                    <button onclick="printAttendanceView()" class="btn-secondary">인쇄</button>
                 </div>
             </div>
             
-            <!-- 월별 출결 현황 달력 -->
-            <div class="monthly-calendar-section">
-                <div class="calendar-header">
-                    <button onclick="changeViewMonthCalendar(-1)" class="btn-month-nav">◀</button>
-                    <h3 id="viewCalendarMonthTitle"></h3>
-                    <button onclick="changeViewMonthCalendar(1)" class="btn-month-nav">▶</button>
+            <!-- 2단 레이아웃 -->
+            <div class="view-two-column-layout">
+                <!-- 1단: 월별 출결 현황 달력 -->
+                <div class="view-column-left">
+                    <div class="monthly-calendar-section">
+                        <div class="calendar-header">
+                            <button onclick="changeViewMonthCalendar(-1)" class="btn-month-nav">◀</button>
+                            <h3 id="viewCalendarMonthTitle"></h3>
+                            <button onclick="changeViewMonthCalendar(1)" class="btn-month-nav">▶</button>
+                        </div>
+                        <div id="viewMonthlyCalendarContainer"></div>
+                    </div>
                 </div>
-                <div id="viewMonthlyCalendarContainer"></div>
                 
-                <!-- 학년별 통계 표 -->
-                <div id="viewAttendanceStatsContainer"></div>
+                <!-- 2단: 학생 정보 테이블 -->
+                <div class="view-column-right">
+                    <div class="student-info-section">
+                        <h3>학생 정보</h3>
+                        <div id="viewStudentInfoContainer">
+                            <p style="text-align: center; color: #999;">조회된 학생이 없습니다.</p>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
     `;
@@ -2666,16 +2671,16 @@ async function loadAttendanceViewData() {
     
     const titleElement = document.getElementById('viewCalendarMonthTitle');
     const calendarContainer = document.getElementById('viewMonthlyCalendarContainer');
-    const statsContainer = document.getElementById('viewAttendanceStatsContainer');
+    const studentInfoContainer = document.getElementById('viewStudentInfoContainer');
     
-    if (!titleElement || !calendarContainer || !statsContainer) {
+    if (!titleElement || !calendarContainer || !studentInfoContainer) {
         console.error('출결조회 컨테이너를 찾을 수 없습니다.');
         return;
     }
     
     titleElement.textContent = `${year}년 ${month}월`;
     calendarContainer.innerHTML = '<p style="text-align: center;">로딩 중...</p>';
-    statsContainer.innerHTML = '';
+    studentInfoContainer.innerHTML = '<p style="text-align: center;">로딩 중...</p>';
     
     try {
         // 해당 월의 출석 기록 로드 (출석조회 페이지)
@@ -2684,8 +2689,8 @@ async function loadAttendanceViewData() {
         // 달력 렌더링
         renderViewMonthlyCalendar(year, month - 1);
         
-        // 통계 렌더링
-        await renderViewAttendanceStats(year, month - 1);
+        // 학생 정보 테이블 렌더링
+        await renderViewStudentInfoTable();
         
     } catch (error) {
         console.error('출결조회 로드 실패:', error);
@@ -2944,37 +2949,76 @@ async function loadAttendanceViewCalendar() {
     }
 }
 
-function printAttendanceView() {
-    // 체크박스 상태 확인
-    const printStatsCheckbox = document.getElementById('printStatsCheckbox');
-    const includeStats = printStatsCheckbox ? printStatsCheckbox.checked : true;
+// 학생 정보 테이블 렌더링
+async function renderViewStudentInfoTable() {
+    const container = document.getElementById('viewStudentInfoContainer');
+    if (!container) return;
     
-    // 통계표 숨김 클래스 추가/제거
-    if (!includeStats) {
-        document.body.classList.add('hide-stats-print');
-    } else {
-        document.body.classList.remove('hide-stats-print');
-    }
-    
-    // 색상 인쇄 설정 안내 (한 번만 표시)
-    const hasSeenPrintGuide = localStorage.getItem('printColorGuideShown');
-    if (!hasSeenPrintGuide) {
-        const userConfirm = confirm(
-            '📌 색상 인쇄 설정 안내\n\n' +
-            '화면에 보이는 색상을 인쇄하려면 브라우저 설정이 필요합니다:\n\n' +
-            '✅ Chrome/Edge:\n' +
-            '   인쇄 미리보기 → "기타 설정" → "배경 그래픽" 체크\n\n' +
-            '✅ Safari:\n' +
-            '   인쇄 미리보기 → 하단 "Safari" → "배경 프린트" 체크\n\n' +
-            '✅ Firefox:\n' +
-            '   인쇄 미리보기 → "기타 설정" → "배경 인쇄" 체크\n\n' +
-            '이 메시지를 다시 보지 않으시겠습니까?\n(확인 = 다시 보지 않음 / 취소 = 다음에도 표시)'
-        );
+    try {
+        // 학생 목록 로드
+        const response = await API.getList('students', { limit: 1000 });
+        let allStudents = Array.isArray(response) ? response : (response.data || []);
         
-        if (userConfirm) {
-            localStorage.setItem('printColorGuideShown', 'true');
+        // 권한 필터링
+        allStudents = Permissions.filterStudentsByTeacher(allStudents);
+        
+        // 관리자/부관리자인 경우 선택된 선생님으로 추가 필터링
+        if ((Auth.isAdmin() || Auth.isSubAdmin()) && currentAttendanceViewTeacherFilter !== 'all') {
+            allStudents = allStudents.filter(s => s.teacher_id === currentAttendanceViewTeacherFilter);
         }
+        
+        // 재원생만 필터링하고 이름순 정렬
+        const activeStudents = allStudents
+            .filter(s => s.status === '재원')
+            .sort((a, b) => (a.name || '').localeCompare(b.name || '', 'ko'));
+        
+        if (activeStudents.length === 0) {
+            container.innerHTML = '<p style="text-align: center; color: #999;">조회된 학생이 없습니다.</p>';
+            return;
+        }
+        
+        let html = '<table class="student-info-table">';
+        html += '<thead><tr>';
+        html += '<th style="width: 25%;">이름</th>';
+        html += '<th style="width: 30%;">학교</th>';
+        html += '<th style="width: 45%;">메모</th>';
+        html += '</tr></thead>';
+        html += '<tbody>';
+        
+        activeStudents.forEach(student => {
+            const schoolName = student.school || '-';
+            const memo = student.view_memo || '';
+            
+            html += '<tr>';
+            html += `<td>${student.name}</td>`;
+            html += `<td>${schoolName}</td>`;
+            html += `<td><input type="text" value="${memo}" data-student-id="${student.id}" onchange="saveStudentViewMemo('${student.id}', this.value)" /></td>`;
+            html += '</tr>';
+        });
+        
+        html += '</tbody></table>';
+        container.innerHTML = html;
+        
+    } catch (error) {
+        console.error('학생 정보 테이블 렌더링 실패:', error);
+        container.innerHTML = '<p style="text-align: center; color: #f44336;">데이터 로드에 실패했습니다.</p>';
     }
+}
+
+// 학생 조회 메모 자동 저장
+async function saveStudentViewMemo(studentId, memo) {
+    try {
+        await API.update('students', studentId, { view_memo: memo });
+        console.log(`학생 ${studentId} 메모 저장 완료:`, memo);
+    } catch (error) {
+        console.error('메모 저장 실패:', error);
+        alert('메모 저장에 실패했습니다.');
+    }
+}
+
+function printAttendanceView() {
+    // 가로 인쇄 안내
+    alert('📄 인쇄 설정 안내\n\n인쇄 미리보기에서 "레이아웃"을 "가로"로 변경해주세요.\n\n또한 "배경 그래픽" 옵션을 체크하면 색상이 인쇄됩니다.');
     
     // 인쇄 실행
     window.print();
