@@ -2979,9 +2979,9 @@ async function renderViewStudentInfoTable() {
         
         let html = '<table class="student-info-table">';
         html += '<thead><tr>';
-        html += '<th style="width: 25%;">이름</th>';
-        html += '<th style="width: 30%;">학교</th>';
-        html += '<th style="width: 45%;">메모</th>';
+        html += '<th style="width: 12.5%;">이름</th>';
+        html += '<th style="width: 15%;">학교</th>';
+        html += '<th style="width: 72.5%;">메모</th>';
         html += '</tr></thead>';
         html += '<tbody>';
         
