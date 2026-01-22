@@ -417,6 +417,7 @@ function buildScheduleData(students) {
                 }
             }
             
+            // ✅ 1) 기본 요일 스케줄 처리
             if (schedule && schedule[day] && schedule[day].enabled) {
                 const daySchedule = schedule[day];
                 const checkIn = daySchedule.checkIn;
