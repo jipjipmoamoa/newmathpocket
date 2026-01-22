@@ -12,6 +12,18 @@ let currentAttendanceTeacherFilter = 'all';
 let currentAttendanceViewTeacherFilter = 'all';
 
 // ============================================
+// 헬퍼 함수: 시간을 분 단위로 변환
+// ============================================
+function timeToMinutes(timeString) {
+    if (!timeString) return 0;
+    const parts = timeString.split(':');
+    if (parts.length !== 2) return 0;
+    const hours = parseInt(parts[0]) || 0;
+    const minutes = parseInt(parts[1]) || 0;
+    return hours * 60 + minutes;
+}
+
+// ============================================
 // 1. 출석 체크 페이지 표시
 // ============================================
 async function showAttendanceCheckPage() {
@@ -532,15 +544,34 @@ function renderAttendanceTable() {
         const extraSchedule = schedule.extra || {};
         const isExtraForToday = extraSchedule.enabled && extraSchedule.dayKey === selectedDayKey;
         
-        const existingRecord = todayAttendanceRecords.find(r => r.student_id === student.id);
+        // ✅ 학생의 모든 출석 기록 가져오기 (같은 날짜에 여러 개 있을 수 있음)
+        const studentRecords = todayAttendanceRecords.filter(r => r.student_id === student.id);
         
         // ✅ 1) 기본 요일 스케줄이 있으면 추가
         if (daySchedule.enabled) {
-            const checkInTime = existingRecord?.check_in_time || daySchedule.checkIn || '23:59';
+            // 기본 스케줄의 checkIn 시간과 가장 가까운 출석 기록 찾기
+            let mainRecord = null;
+            if (daySchedule.checkIn && studentRecords.length > 0) {
+                // 시간 차이가 가장 작은 기록 찾기
+                mainRecord = studentRecords.reduce((closest, record) => {
+                    if (!record.check_in_time) return closest;
+                    const recordTime = record.check_in_time;
+                    const scheduleTime = daySchedule.checkIn;
+                    
+                    if (!closest) return record;
+                    
+                    const closestDiff = Math.abs(timeToMinutes(closest.check_in_time || '00:00') - timeToMinutes(scheduleTime));
+                    const recordDiff = Math.abs(timeToMinutes(recordTime) - timeToMinutes(scheduleTime));
+                    
+                    return recordDiff < closestDiff ? record : closest;
+                }, null);
+            }
+            
+            const checkInTime = mainRecord?.check_in_time || daySchedule.checkIn || '23:59';
             allAttendanceRows.push({
                 type: 'scheduled',
                 student: student,
-                record: existingRecord,
+                record: mainRecord,
                 daySchedule: daySchedule,
                 checkInTime: checkInTime,
                 scheduleType: 'main'
@@ -549,13 +580,42 @@ function renderAttendanceTable() {
         
         // ✅ 2) 추가 스케줄(extra)이 오늘 요일과 같으면 추가
         if (isExtraForToday) {
-            // 추가 스케줄도 기존 출석 기록과 연결 (같은 학생, 같은 날짜의 2번째 기록 찾기)
-            // 기본 스케줄이 이미 existingRecord를 사용했으므로, 추가 스케줄은 별도 기록 생성 필요
-            const checkInTime = extraSchedule.checkIn || '23:59';
+            // 추가 스케줄의 checkIn 시간과 가장 가까운 출석 기록 찾기
+            let extraRecord = null;
+            if (extraSchedule.checkIn && studentRecords.length > 0) {
+                // 기본 스케줄에서 이미 사용된 기록 제외하고 찾기
+                const unusedRecords = studentRecords.filter(record => {
+                    // 기본 스케줄 기록과 다른 것만
+                    if (daySchedule.enabled && record.check_in_time) {
+                        const scheduleTime = daySchedule.checkIn;
+                        const recordTime = record.check_in_time;
+                        const diff = Math.abs(timeToMinutes(recordTime) - timeToMinutes(scheduleTime));
+                        return diff > 30; // 30분 이상 차이나면 다른 스케줄로 간주
+                    }
+                    return true;
+                });
+                
+                if (unusedRecords.length > 0) {
+                    extraRecord = unusedRecords.reduce((closest, record) => {
+                        if (!record.check_in_time) return closest;
+                        const recordTime = record.check_in_time;
+                        const scheduleTime = extraSchedule.checkIn;
+                        
+                        if (!closest) return record;
+                        
+                        const closestDiff = Math.abs(timeToMinutes(closest.check_in_time || '00:00') - timeToMinutes(scheduleTime));
+                        const recordDiff = Math.abs(timeToMinutes(recordTime) - timeToMinutes(scheduleTime));
+                        
+                        return recordDiff < closestDiff ? record : closest;
+                    }, null);
+                }
+            }
+            
+            const checkInTime = extraRecord?.check_in_time || extraSchedule.checkIn || '23:59';
             allAttendanceRows.push({
                 type: 'scheduled',
                 student: student,
-                record: existingRecord, // 일단 같은 출석 기록 사용 (나중에 별도 처리 필요)
+                record: extraRecord, // ✅ 별도 출석 기록 사용
                 daySchedule: {
                     enabled: true,
                     checkIn: extraSchedule.checkIn,
