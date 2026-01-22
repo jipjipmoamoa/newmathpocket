@@ -10,6 +10,8 @@ let allMonthAttendance = [];
 let currentAttendanceTeacherFilter = 'all';
 // 현재 선택된 담당선생님 필터 (출석조회)
 let currentAttendanceViewTeacherFilter = 'all';
+// 통계표에서 클릭한 학생 (형광펜 표시용)
+let highlightedStudentName = null;
 
 // ============================================
 // 헬퍼 함수: 시간을 분 단위로 변환
@@ -678,6 +680,9 @@ function renderAttendanceTable() {
                 statusText = `보강(${formattedDate})`;
             }
             statusColor = 'style="color: #f44336; font-weight: 600;"';
+        } else if (status === '보충') {
+            // 보충 표시
+            statusColor = 'style="color: #9C27B0; font-weight: 600;"';
         } else if (status === '결석') {
             // 결석 사유 표시
             if (absenceReason) {
@@ -685,8 +690,13 @@ function renderAttendanceTable() {
             }
             statusColor = 'style="color: #000; font-weight: 600; text-decoration: line-through;"';
         } else {
-            // 상태가 비어있으면 검정색
-            statusColor = 'style="color: #000;"';
+            // 상태가 비어있을 때: 입실만 있으면 초록색 체크, 입실도 없으면 검정색
+            if (checkInTime && !checkOutTime) {
+                statusText = '✓';
+                statusColor = 'style="color: #4CAF50; font-weight: 600; font-size: 1.2rem;"';
+            } else {
+                statusColor = 'style="color: #000;"';
+            }
         }
         
         row.innerHTML = `
@@ -715,6 +725,7 @@ function renderAttendanceTable() {
                         <option value="출석" ${status === '출석' ? 'selected' : ''}>출석</option>
                         <option value="결석" ${status === '결석' ? 'selected' : ''}>결석</option>
                         <option value="보강" ${status === '보강' ? 'selected' : ''}>보강</option>
+                        <option value="보충" ${status === '보충' ? 'selected' : ''}>보충</option>
                     </select>
                     <select class="form-select" id="absence-reason-${rowId}" style="display: ${status === '결석' ? 'block' : 'none'}; margin-top: 5px;">
                         <option value="">사유 선택</option>
@@ -1187,9 +1198,13 @@ async function saveAttendance(rowId, recordId) {
         return;
     }
     
-    // 상태가 비어있으면 기본값 "출석"으로 설정
+    // 상태가 비어있으면 자동 결정: 입실+퇴실 있으면 "출석", 입실만 있으면 빈 상태
     if (!status) {
-        status = '출석';
+        if (checkInTime && checkOutTime) {
+            status = '출석';
+        } else {
+            status = '';
+        }
     }
     
     const attendanceData = {
@@ -1258,7 +1273,7 @@ async function quickCheckIn(studentId, recordId = null) {
                     ...existingRecord,
                     check_in_time: checkInTime,
                     expected_out_time: expectedOutTime,
-                    status: '출석'
+                    status: existingRecord.check_out_time ? '출석' : ''
                 });
                 alert(`${student.name} 입실 ${checkInTime}`);
             }
@@ -1271,7 +1286,7 @@ async function quickCheckIn(studentId, recordId = null) {
                     ...existingRecord,
                     check_in_time: checkInTime,
                     expected_out_time: expectedOutTime,
-                    status: '출석'
+                    status: existingRecord.check_out_time ? '출석' : ''
                 });
                 alert(`${student.name} 입실 ${checkInTime}`);
             } else {
@@ -1282,7 +1297,7 @@ async function quickCheckIn(studentId, recordId = null) {
                     check_in_time: checkInTime,
                     expected_out_time: expectedOutTime,
                     check_out_time: '',
-                    status: '출석',
+                    status: '',
                     absence_reason: '',
                     makeup_date: ''
                 };
@@ -1334,7 +1349,8 @@ async function quickCheckOut(studentId, recordId = null) {
         
         await API.update('attendance', existingRecord.id, {
             ...existingRecord,
-            check_out_time: checkOutTime
+            check_out_time: checkOutTime,
+            status: existingRecord.check_in_time ? '출석' : existingRecord.status
         });
         
         alert(`${student.name} 퇴실 ${checkOutTime}`);
@@ -1654,7 +1670,15 @@ async function renderMonthlyCalendar() {
     const today = new Date();
     const todayDate = today.getDate();
     
-    title.textContent = `${currentYear}년 ${currentMonth + 1}월`;
+    title.innerHTML = `
+        ${currentYear}년 ${currentMonth + 1}월
+        <span style="float: right; font-size: 0.9rem;">
+            <span style="color: #000;">출석</span>
+            <span style="color: #000; text-decoration: line-through; margin-left: 15px;">결석</span>
+            <span style="color: #f44336; margin-left: 15px;">보강</span>
+            <span style="color: #9C27B0; margin-left: 15px;">보충</span>
+        </span>
+    `;
     
     // 해당 월의 출석 기록 로드 (출석체크 페이지)
     await loadMonthAttendance(currentYear, currentMonth, 'check');
@@ -1739,11 +1763,13 @@ async function renderMonthlyCalendar() {
                 // 통계 계산
                 let attendanceCount = 0;
                 let makeupCount = 0;
+                let supplementCount = 0;
                 let absenceCount = 0;
                 
                 schedules.forEach(schedule => {
                     if (schedule.status === '출석') attendanceCount++;
                     else if (schedule.status === '보강') makeupCount++;
+                    else if (schedule.status === '보충') supplementCount++;
                     else if (schedule.status === '결석') absenceCount++;
                 });
                 
@@ -1880,9 +1906,23 @@ function getSchedulesForDate(dateString) {
 function renderScheduleItem(schedule) {
     let itemClass = 'schedule-item';
     let content = '';
+    let highlightStyle = '';
     
     // 정보 없는 학생 (is_external) 플래그 확인
     const isExternal = schedule.is_external === true || schedule.is_external === 1;
+    
+    // 형광펜 표시 (통계표에서 클릭한 학생인 경우)
+    if (highlightedStudentName && schedule.student_name === highlightedStudentName) {
+        if (schedule.status === '출석') {
+            highlightStyle = 'background-color: #C8E6C9; padding: 2px 4px; border-radius: 2px;'; // 연초록
+        } else if (schedule.status === '보강') {
+            highlightStyle = 'background-color: #FFCDD2; padding: 2px 4px; border-radius: 2px;'; // 연빨강
+        } else if (schedule.status === '보충') {
+            highlightStyle = 'background-color: #E1BEE7; padding: 2px 4px; border-radius: 2px;'; // 연보라
+        } else if (schedule.status === '결석') {
+            highlightStyle = 'background-color: #E0E0E0; padding: 2px 4px; border-radius: 2px;'; // 연회색
+        }
+    }
     
     if (schedule.status === '결석') {
         // 결석: "이름, 결석(사유)" - 검정색 + 가로선
@@ -1894,13 +1934,17 @@ function renderScheduleItem(schedule) {
         itemClass += ' makeup';
         const makeupDateStr = schedule.makeup_date ? ` (${schedule.makeup_date.substring(5).replace('-', '/')})` : '';
         content = `${schedule.check_in_time || '-'} ${schedule.student_name} ${schedule.check_out_time || '-'}${makeupDateStr}`;
+    } else if (schedule.status === '보충') {
+        // 보충: "입실시간, 이름, 퇴실시간" - 보라색
+        itemClass += ' supplement';
+        content = `${schedule.check_in_time || '-'} ${schedule.student_name} ${schedule.check_out_time || '-'}`;
     } else {
         // 출석: "입실시간, 이름, 퇴실시간" - 검정색 (또는 파란색)
         itemClass += isExternal ? ' external' : ' attendance';
         content = `${schedule.check_in_time || '-'} ${schedule.student_name} ${schedule.check_out_time || '-'}`;
     }
     
-    return `<div class="${itemClass}">${content}</div>`;
+    return `<div class="${itemClass}" style="${highlightStyle}">${content}</div>`;
 }
 
 // ============================================
@@ -2031,7 +2075,7 @@ function renderUnifiedStatsTable(elementary, middle, high, year, month) {
             const schoolName = student.school || '-';
             const grade = student.grade || '-';
             html += `<th style="background-color: #fffef0;">
-                <div class="student-name">${student.name}</div>
+                <div class="student-name" style="cursor: pointer;" onclick="highlightStudent('${student.name}')">${student.name}</div>
                 <div class="student-info">${schoolName} ${grade}</div>
             </th>`;
         } else {
@@ -2083,7 +2127,7 @@ function renderUnifiedStatsTable(elementary, middle, high, year, month) {
             const schoolName = student.school || '-';
             const grade = student.grade || '-';
             html += `<th style="background-color: #f0faf4;">
-                <div class="student-name">${student.name}</div>
+                <div class="student-name" style="cursor: pointer;" onclick="highlightStudent('${student.name}')">${student.name}</div>
                 <div class="student-info">${schoolName} ${grade}</div>
             </th>`;
         } else {
@@ -2135,7 +2179,7 @@ function renderUnifiedStatsTable(elementary, middle, high, year, month) {
             const schoolName = student.school || '-';
             const grade = student.grade || '-';
             html += `<th style="background-color: #f0f8ff;">
-                <div class="student-name">${student.name}</div>
+                <div class="student-name" style="cursor: pointer;" onclick="highlightStudent('${student.name}')">${student.name}</div>
                 <div class="student-info">${schoolName} ${grade}</div>
             </th>`;
         } else {
@@ -2298,6 +2342,16 @@ function countWeeklySchedule(schedule) {
     });
     
     return count;
+}
+
+// ============================================
+// 학생 형광펜 표시 함수
+// ============================================
+
+function highlightStudent(studentName) {
+    highlightedStudentName = studentName;
+    // 월별 달력 다시 렌더링
+    renderMonthlyCalendar();
 }
 
 // ============================================
