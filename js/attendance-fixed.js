@@ -1204,15 +1204,12 @@ async function saveAttendance(rowId, recordId) {
     const absenceReason = document.getElementById(`absence-reason-${rowId}`)?.value || '';
     const makeupDate = document.getElementById(`makeup-date-input-${rowId}`)?.value || '';
     
-    // 학생 이름 가져오기 (row에서 먼저 찾기)
-    let studentName = row.dataset.studentName || '';
-    
     // 스케줄에서 기본값 가져오기
     const student = attendanceStudents.find(s => s.id === studentId);
+    let studentName = '';
+    
     if (student) {
-        if (!studentName) {
-            studentName = student.name;
-        }
+        studentName = student.name;
         
         let schedule = student.schedule;
         if (typeof schedule === 'string' && schedule.trim() !== '') {
