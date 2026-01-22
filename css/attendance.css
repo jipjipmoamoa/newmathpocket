@@ -823,10 +823,10 @@ input[type="date"] {
     padding: 2rem;
 }
 
-/* 2단 레이아웃 */
+/* 2단 레이아웃 - 2:1 비율 */
 .view-two-column-layout {
     display: grid;
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: 2fr 1fr;
     gap: 2rem;
     margin-top: 2rem;
 }
@@ -980,10 +980,10 @@ input[type="date"] {
         margin: 1cm;
     }
     
-    /* 2단 레이아웃 유지 */
+    /* 2단 레이아웃 유지 - 2:1 비율 */
     .view-two-column-layout {
         display: grid !important;
-        grid-template-columns: 1fr 1fr !important;
+        grid-template-columns: 2fr 1fr !important;
         gap: 1rem !important;
         page-break-inside: avoid !important;
     }
