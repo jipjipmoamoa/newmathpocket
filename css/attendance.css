@@ -818,9 +818,85 @@ input[type="date"] {
    출석 조회 페이지
    ============================================ */
 .attendance-view-container {
-    max-width: 1400px;
+    max-width: 100%;
     margin: 0 auto;
     padding: 2rem;
+}
+
+/* 2단 레이아웃 */
+.view-two-column-layout {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 2rem;
+    margin-top: 2rem;
+}
+
+.view-column-left,
+.view-column-right {
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.view-column-left {
+    padding: 0;
+}
+
+.view-column-right {
+    padding: 2rem;
+}
+
+/* 학생 정보 섹션 */
+.student-info-section h3 {
+    margin: 0 0 1.5rem 0;
+    color: #333;
+    font-size: 1.3rem;
+}
+
+.student-info-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.student-info-table thead {
+    background: #f8f9fa;
+}
+
+.student-info-table th {
+    padding: 0.8rem;
+    text-align: center;
+    font-weight: 600;
+    color: #495057;
+    border: 1px solid #dee2e6;
+}
+
+.student-info-table tbody tr {
+    border-bottom: 1px solid #e9ecef;
+}
+
+.student-info-table tbody tr:hover {
+    background-color: #f8f9fa;
+}
+
+.student-info-table td {
+    padding: 0.6rem;
+    color: #495057;
+    border: 1px solid #dee2e6;
+    text-align: center;
+}
+
+.student-info-table input[type="text"] {
+    width: 100%;
+    padding: 0.4rem;
+    border: 1px solid #ced4da;
+    border-radius: 4px;
+    font-size: 0.9rem;
+}
+
+.student-info-table input[type="text"]:focus {
+    outline: none;
+    border-color: #FF6B35;
+    box-shadow: 0 0 0 2px rgba(255, 107, 53, 0.1);
 }
 
 .view-controls {
@@ -892,9 +968,50 @@ input[type="date"] {
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
-/* 인쇄 스타일 */
+/* 출석조회 페이지 인쇄 스타일 (가로) */
 @media print {
-    /* 페이지 설정 - 세로 방향 */
+    /* 출석조회 페이지 가로 인쇄 */
+    .attendance-view-container {
+        display: block !important;
+    }
+    
+    .attendance-view-container @page {
+        size: landscape;
+        margin: 1cm;
+    }
+    
+    /* 2단 레이아웃 유지 */
+    .view-two-column-layout {
+        display: grid !important;
+        grid-template-columns: 1fr 1fr !important;
+        gap: 1rem !important;
+        page-break-inside: avoid !important;
+    }
+    
+    .view-column-left,
+    .view-column-right {
+        page-break-inside: avoid !important;
+    }
+    
+    /* 학생 정보 테이블 인쇄 스타일 */
+    .student-info-table {
+        font-size: 9pt !important;
+        page-break-inside: avoid !important;
+    }
+    
+    .student-info-table th,
+    .student-info-table td {
+        padding: 4px !important;
+        font-size: 9pt !important;
+    }
+    
+    .student-info-table input[type="text"] {
+        border: none !important;
+        padding: 0 !important;
+        font-size: 9pt !important;
+    }
+    
+    /* 페이지 설정 - 세로 방향 (출석체크용) */
     @page {
         size: portrait;
         margin: 1cm;
