@@ -691,6 +691,13 @@
     font-weight: 600;
 }
 
+/* 보충: 보라색 글자, 배경 없음 */
+.schedule-item.supplement {
+    color: #9C27B0;
+    background: transparent;
+    font-weight: 600;
+}
+
 /* 정보 없는 학생: 파란색 글자 */
 .schedule-item.external {
     color: #007bff;
@@ -1256,6 +1263,14 @@ input[type="date"] {
     
     .schedule-item.makeup {
         color: #dc3545 !important;
+        background: transparent !important;
+        font-weight: 600 !important;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+    }
+    
+    .schedule-item.supplement {
+        color: #9C27B0 !important;
         background: transparent !important;
         font-weight: 600 !important;
         -webkit-print-color-adjust: exact;
