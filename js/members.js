@@ -1026,6 +1026,8 @@ function renderScheduleSection(student) {
                                 value="${extraSchedule.checkIn || ''}"
                                 placeholder="14:00"
                                 oninput="updateScheduleExtraCheckoutRealtime('${student.id}')"
+                                onkeyup="updateScheduleExtraCheckoutRealtime('${student.id}')"
+                                onblur="updateScheduleExtraCheckoutRealtime('${student.id}')"
                                 onchange="updateScheduleExtraCheckIn('${student.id}', this.value)">
                         </td>
                         <td>
@@ -1040,6 +1042,7 @@ function renderScheduleSection(student) {
                                 value="${extraSchedule.duration || 90}"
                                 min="30" max="300" step="10"
                                 oninput="updateScheduleExtraCheckoutRealtime('${student.id}')"
+                                onkeyup="updateScheduleExtraCheckoutRealtime('${student.id}')"
                                 onchange="updateScheduleExtraDuration('${student.id}', this.value)">
                         </td>
                     </tr>
@@ -1158,6 +1161,8 @@ function renderScheduleTab(student) {
                                 value="${extraSchedule.checkIn || ''}"
                                 placeholder="14:00"
                                 oninput="updateScheduleExtraCheckoutRealtime('${student.id}')"
+                                onkeyup="updateScheduleExtraCheckoutRealtime('${student.id}')"
+                                onblur="updateScheduleExtraCheckoutRealtime('${student.id}')"
                                 onchange="updateScheduleExtraCheckIn('${student.id}', this.value)">
                         </td>
                         <td>
@@ -1172,6 +1177,7 @@ function renderScheduleTab(student) {
                                 value="${extraSchedule.duration || 90}"
                                 min="30" max="300" step="10"
                                 oninput="updateScheduleExtraCheckoutRealtime('${student.id}')"
+                                onkeyup="updateScheduleExtraCheckoutRealtime('${student.id}')"
                                 onchange="updateScheduleExtraDuration('${student.id}', this.value)">
                         </td>
                     </tr>
