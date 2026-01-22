@@ -1027,7 +1027,7 @@ function renderScheduleSection(student) {
                                 placeholder="14:00"
                                 oninput="updateScheduleExtraCheckoutRealtime('${student.id}')"
                                 onkeyup="updateScheduleExtraCheckoutRealtime('${student.id}')"
-                                onblur="updateScheduleExtraCheckoutRealtime('${student.id}')"
+                                onblur="updateScheduleExtraCheckIn('${student.id}', this.value)"
                                 onchange="updateScheduleExtraCheckIn('${student.id}', this.value)">
                         </td>
                         <td>
@@ -1162,7 +1162,7 @@ function renderScheduleTab(student) {
                                 placeholder="14:00"
                                 oninput="updateScheduleExtraCheckoutRealtime('${student.id}')"
                                 onkeyup="updateScheduleExtraCheckoutRealtime('${student.id}')"
-                                onblur="updateScheduleExtraCheckoutRealtime('${student.id}')"
+                                onblur="updateScheduleExtraCheckIn('${student.id}', this.value)"
                                 onchange="updateScheduleExtraCheckIn('${student.id}', this.value)">
                         </td>
                         <td>
