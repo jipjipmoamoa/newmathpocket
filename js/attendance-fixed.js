@@ -688,6 +688,10 @@ function renderAttendanceTable() {
         row.dataset.studentName = student.name;
         row.dataset.recordId = existingRecord ? existingRecord.id : '';
         row.dataset.scheduledDuration = scheduledDuration;
+        row.dataset.scheduleType = item.scheduleType; // 'main' 또는 'extra'
+        
+        // 고유 행 ID 생성
+        const rowId = `${student.id}-${item.scheduleType}`;
         
         // 담당 선생님 색상 적용 (관리자/부관리자만)
         if (Auth.isAdminOrSubAdmin() && student.teacher_id && typeof getTeacherColorClass === 'function') {
@@ -741,52 +745,52 @@ function renderAttendanceTable() {
         row.innerHTML = `
             <td>${student.name} (${student.attendance_number || '-'})</td>
             <td>
-                <span class="display-mode" id="display-checkin-${student.id}">${checkInTime || '-'}</span>
-                <input type="text" class="form-input edit-mode" id="edit-checkin-${student.id}" value="${checkInTime}" placeholder="14:00" style="display: none;"
-                    oninput="autoUpdateExpectedOutTime('${student.id}', this.value, ${scheduledDuration})"
+                <span class="display-mode" id="display-checkin-${rowId}">${checkInTime || '-'}</span>
+                <input type="text" class="form-input edit-mode" id="edit-checkin-${rowId}" value="${checkInTime}" placeholder="14:00" style="display: none;"
+                    oninput="autoUpdateExpectedOutTime('${rowId}', this.value, ${scheduledDuration})"
                     onblur="this.value = formatTimeInput(this.value)" />
             </td>
             <td>
-                <span class="display-mode" id="display-expected-${student.id}">${expectedOutTime || '-'}</span>
-                <input type="text" class="form-input edit-mode" id="edit-expected-${student.id}" value="${expectedOutTime}" placeholder="15:30" readonly style="display: none;" />
+                <span class="display-mode" id="display-expected-${rowId}">${expectedOutTime || '-'}</span>
+                <input type="text" class="form-input edit-mode" id="edit-expected-${rowId}" value="${expectedOutTime}" placeholder="15:30" readonly style="display: none;" />
             </td>
             <td>
-                <span class="display-mode" id="display-checkout-${student.id}">${checkOutTime || '-'}</span>
-                <input type="text" class="form-input edit-mode" id="edit-checkout-${student.id}" value="${checkOutTime}" placeholder="15:30" style="display: none;"
+                <span class="display-mode" id="display-checkout-${rowId}">${checkOutTime || '-'}</span>
+                <input type="text" class="form-input edit-mode" id="edit-checkout-${rowId}" value="${checkOutTime}" placeholder="15:30" style="display: none;"
                     onblur="this.value = formatTimeInput(this.value)" />
             </td>
             <td class="duration-display" ${durationColor}>${durationText}</td>
             <td>
-                <span class="display-mode" id="display-status-${student.id}" ${statusColor}>${statusText || '-'}</span>
-                <div class="edit-mode" id="edit-status-container-${student.id}" style="display: none;">
-                    <select class="form-select" id="status-${student.id}" onchange="handleStatusChange('${student.id}')">
+                <span class="display-mode" id="display-status-${rowId}" ${statusColor}>${statusText || '-'}</span>
+                <div class="edit-mode" id="edit-status-container-${rowId}" style="display: none;">
+                    <select class="form-select" id="status-${rowId}" onchange="handleStatusChange('${rowId}')">
                         <option value="" ${status === '' ? 'selected' : ''}></option>
                         <option value="출석" ${status === '출석' ? 'selected' : ''}>출석</option>
                         <option value="결석" ${status === '결석' ? 'selected' : ''}>결석</option>
                         <option value="보강" ${status === '보강' ? 'selected' : ''}>보강</option>
                     </select>
-                    <select class="form-select" id="absence-reason-${student.id}" style="display: ${status === '결석' ? 'block' : 'none'}; margin-top: 5px;">
+                    <select class="form-select" id="absence-reason-${rowId}" style="display: ${status === '결석' ? 'block' : 'none'}; margin-top: 5px;">
                         <option value="">사유 선택</option>
                         <option value="병결" ${absenceReason === '병결' ? 'selected' : ''}>병결</option>
                         <option value="학교" ${absenceReason === '학교' ? 'selected' : ''}>학교</option>
                         <option value="여행" ${absenceReason === '여행' ? 'selected' : ''}>여행</option>
                         <option value="기타" ${absenceReason === '기타' ? 'selected' : ''}>기타</option>
                     </select>
-                    <div id="makeup-date-${student.id}" style="display: ${status === '보강' ? 'block' : 'none'}; margin-top: 5px;">
-                        <input type="date" id="makeup-date-input-${student.id}" class="form-input" value="${makeupDate}" style="width: 100%;" placeholder="보강 날짜" />
+                    <div id="makeup-date-${rowId}" style="display: ${status === '보강' ? 'block' : 'none'}; margin-top: 5px;">
+                        <input type="date" id="makeup-date-input-${rowId}" class="form-input" value="${makeupDate}" style="width: 100%;" placeholder="보강 날짜" />
                     </div>
                 </div>
             </td>
             <td>
-                <button class="btn-quick-checkin" onclick="quickCheckIn('${student.id}')" title="입실">입실</button>
-                <button class="btn-quick-checkout" onclick="quickCheckOut('${student.id}')" title="퇴실">퇴실</button>
+                <button class="btn-quick-checkin" onclick="quickCheckIn('${student.id}', '${item.scheduleType}', '${existingRecord ? existingRecord.id : ''}')" title="입실">입실</button>
+                <button class="btn-quick-checkout" onclick="quickCheckOut('${student.id}', '${item.scheduleType}', '${existingRecord ? existingRecord.id : ''}')" title="퇴실">퇴실</button>
             </td>
             <td>
-                <button class="btn-icon btn-edit display-mode" id="btn-edit-${student.id}" onclick="enterEditMode('${student.id}')" title="수정"></button>
-                ${existingRecord ? `<button class="btn-icon btn-delete display-mode" id="btn-delete-${student.id}" onclick="deleteAttendance('${student.id}', '${existingRecord.id}')" style="margin-left: 0.5rem;" title="삭제"></button>` : ''}
-                <div class="edit-mode" id="edit-buttons-${student.id}" style="display: none;">
-                    <button class="btn-save" onclick="saveAttendance('${student.id}')">저장</button>
-                    <button class="btn-cancel" onclick="cancelEditMode('${student.id}')">취소</button>
+                <button class="btn-icon btn-edit display-mode" id="btn-edit-${rowId}" onclick="enterEditMode('${rowId}')" title="수정"></button>
+                ${existingRecord ? `<button class="btn-icon btn-delete display-mode" id="btn-delete-${rowId}" onclick="deleteAttendance('${rowId}', '${existingRecord.id}')" style="margin-left: 0.5rem;" title="삭제"></button>` : ''}
+                <div class="edit-mode" id="edit-buttons-${rowId}" style="display: none;">
+                    <button class="btn-save" onclick="saveAttendance('${rowId}')">저장</button>
+                    <button class="btn-cancel" onclick="cancelEditMode('${rowId}')">취소</button>
                 </div>
             </td>
         `;
@@ -850,54 +854,57 @@ function renderAttendanceTable() {
                 }
             }
             
+            // 고유 rowId 생성 (같은 학생의 여러 행 구분)
+            const rowId = `${record.student_id}-${record.id}`;
+            
             row.innerHTML = `
                 <td style="text-align: center;">${record.student_name || '-'}</td>
                 <td style="text-align: center;">
-                    <div class="display-mode" id="display-checkin-${record.student_id}">${checkInTime || '-'}</div>
-                    <input type="text" class="form-input edit-mode" id="edit-checkin-${record.student_id}" value="${checkInTime}" style="display: none;" 
+                    <div class="display-mode" id="display-checkin-${rowId}">${checkInTime || '-'}</div>
+                    <input type="text" class="form-input edit-mode" id="edit-checkin-${rowId}" value="${checkInTime}" style="display: none;" 
                         onblur="this.value = formatTimeInput(this.value)" />
                 </td>
                 <td style="text-align: center;">
-                    <div class="display-mode" id="display-expected-${record.student_id}">${expectedOutTime || '-'}</div>
-                    <input type="text" class="form-input edit-mode" id="edit-expected-${record.student_id}" value="${expectedOutTime}" readonly style="display: none;" />
+                    <div class="display-mode" id="display-expected-${rowId}">${expectedOutTime || '-'}</div>
+                    <input type="text" class="form-input edit-mode" id="edit-expected-${rowId}" value="${expectedOutTime}" readonly style="display: none;" />
                 </td>
                 <td style="text-align: center;">
-                    <div class="display-mode" id="display-checkout-${record.student_id}">${checkOutTime || '-'}</div>
-                    <input type="text" class="form-input edit-mode" id="edit-checkout-${record.student_id}" value="${checkOutTime}" style="display: none;" 
+                    <div class="display-mode" id="display-checkout-${rowId}">${checkOutTime || '-'}</div>
+                    <input type="text" class="form-input edit-mode" id="edit-checkout-${rowId}" value="${checkOutTime}" style="display: none;" 
                         onblur="this.value = formatTimeInput(this.value)" />
                 </td>
                 <td class="duration-display" style="${durationColor}">${actualDuration ? `${actualDuration}분` : '-'}</td>
                 <td style="text-align: center;">
-                    <span class="display-mode" id="display-status-${record.student_id}" style="${statusColor}">${statusText || '-'}</span>
-                    <div class="edit-mode" id="edit-status-container-${record.student_id}" style="display: none;">
-                        <select class="form-select" id="status-${record.student_id}" onchange="handleStatusChange('${record.student_id}')">
+                    <span class="display-mode" id="display-status-${rowId}" style="${statusColor}">${statusText || '-'}</span>
+                    <div class="edit-mode" id="edit-status-container-${rowId}" style="display: none;">
+                        <select class="form-select" id="status-${rowId}" onchange="handleStatusChange('${rowId}')">
                             <option value="" ${status === '' ? 'selected' : ''}></option>
                             <option value="출석" ${status === '출석' ? 'selected' : ''}>출석</option>
                             <option value="결석" ${status === '결석' ? 'selected' : ''}>결석</option>
                             <option value="보강" ${status === '보강' ? 'selected' : ''}>보강</option>
                         </select>
-                        <select class="form-select" id="absence-reason-${record.student_id}" style="display: ${status === '결석' ? 'block' : 'none'}; margin-top: 5px;">
+                        <select class="form-select" id="absence-reason-${rowId}" style="display: ${status === '결석' ? 'block' : 'none'}; margin-top: 5px;">
                             <option value="">사유 선택</option>
                             <option value="병결" ${absenceReason === '병결' ? 'selected' : ''}>병결</option>
                             <option value="학교" ${absenceReason === '학교' ? 'selected' : ''}>학교</option>
                             <option value="여행" ${absenceReason === '여행' ? 'selected' : ''}>여행</option>
                             <option value="기타" ${absenceReason === '기타' ? 'selected' : ''}>기타</option>
                         </select>
-                        <div id="makeup-date-${record.student_id}" style="display: ${status === '보강' ? 'block' : 'none'}; margin-top: 5px;">
-                            <input type="date" id="makeup-date-input-${record.student_id}" class="form-input" value="${makeupDate}" style="width: 100%;" placeholder="보강 날짜" />
+                        <div id="makeup-date-${rowId}" style="display: ${status === '보강' ? 'block' : 'none'}; margin-top: 5px;">
+                            <input type="date" id="makeup-date-input-${rowId}" class="form-input" value="${makeupDate}" style="width: 100%;" placeholder="보강 날짜" />
                         </div>
                     </div>
                 </td>
                 <td style="text-align: center;">
-                    <button class="btn-quick-checkin" onclick="quickCheckIn('${record.student_id}')" title="입실">입실</button>
-                    <button class="btn-quick-checkout" onclick="quickCheckOut('${record.student_id}')" title="퇴실">퇴실</button>
+                    <button class="btn-quick-checkin" onclick="quickCheckIn('${record.student_id}', '${record.id}')" title="입실">입실</button>
+                    <button class="btn-quick-checkout" onclick="quickCheckOut('${record.student_id}', '${record.id}')" title="퇴실">퇴실</button>
                 </td>
                 <td style="text-align: center;">
-                    <button class="btn-icon btn-edit display-mode" id="btn-edit-${record.student_id}" onclick="enterEditMode('${record.student_id}')" title="수정"></button>
-                    <button class="btn-icon btn-delete display-mode" id="btn-delete-${record.student_id}" onclick="deleteAttendance('${record.student_id}', '${record.id}')" style="margin-left: 0.5rem;" title="삭제"></button>
-                    <div class="edit-mode" id="edit-buttons-${record.student_id}" style="display: none;">
-                        <button class="btn-save" onclick="saveAttendance('${record.student_id}')">저장</button>
-                        <button class="btn-cancel" onclick="cancelEditMode('${record.student_id}')">취소</button>
+                    <button class="btn-icon btn-edit display-mode" id="btn-edit-${rowId}" onclick="enterEditMode('${rowId}')" title="수정"></button>
+                    <button class="btn-icon btn-delete display-mode" id="btn-delete-${rowId}" onclick="deleteAttendance('${rowId}', '${record.id}')" style="margin-left: 0.5rem;" title="삭제"></button>
+                    <div class="edit-mode" id="edit-buttons-${rowId}" style="display: none;">
+                        <button class="btn-save" onclick="saveAttendance('${rowId}', '${record.id}')">저장</button>
+                        <button class="btn-cancel" onclick="cancelEditMode('${rowId}')">취소</button>
                     </div>
                 </td>
             `;
@@ -959,7 +966,7 @@ function calculateDurationInMinutes(startTime, endTime) {
 }
 
 // 입실시간 입력 시 퇴실예정시간 자동 계산
-function autoUpdateExpectedOutTime(studentId, checkInTime, scheduledDuration) {
+function autoUpdateExpectedOutTime(rowId, checkInTime, scheduledDuration) {
     // 시간 형식 자동 변환 (1400 → 14:00)
     const formattedTime = formatTimeInput(checkInTime);
     
@@ -972,13 +979,13 @@ function autoUpdateExpectedOutTime(studentId, checkInTime, scheduledDuration) {
     const expectedOutTime = addMinutesToTime(formattedTime, duration);
     
     // 퇴실예정시간 입력란 업데이트
-    const expectedOutInput = document.getElementById(`edit-expected-${studentId}`);
+    const expectedOutInput = document.getElementById(`edit-expected-${rowId}`);
     if (expectedOutInput) {
         expectedOutInput.value = expectedOutTime;
     }
     
     // 표시 영역도 업데이트 (편집 모드에서 보이지 않지만 저장 시 사용)
-    const expectedOutDisplay = document.getElementById(`display-expected-${studentId}`);
+    const expectedOutDisplay = document.getElementById(`display-expected-${rowId}`);
     if (expectedOutDisplay) {
         expectedOutDisplay.textContent = expectedOutTime;
     }
@@ -1001,29 +1008,29 @@ function addMinutesToTime(timeStr, minutes) {
 // 수정/취소 모드 전환
 // ============================================
 
-function enterEditMode(studentId) {
+function enterEditMode(rowId) {
     // Display 모드 숨기기
-    const displayElements = document.querySelectorAll(`#display-checkin-${studentId}, #display-expected-${studentId}, #display-checkout-${studentId}, #display-status-${studentId}, #btn-edit-${studentId}`);
+    const displayElements = document.querySelectorAll(`#display-checkin-${rowId}, #display-expected-${rowId}, #display-checkout-${rowId}, #display-status-${rowId}, #btn-edit-${rowId}`);
     displayElements.forEach(el => {
         if (el) el.style.display = 'none';
     });
     
     // Edit 모드 표시
-    const editElements = document.querySelectorAll(`#edit-checkin-${studentId}, #edit-expected-${studentId}, #edit-checkout-${studentId}, #edit-status-container-${studentId}, #edit-buttons-${studentId}`);
+    const editElements = document.querySelectorAll(`#edit-checkin-${rowId}, #edit-expected-${rowId}, #edit-checkout-${rowId}, #edit-status-container-${rowId}, #edit-buttons-${rowId}`);
     editElements.forEach(el => {
         if (el) el.style.display = el.id.includes('container') ? 'block' : 'inline-block';
     });
 }
 
-function cancelEditMode(studentId) {
+function cancelEditMode(rowId) {
     // Edit 모드 숨기기
-    const editElements = document.querySelectorAll(`#edit-checkin-${studentId}, #edit-expected-${studentId}, #edit-checkout-${studentId}, #edit-status-container-${studentId}, #edit-buttons-${studentId}`);
+    const editElements = document.querySelectorAll(`#edit-checkin-${rowId}, #edit-expected-${rowId}, #edit-checkout-${rowId}, #edit-status-container-${rowId}, #edit-buttons-${rowId}`);
     editElements.forEach(el => {
         if (el) el.style.display = 'none';
     });
     
     // Display 모드 표시
-    const displayElements = document.querySelectorAll(`#display-checkin-${studentId}, #display-expected-${studentId}, #display-checkout-${studentId}, #display-status-${studentId}, #btn-edit-${studentId}`);
+    const displayElements = document.querySelectorAll(`#display-checkin-${rowId}, #display-expected-${rowId}, #display-checkout-${rowId}, #display-status-${rowId}, #btn-edit-${rowId}`);
     displayElements.forEach(el => {
         if (el) el.style.display = 'inline-block';
     });
@@ -1183,20 +1190,19 @@ function addMinutesToTime(time, minutes) {
 }
 
 // 출석 저장
-async function saveAttendance(studentId) {
-    const row = document.querySelector(`tr[data-student-id="${studentId}"]`);
-    if (!row) return;
-    
-    const recordId = row.dataset.recordId;
+async function saveAttendance(rowId, recordId) {
     const selectedDate = getSelectedDateString();
     
+    // rowId에서 studentId 추출
+    const studentId = rowId.split('-').slice(0, -1).join('-');
+    
     // 입력 필드에서 값 가져오기
-    let checkInTime = document.getElementById(`edit-checkin-${studentId}`)?.value || '';
-    const expectedOutTime = document.getElementById(`edit-expected-${studentId}`)?.value || '';
-    let checkOutTime = document.getElementById(`edit-checkout-${studentId}`)?.value || '';
-    let status = document.getElementById(`status-${studentId}`)?.value || '';
-    const absenceReason = document.getElementById(`absence-reason-${studentId}`)?.value || '';
-    const makeupDate = document.getElementById(`makeup-date-input-${studentId}`)?.value || '';
+    let checkInTime = document.getElementById(`edit-checkin-${rowId}`)?.value || '';
+    const expectedOutTime = document.getElementById(`edit-expected-${rowId}`)?.value || '';
+    let checkOutTime = document.getElementById(`edit-checkout-${rowId}`)?.value || '';
+    let status = document.getElementById(`status-${rowId}`)?.value || '';
+    const absenceReason = document.getElementById(`absence-reason-${rowId}`)?.value || '';
+    const makeupDate = document.getElementById(`makeup-date-input-${rowId}`)?.value || '';
     
     // 학생 이름 가져오기 (row에서 먼저 찾기)
     let studentName = row.dataset.studentName || '';
@@ -1280,7 +1286,7 @@ async function saveAttendance(studentId) {
 // ============================================
 
 // 빠른 입실 처리
-async function quickCheckIn(studentId) {
+async function quickCheckIn(studentId, recordId = null) {
     try {
         if (!Auth.isLoggedIn()) {
             alert('로그인이 필요합니다.');
@@ -1300,31 +1306,46 @@ async function quickCheckIn(studentId) {
         const schedule = getStudentTodaySchedule(student);
         const expectedOutTime = calculateExpectedTime(checkInTime, schedule ? schedule.duration : 90);
         
-        const existingRecord = todayAttendanceRecords.find(r => r.student_id === student.id);
-        
-        if (existingRecord) {
-            await API.update('attendance', existingRecord.id, {
-                ...existingRecord,
-                check_in_time: checkInTime,
-                expected_out_time: expectedOutTime,
-                status: '출석'
-            });
-            alert(`${student.name} 입실 ${checkInTime}`);
+        // recordId가 있으면 해당 기록만 업데이트
+        if (recordId) {
+            const existingRecord = todayAttendanceRecords.find(r => r.id === recordId);
+            if (existingRecord) {
+                await API.update('attendance', existingRecord.id, {
+                    ...existingRecord,
+                    check_in_time: checkInTime,
+                    expected_out_time: expectedOutTime,
+                    status: '출석'
+                });
+                alert(`${student.name} 입실 ${checkInTime}`);
+            }
         } else {
-            const attendanceData = {
-                student_id: student.id,
-                student_name: student.name,
-                date: getSelectedDateString(),
-                check_in_time: checkInTime,
-                expected_out_time: expectedOutTime,
-                check_out_time: '',
-                status: '출석',
-                absence_reason: '',
-                makeup_date: ''
-            };
+            // recordId가 없으면 새로 생성 (기존 로직)
+            const existingRecord = todayAttendanceRecords.find(r => r.student_id === student.id);
             
-            await API.create('attendance', attendanceData);
-            alert(`${student.name} 입실 ${checkInTime}`);
+            if (existingRecord) {
+                await API.update('attendance', existingRecord.id, {
+                    ...existingRecord,
+                    check_in_time: checkInTime,
+                    expected_out_time: expectedOutTime,
+                    status: '출석'
+                });
+                alert(`${student.name} 입실 ${checkInTime}`);
+            } else {
+                const attendanceData = {
+                    student_id: student.id,
+                    student_name: student.name,
+                    date: getSelectedDateString(),
+                    check_in_time: checkInTime,
+                    expected_out_time: expectedOutTime,
+                    check_out_time: '',
+                    status: '출석',
+                    absence_reason: '',
+                    makeup_date: ''
+                };
+                
+                await API.create('attendance', attendanceData);
+                alert(`${student.name} 입실 ${checkInTime}`);
+            }
         }
         
         await loadAttendanceData();
@@ -1337,7 +1358,7 @@ async function quickCheckIn(studentId) {
 }
 
 // 빠른 퇴실 처리
-async function quickCheckOut(studentId) {
+async function quickCheckOut(studentId, recordId = null) {
     try {
         if (!Auth.isLoggedIn()) {
             alert('로그인이 필요합니다.');
@@ -1351,7 +1372,13 @@ async function quickCheckOut(studentId) {
             return;
         }
         
-        const existingRecord = todayAttendanceRecords.find(r => r.student_id === student.id);
+        // recordId가 있으면 해당 기록만 업데이트
+        let existingRecord;
+        if (recordId) {
+            existingRecord = todayAttendanceRecords.find(r => r.id === recordId);
+        } else {
+            existingRecord = todayAttendanceRecords.find(r => r.student_id === student.id);
+        }
         
         if (!existingRecord) {
             alert(`${student.name} 학생의 입실 기록이 없습니다.`);
@@ -1378,7 +1405,7 @@ async function quickCheckOut(studentId) {
 }
 
 // 출석 삭제 (확정된 출석만 삭제 가능)
-async function deleteAttendance(studentId, recordId) {
+async function deleteAttendance(rowId, recordId) {
     if (!confirm('이 출석 기록을 삭제하시겠습니까?\n\n※ 삭제 후에는 예정 스케줄로 돌아갑니다.')) {
         return;
     }
@@ -1424,14 +1451,17 @@ function handleRegisterStatusChange() {
 }
 
 // 상태 변경 핸들러 (기존 행)
-function handleStatusChange(studentId) {
-    const statusSelect = document.getElementById(`status-${studentId}`);
-    const reasonSelect = document.getElementById(`absence-reason-${studentId}`);
-    const makeupDateDiv = document.getElementById(`makeup-date-${studentId}`);
+function handleStatusChange(rowId) {
+    const statusSelect = document.getElementById(`status-${rowId}`);
+    const reasonSelect = document.getElementById(`absence-reason-${rowId}`);
+    const makeupDateDiv = document.getElementById(`makeup-date-${rowId}`);
     
     if (!statusSelect) return;
     
     const status = statusSelect.value;
+    
+    // rowId에서 studentId 추출 (studentId-recordId 형식)
+    const studentId = rowId.split('-').slice(0, -1).join('-'); // 마지막 부분(recordId) 제거
     
     // 상태를 updateAttendanceField로 업데이트
     updateAttendanceField(studentId, 'status', status);
