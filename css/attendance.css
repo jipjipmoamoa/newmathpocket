@@ -650,10 +650,10 @@
 }
 
 .date-number {
-    font-weight: 600;
-    color: #495057;
+    font-weight: 700;
+    color: #000;
     margin-bottom: 0.5rem;
-    font-size: 0.9rem;
+    font-size: 1rem;
 }
 
 .schedule-list {
@@ -917,9 +917,9 @@ input[type="date"] {
 }
 
 .student-info-table .student-school-inline {
-    color: #999;
+    color: #000;
     font-size: 0.85em; /* 학교 글자 크기 */
-    margin-left: 0; /* 이름과 학교 붙여쓰기 */
+    margin-left: 0.2rem; /* 이름과 학교 간격 축소 */
     font-weight: normal;
 }
 
@@ -1102,6 +1102,11 @@ input[type="date"] {
         display: none !important;
     }
     
+    /* 텍스트 영역 끝 무늬 제거 */
+    .student-info-table textarea {
+        resize: none !important;
+    }
+    
     .student-info-table .grade-header-text {
         font-size: 6pt !important;
         font-weight: 700 !important;
@@ -1114,7 +1119,8 @@ input[type="date"] {
     
     .student-info-table .student-school-inline {
         font-size: 6pt !important;
-        margin-left: 0 !important; /* 이름과 학교 붙여쓰기 */
+        margin-left: 1pt !important; /* 이름과 학교 간격 축소 */
+        color: #000 !important; /* 검정색 */
     }
     
     /* 2단 행 간격 추가 축소 */
@@ -1149,6 +1155,13 @@ input[type="date"] {
     * {
         -webkit-print-color-adjust: exact !important;
         print-color-adjust: exact !important;
+    }
+    
+    /* 왼쪽 상단 이상한 숫자 제거 */
+    body::before,
+    body::after {
+        content: '' !important;
+        display: none !important;
     }
     
     /* Body 설정 */
@@ -1450,10 +1463,11 @@ input[type="date"] {
     
     /* 날짜 숫자 - 스케줄과 동일하게 */
     .date-number {
-        font-size: 6pt !important;
-        font-weight: 600 !important;
+        font-size: 7pt !important;
+        font-weight: 700 !important;
         margin-bottom: 2px !important;
         line-height: 1 !important;
+        color: #000 !important;
     }
     
     /* 날짜별 통계 텍스트 (형광펜 부분) 크기 축소 */
