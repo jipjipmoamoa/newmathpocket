@@ -859,7 +859,7 @@ input[type="date"] {
 }
 
 .student-info-table thead {
-    background: #f8f9fa;
+    display: none; /* 헤더 숨김 */
 }
 
 .student-info-table th {
@@ -867,11 +867,11 @@ input[type="date"] {
     text-align: center;
     font-weight: 600;
     color: #495057;
-    border: 1px solid #dee2e6;
+    border: none; /* 경계선 제거 */
 }
 
 .student-info-table tbody tr {
-    border-bottom: 1px solid #e9ecef;
+    border: none; /* 경계선 제거 */
 }
 
 .student-info-table tbody tr:hover {
@@ -879,10 +879,30 @@ input[type="date"] {
 }
 
 .student-info-table td {
-    padding: 0.6rem;
+    padding: 0.3rem; /* 행 간격 축소 */
     color: #495057;
-    border: 1px solid #dee2e6;
-    text-align: center;
+    border: none; /* 경계선 제거 */
+    text-align: left;
+}
+
+.student-info-table .grade-header-row td {
+    padding: 0.4rem 0.8rem; /* 학년 헤더 세로폭 40% 축소 (기존 0.8rem → 0.4rem) */
+}
+
+.student-info-table .student-name-cell {
+    cursor: pointer;
+}
+
+.student-info-table .student-name-text {
+    font-weight: 700; /* 이름 진하게 */
+    font-size: 1rem;
+}
+
+.student-info-table .student-school-line {
+    color: #999;
+    font-size: 0.8em; /* 학교 글자 크기 */
+    margin-top: 0.2rem;
+    font-weight: normal;
 }
 
 .student-info-table input[type="text"] {
