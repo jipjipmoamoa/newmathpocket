@@ -1233,8 +1233,9 @@ async function saveAttendance(rowId, recordId) {
             alert('출석이 저장되었습니다.');
         }
         
-        // 데이터 다시 로드
+        // 데이터 다시 로드 및 테이블 재렌더링
         await loadAttendanceData();
+        renderAttendanceTable(); // 출석현황 테이블 재렌더링
         await renderMonthlyCalendar();
         
     } catch (error) {
@@ -1311,6 +1312,7 @@ async function quickCheckIn(studentId, recordId = null) {
         }
         
         await loadAttendanceData();
+        renderAttendanceTable(); // 출석현황 테이블 재렌더링
         await renderMonthlyCalendar();
         
     } catch (error) {
@@ -1359,6 +1361,7 @@ async function quickCheckOut(studentId, recordId = null) {
         alert(`${student.name} 퇴실 ${checkOutTime}`);
         
         await loadAttendanceData();
+        renderAttendanceTable(); // 출석현황 테이블 재렌더링
         await renderMonthlyCalendar();
         
     } catch (error) {
@@ -2532,8 +2535,9 @@ async function registerNewAttendance() {
         document.getElementById('registerAbsenceReason').style.display = 'none';
         document.getElementById('registerMakeupDate').style.display = 'none';
         
-        // 데이터 다시 로드
+        // 데이터 다시 로드 및 테이블 재렌더링
         await loadAttendanceData();
+        renderAttendanceTable(); // 출석현황 테이블 재렌더링
         await renderMonthlyCalendar();
         
     } catch (error) {
@@ -2737,8 +2741,19 @@ function renderViewMonthlyCalendar(year, month) {
     // 달력 테이블 생성
     let calendarHTML = '<table class="monthly-calendar">';
     
+    // 범례 행 (금요일 행 바로 위, 오른쪽 정렬) - 출석체크와 동일
+    calendarHTML += '<thead>';
+    calendarHTML += '<tr>';
+    calendarHTML += '<th colspan="5" style="text-align: right; padding: 0.5rem; font-size: 0.9rem; font-weight: normal; border-bottom: none;">';
+    calendarHTML += '<span style="color: #000;">출석</span>';
+    calendarHTML += '<span style="color: #000; text-decoration: line-through; margin-left: 15px;">결석</span>';
+    calendarHTML += '<span style="color: #f44336; margin-left: 15px;">보강</span>';
+    calendarHTML += '<span style="color: #9C27B0; margin-left: 15px;">보충</span>';
+    calendarHTML += '</th>';
+    calendarHTML += '</tr>';
+    
     // 요일 헤더
-    calendarHTML += '<thead><tr>';
+    calendarHTML += '<tr>';
     const dayNames = ['월', '화', '수', '목', '금'];
     for (let i = 0; i <= maxDayOfWeek; i++) {
         calendarHTML += `<th>${dayNames[i]}</th>`;
@@ -3076,7 +3091,7 @@ async function renderViewStudentInfoTable() {
                     <span class="student-name-text">${student.name}</span>
                     <span class="student-school-inline">(${shortSchoolName})</span>
                 </td>`;
-                html += `<td><textarea rows="1" data-student-id="${student.id}" onchange="saveStudentViewMemo('${student.id}', this.value)" onkeydown="if(event.key==='Enter'){event.preventDefault();this.blur();}" placeholder="특이사항">${memo}</textarea></td>`;
+                html += `<td><textarea rows="1" class="${memo ? '' : 'print-hide-if-empty'}" data-student-id="${student.id}" onchange="saveStudentViewMemo('${student.id}', this.value)" onkeydown="if(event.key==='Enter'){event.preventDefault();this.blur();}" placeholder="특이사항">${memo}</textarea></td>`;
                 html += '</tr>';
             });
         });
@@ -3121,10 +3136,7 @@ async function highlightViewStudent(studentName) {
 }
 
 function printAttendanceView() {
-    // 가로 인쇄 안내
-    alert('📄 인쇄 설정 안내\n\n인쇄 미리보기에서 "레이아웃"을 "가로"로 변경해주세요.\n\n또한 "배경 그래픽" 옵션을 체크하면 색상이 인쇄됩니다.');
-    
-    // 인쇄 실행
+    // 인쇄 미리보기 바로 실행 (안내 메시지 제거)
     window.print();
     
     // 인쇄 후 클래스 제거
