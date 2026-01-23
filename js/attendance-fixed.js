@@ -755,7 +755,7 @@ function renderAttendanceTable() {
                 <button class="btn-icon btn-edit display-mode" id="btn-edit-${rowId}" onclick="enterEditMode('${rowId}')" title="수정"></button>
                 ${existingRecord ? `<button class="btn-icon btn-delete display-mode" id="btn-delete-${rowId}" onclick="deleteAttendance('${rowId}', '${existingRecord.id}')" style="margin-left: 0.5rem;" title="삭제"></button>` : ''}
                 <div class="edit-mode" id="edit-buttons-${rowId}" style="display: none;">
-                    <button class="btn-save" onclick="saveAttendance('${rowId}')">저장</button>
+                    <button class="btn-save" onclick="saveAttendance('${rowId}', '${existingRecord ? existingRecord.id : ''}')">저장</button>
                     <button class="btn-cancel" onclick="cancelEditMode('${rowId}')">취소</button>
                 </div>
             </td>
@@ -1265,8 +1265,14 @@ function addMinutesToTime(time, minutes) {
 async function saveAttendance(rowId, recordId) {
     const selectedDate = getSelectedDateString();
     
-    // rowId에서 studentId 추출
-    const studentId = rowId.split('-').slice(0, -1).join('-');
+    // rowId에서 studentId 추출 (rowId = "studentId-scheduleType" 형식)
+    // scheduleType은 'main' 또는 'extra'이므로 마지막 부분 제거
+    const parts = rowId.split('-');
+    const studentId = parts.slice(0, -1).join('-'); // 마지막 부분(scheduleType) 제거
+    
+    console.log('[saveAttendance] rowId:', rowId);
+    console.log('[saveAttendance] studentId 추출:', studentId);
+    console.log('[saveAttendance] recordId:', recordId);
     
     // 입력 필드에서 값 가져오기
     let checkInTime = document.getElementById(`edit-checkin-${rowId}`)?.value || '';
@@ -2048,10 +2054,10 @@ function renderScheduleItem(schedule, pageType = 'check') {
     }
     
     if (schedule.status === '결석') {
-        // 결석: "이름, 결석(사유)" - 이름에만 취소선
+        // 결석: "이름, 결석"에 취소선, "(사유)"는 취소선 없음
         itemClass += ' absent';
         const reason = schedule.absence_reason ? `(${schedule.absence_reason})` : '';
-        content = `<span style="text-decoration: line-through;">${schedule.student_name}</span> 결석${reason}`;
+        content = `<span style="text-decoration: line-through;">${schedule.student_name} 결석</span>${reason ? ' ' + reason : ''}`;
     } else if (schedule.status === '보강') {
         // 보강: "입실시간, 이름, 퇴실시간 (결석날짜)" - 빨간색
         itemClass += ' makeup';
