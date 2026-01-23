@@ -314,18 +314,18 @@
     min-width: 110px;
 }
 
-/* 7열 (등록) - 가로폭 확대 */
+/* 7열 (등록) - 가로폭 축소 */
 .attendance-table th:nth-child(7),
 .attendance-table td:nth-child(7) {
-    width: 18%;
-    min-width: 150px;
+    width: 15%;
+    min-width: 130px;
 }
 
-/* 8열 (관리) - 가로폭 절반으로 축소 */
+/* 8열 (관리) - 가로폭 증가 */
 .attendance-table th:nth-child(8),
 .attendance-table td:nth-child(8) {
-    width: 8%;
-    min-width: 80px;
+    width: 11%;
+    min-width: 100px;
 }
 
 /* 1열 등록 행의 입력 필드 크기 축소 */
@@ -962,6 +962,27 @@ input[type="date"] {
 
 .status-select option[value="보충"] {
     color: #9C27B0 !important;
+}
+
+/* 출석현황 상태 드롭다운 색상 */
+.form-select[id^="status-"] option[value="출석"] {
+    color: #4CAF50;
+    font-weight: 600;
+}
+
+.form-select[id^="status-"] option[value="결석"] {
+    color: #000;
+    text-decoration: line-through;
+}
+
+.form-select[id^="status-"] option[value="보강"] {
+    color: #f44336;
+    font-weight: 600;
+}
+
+.form-select[id^="status-"] option[value="보충"] {
+    color: #9C27B0;
+    font-weight: 600;
 }
 
 .view-controls {
