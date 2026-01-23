@@ -500,9 +500,10 @@ function renderAttendanceTable() {
         <td style="background-color: #fffbf0;">
             <select id="registerStatus" class="form-select" onchange="handleRegisterStatusChange()">
                 <option value="">상태</option>
-                <option value="출석">출석</option>
-                <option value="결석">결석</option>
-                <option value="보강">보강</option>
+                <option value="출석" style="color: #4CAF50; font-weight: 600;">출석</option>
+                <option value="결석" style="color: #000; text-decoration: line-through;">결석</option>
+                <option value="보강" style="color: #f44336; font-weight: 600;">보강</option>
+                <option value="보충" style="color: #9C27B0; font-weight: 600;">보충</option>
             </select>
             <select id="registerAbsenceReason" class="form-select" style="display: none; margin-top: 5px;">
                 <option value="">사유 선택</option>
