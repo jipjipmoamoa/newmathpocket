@@ -1065,17 +1065,31 @@ input[type="date"] {
         margin: 1cm;
     }
     
-    /* 2단 레이아웃 유지 - 2:1 비율 */
+    /* 2단 레이아웃 유지 - 중앙 정렬 및 크기 최적화 */
     .view-two-column-layout {
         display: grid !important;
         grid-template-columns: 2fr 1fr !important;
-        gap: 1rem !important;
+        gap: 0.8rem !important; /* 간격 축소 */
+        page-break-inside: avoid !important;
+        align-items: start !important;
+        margin-left: auto !important;
+        margin-right: auto !important;
+        max-width: 100% !important; /* 최대한 넓게 */
+        transform: scale(0.95) !important; /* 전체 크기 5% 축소 */
+        transform-origin: top center !important;
+    }
+    
+    /* 1,2단 테두리 제거 */
+    .view-column-left,
+    .view-column-right {
+        box-shadow: none !important;
+        border: none !important;
         page-break-inside: avoid !important;
     }
     
-    .view-column-left,
+    /* 2단 위치를 1단 요일 행과 같은 높이로 조정 */
     .view-column-right {
-        page-break-inside: avoid !important;
+        margin-top: 40px !important; /* 요일 행 높이만큼 아래로 */
     }
     
     /* 학생 정보 테이블 인쇄 스타일 - 스케줄과 동일하게 */
@@ -1119,102 +1133,36 @@ input[type="date"] {
     
     .student-info-table .student-school-inline {
         font-size: 6pt !important;
-        margin-left: 1pt !important; /* 이름과 학교 간격 축소 */
-        color: #000 !important; /* 검정색 */
-    }
-    
-    /* 2단 행 간격 추가 축소 */
-    .student-info-table td {
-        padding: 0px !important;
-        line-height: 1 !important;
-    }
-    
-    /* 페이지 설정 - 세로 방향 (출석체크용) */
-    @page {
-        size: portrait;
-        margin: 1cm;
-    }
-    
-    /* 사이트 헤더/메뉴 숨기기 */
-    header,
-    .main-menu,
-    .sub-menu-container {
-        display: none !important;
-    }
-    
-    /* 조회 컨트롤 및 버튼 숨기기 */
-    .view-controls,
-    .btn-month-nav,
-    button,
-    .btn,
-    input[type="checkbox"] {
-        display: none !important;
-    }
-    
-    /* 색상 및 배경 유지 */
-    * {
-        -webkit-print-color-adjust: exact !important;
-        print-color-adjust: exact !important;
-    }
-    
-    /* 왼쪽 상단 이상한 숫자 제거 */
-    body::before,
-    body::after {
-        content: '' !important;
-        display: none !important;
-    }
-    
-    /* Body 설정 */
-    body {
-        background: white;
-        margin: 0;
-        padding: 0;
-    }
-    
-    /* 컨테이너 설정 */
-    .attendance-view-container {
-        padding: 0 !important;
-        margin: 0 !important;
-        max-width: 100% !important;
-    }
-    
-    /* 달력 섹션 */
-    .monthly-calendar-section {
-        margin: 0 !important;
-        padding: 0 !important;
-    }
-    
-    /* 년/월 제목만 표시 */
-    .calendar-header {
-        display: flex !important;
-        justify-content: center !important;
-        align-items: center !important;
-        margin-bottom: 1rem !important;
-    }
-    
-    .calendar-header h3 {
-        display: block !important;
-        font-size: 1.5rem !important;
-        font-weight: bold !important;
+        margin-left: 0 !important;
         color: #000 !important;
-        margin: 0 !important;
     }
     
-    /* 달력 테이블 */
-    #viewMonthlyCalendarContainer {
+    /* 2단 하단 MEMO 섹션 인쇄 스타일 */
+    .view-memo-section {
         display: block !important;
-        margin-bottom: 1.5rem !important;
+        margin-top: 0.5rem !important;
+        padding: 0.3rem !important;
+        background: white !important;
+        border: 1px solid #dee2e6 !important;
+        border-radius: 4px !important;
+        page-break-inside: avoid !important;
     }
     
-    /* 통계표 */
-    #viewAttendanceStatsContainer {
-        display: block !important;
-        page-break-before: auto !important;
+    .view-memo-section h4 {
+        font-size: 7pt !important;
+        font-weight: 700 !important;
+        margin: 0 0 0.2rem 0 !important;
+        color: #000 !important;
     }
     
-    /* 통계표 숨김 옵션 */
-    body.hide-stats-print #viewAttendanceStatsContainer {
-        display: none !important;
+    .view-memo-section textarea {
+        width: 100% !important;
+        min-height: 60px !important;
+        border: 1px solid #dee2e6 !important;
+        padding: 0.2rem !important;
+        font-size: 6pt !important;
+        resize: none !important;
+        white-space: pre-wrap !important;
     }
 }
 
@@ -1356,10 +1304,10 @@ input[type="date"] {
    인쇄 스타일
    ============================================ */
 @media print {
-    /* 기본 페이지 설정 - 위/아래 여백 축소 */
+    /* 기본 페이지 설정 - 여백 최소화 */
     @page {
         size: A4 landscape; /* 출석조회는 가로 */
-        margin: 5mm 10mm; /* 위/아래 8mm → 5mm */
+        margin: 8mm 12mm; /* 여백 최소화로 내용이 한 페이지에 들어가도록 */
     }
     
     /* 모든 요소 숨기고 출석 조회 페이지만 표시 */
@@ -1434,25 +1382,25 @@ input[type="date"] {
         padding: 2px !important;
         font-size: 8pt !important;
         background-color: #f0f0f0 !important;
-        border: 1px solid #dee2e6 !important;
+        border: none !important; /* 테두리 제거 */
         -webkit-print-color-adjust: exact;
         print-color-adjust: exact;
     }
     
     .monthly-calendar td {
-        padding: 2px 3px !important;
-        height: 50px !important;
-        min-height: 50px !important;
-        max-height: 50px !important;
+        padding: 1px 2px !important; /* 패딩 축소 */
+        height: 45px !important; /* 높이 축소 */
+        min-height: 45px !important;
+        max-height: 45px !important;
         vertical-align: top !important;
-        border: 1px solid #dee2e6 !important;
+        border: none !important; /* 테두리 제거 */
         overflow: hidden !important;
     }
     
     .monthly-calendar .calendar-cell {
-        height: 50px !important;
-        min-height: 50px !important;
-        max-height: 50px !important;
+        height: 45px !important; /* 높이 축소 */
+        min-height: 45px !important;
+        max-height: 45px !important;
     }
     
     .monthly-calendar .empty-cell {
