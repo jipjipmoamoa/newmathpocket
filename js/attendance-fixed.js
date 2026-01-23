@@ -3219,7 +3219,7 @@ async function renderViewStudentInfoTable() {
                 const schoolName = student.school || '-';
                 // 학교명에서 마지막 글자 제거 (예: "용소초" → "용소")
                 const shortSchoolName = schoolName.length > 1 ? schoolName.slice(0, -1) : schoolName;
-                const memo = student.view_memo || '';
+                const memo = student.memo || '';
                 
                 html += '<tr>';
                 html += `<td class="student-name-cell" onclick="highlightViewStudent('${student.name}')">
@@ -3243,7 +3243,7 @@ async function renderViewStudentInfoTable() {
 // 학생 조회 메모 자동 저장
 async function saveStudentViewMemo(studentId, memo) {
     try {
-        await API.update('students', studentId, { view_memo: memo });
+        await API.update('students', studentId, { memo: memo });
         console.log(`학생 ${studentId} 메모 저장 완료:`, memo);
     } catch (error) {
         console.error('메모 저장 실패:', error);
