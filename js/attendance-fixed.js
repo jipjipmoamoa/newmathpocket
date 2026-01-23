@@ -1685,7 +1685,7 @@ async function renderMonthlyCalendar() {
         </div>
     `;
     
-    // 해당 월의 출석 기록 로드 (출석체크 페이지)
+    // 해당 월의 출석 기록 로드 (출석체크 페이지) [CHECK_PAGE_MARKER]
     await loadMonthAttendance(currentYear, currentMonth, 'check');
     
     // 달력 생성
@@ -1788,7 +1788,7 @@ async function renderMonthlyCalendar() {
                 if (schedules.length > 0) {
                     rowHTML += '<div class="schedule-list">';
                     schedules.forEach(schedule => {
-                        rowHTML += renderScheduleItem(schedule);
+                        rowHTML += renderScheduleItem(schedule, 'check');
                     });
                     rowHTML += '</div>';
                 }
@@ -1907,8 +1907,8 @@ function getSchedulesForDate(dateString) {
     return uniqueRecords;
 }
 
-// 스케줄 아이템 렌더링
-function renderScheduleItem(schedule) {
+// 스케줄 아이템 렌더링 (pageType: 'check' 또는 'view')
+function renderScheduleItem(schedule, pageType = 'check') {
     let itemClass = 'schedule-item';
     let content = '';
     let highlightStyle = '';
@@ -1916,9 +1916,15 @@ function renderScheduleItem(schedule) {
     // 정보 없는 학생 (is_external) 플래그 확인
     const isExternal = schedule.is_external === true || schedule.is_external === 1;
     
-    // 형광펜 표시 (출석체크 페이지 통계표 또는 출석조회 페이지 이름 클릭 시)
-    const shouldHighlight = (highlightedStudentName && schedule.student_name === highlightedStudentName) ||
-                           (highlightedViewStudentName && schedule.student_name === highlightedViewStudentName);
+    // 형광펜 표시 - 페이지별로 독립적으로 동작
+    let shouldHighlight = false;
+    if (pageType === 'check') {
+        // 출석체크 페이지: highlightedStudentName만 사용
+        shouldHighlight = highlightedStudentName && schedule.student_name === highlightedStudentName;
+    } else if (pageType === 'view') {
+        // 출석조회 페이지: highlightedViewStudentName만 사용
+        shouldHighlight = highlightedViewStudentName && schedule.student_name === highlightedViewStudentName;
+    }
     
     if (shouldHighlight) {
         if (schedule.status === '출석') {
@@ -2815,7 +2821,7 @@ function renderViewMonthlyCalendar(year, month) {
                 if (schedules.length > 0) {
                     rowHTML += '<div class="schedule-list">';
                     schedules.forEach(schedule => {
-                        rowHTML += renderScheduleItem(schedule);
+                        rowHTML += renderScheduleItem(schedule, 'view');
                     });
                     rowHTML += '</div>';
                 }
