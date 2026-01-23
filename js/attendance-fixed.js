@@ -1312,6 +1312,18 @@ async function saveAttendance(rowId, recordId) {
         return;
     }
     
+    // 보강 상태일 때 보강 날짜 필수 검증
+    if (status === '보강' && !makeupDate) {
+        alert('보강 상태로 저장하려면 보강 날짜를 선택해주세요.');
+        return;
+    }
+    
+    // 결석 상태일 때 사유 필수 검증 (선택사항)
+    // if (status === '결석' && !absenceReason) {
+    //     alert('결석 상태로 저장하려면 사유를 입력해주세요.');
+    //     return;
+    // }
+    
     // 상태가 비어있으면 자동 결정: 입실+퇴실 있으면 "출석", 입실만 있으면 빈 상태
     if (!status) {
         if (checkInTime && checkOutTime) {
@@ -1351,7 +1363,9 @@ async function saveAttendance(rowId, recordId) {
         
     } catch (error) {
         console.error('출석 저장 오류:', error);
-        alert('출석 저장에 실패했습니다.');
+        console.error('오류 상세:', error.message);
+        console.error('저장하려던 데이터:', attendanceData);
+        alert('출석 저장에 실패했습니다.\n오류: ' + (error.message || '알 수 없는 오류'));
     }
 }
 
@@ -2561,6 +2575,12 @@ async function registerNewAttendance() {
         return;
     }
     
+    // 보강 상태일 때 보강 날짜 필수 검증
+    if (status === '보강' && !makeupDate) {
+        alert('보강 상태로 등록하려면 보강 날짜를 선택해주세요.');
+        return;
+    }
+    
     // 출석 데이터 생성
     const attendanceData = {
         student_id: studentData.id,
@@ -2632,7 +2652,9 @@ async function registerNewAttendance() {
         
     } catch (error) {
         console.error('출석 등록 오류:', error);
-        alert('출석 등록에 실패했습니다.');
+        console.error('오류 상세:', error.message);
+        console.error('등록하려던 데이터:', attendanceData);
+        alert('출석 등록에 실패했습니다.\n오류: ' + (error.message || '알 수 없는 오류'));
     }
 }
 
