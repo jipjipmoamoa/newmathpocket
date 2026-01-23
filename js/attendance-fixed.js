@@ -10,8 +10,10 @@ let allMonthAttendance = [];
 let currentAttendanceTeacherFilter = 'all';
 // 현재 선택된 담당선생님 필터 (출석조회)
 let currentAttendanceViewTeacherFilter = 'all';
-// 통계표에서 클릭한 학생 (형광펜 표시용)
+// 통계표에서 클릭한 학생 (형광펜 표시용 - 출석체크 페이지)
 let highlightedStudentName = null;
+// 출석조회 페이지에서 클릭한 학생 (형광펜 표시용)
+let highlightedViewStudentName = null;
 
 // ============================================
 // 헬퍼 함수: 시간을 분 단위로 변환
@@ -1670,14 +1672,17 @@ async function renderMonthlyCalendar() {
     const today = new Date();
     const todayDate = today.getDate();
     
+    // 타이틀에 년월과 범례를 같은 줄에 표시
     title.innerHTML = `
-        ${currentYear}년 ${currentMonth + 1}월
-        <span style="float: right; font-size: 0.9rem;">
-            <span style="color: #000;">출석</span>
-            <span style="color: #000; text-decoration: line-through; margin-left: 15px;">결석</span>
-            <span style="color: #f44336; margin-left: 15px;">보강</span>
-            <span style="color: #9C27B0; margin-left: 15px;">보충</span>
-        </span>
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+            <span>${currentYear}년 ${currentMonth + 1}월</span>
+            <span style="font-size: 0.9rem; font-weight: normal;">
+                <span style="color: #000;">출석</span>
+                <span style="color: #000; text-decoration: line-through; margin-left: 15px;">결석</span>
+                <span style="color: #f44336; margin-left: 15px;">보강</span>
+                <span style="color: #9C27B0; margin-left: 15px;">보충</span>
+            </span>
+        </div>
     `;
     
     // 해당 월의 출석 기록 로드 (출석체크 페이지)
@@ -1911,8 +1916,11 @@ function renderScheduleItem(schedule) {
     // 정보 없는 학생 (is_external) 플래그 확인
     const isExternal = schedule.is_external === true || schedule.is_external === 1;
     
-    // 형광펜 표시 (통계표에서 클릭한 학생인 경우)
-    if (highlightedStudentName && schedule.student_name === highlightedStudentName) {
+    // 형광펜 표시 (출석체크 페이지 통계표 또는 출석조회 페이지 이름 클릭 시)
+    const shouldHighlight = (highlightedStudentName && schedule.student_name === highlightedStudentName) ||
+                           (highlightedViewStudentName && schedule.student_name === highlightedViewStudentName);
+    
+    if (shouldHighlight) {
         if (schedule.status === '출석') {
             highlightStyle = 'background-color: #C8E6C9; padding: 2px 4px; border-radius: 2px;'; // 연초록
         } else if (schedule.status === '보강') {
@@ -2780,11 +2788,30 @@ function renderViewMonthlyCalendar(year, month) {
                 let cellClass = 'calendar-cell';
                 if (isToday) cellClass += ' today';
                 
-                rowHTML += `<td class="${cellClass}">`;
-                rowHTML += `<div class="date-number">${currentDate}</div>`;
-                
                 // 상태가 확정된 출석이 있으면 언제든지 표시
                 const schedules = getSchedulesForDate(dateString);
+                
+                // 통계 계산 (출석체크와 동일)
+                let attendanceCount = 0;
+                let makeupCount = 0;
+                let supplementCount = 0;
+                let absenceCount = 0;
+                
+                schedules.forEach(schedule => {
+                    if (schedule.status === '출석') attendanceCount++;
+                    else if (schedule.status === '보강') makeupCount++;
+                    else if (schedule.status === '보충') supplementCount++;
+                    else if (schedule.status === '결석') absenceCount++;
+                });
+                
+                // 통계 배지 표시 (출석체크와 동일)
+                const statsText = schedules.length > 0 
+                    ? ` <span style="background-color: #fff3cd; padding: 1px 4px; border-radius: 2px; font-size: 0.85rem;">${attendanceCount}(${makeupCount})명 / ${absenceCount}명</span>` 
+                    : '';
+                
+                rowHTML += `<td class="${cellClass}">`;
+                rowHTML += `<div class="date-number">${currentDate}${statsText}</div>`;
+                
                 if (schedules.length > 0) {
                     rowHTML += '<div class="schedule-list">';
                     schedules.forEach(schedule => {
@@ -2967,33 +2994,77 @@ async function renderViewStudentInfoTable() {
             allStudents = allStudents.filter(s => s.teacher_id === currentAttendanceViewTeacherFilter);
         }
         
-        // 재원생만 필터링하고 이름순 정렬
-        const activeStudents = allStudents
-            .filter(s => s.status === '재원')
-            .sort((a, b) => (a.name || '').localeCompare(b.name || '', 'ko'));
+        // 재원생만 필터링
+        const activeStudents = allStudents.filter(s => s.status === '재원');
         
         if (activeStudents.length === 0) {
             container.innerHTML = '<p style="text-align: center; color: #999;">조회된 학생이 없습니다.</p>';
             return;
         }
         
+        // 학교급/학년별로 그룹화 (초/중/고 + 학년)
+        const groupedStudents = {};
+        
+        activeStudents.forEach(student => {
+            const schoolType = student.school_type || '기타';
+            const grade = student.grade || '미정';
+            const key = `${schoolType} ${grade}학년`;
+            
+            if (!groupedStudents[key]) {
+                groupedStudents[key] = [];
+            }
+            groupedStudents[key].push(student);
+        });
+        
+        // 각 그룹 내에서 이름순 정렬
+        Object.keys(groupedStudents).forEach(key => {
+            groupedStudents[key].sort((a, b) => (a.name || '').localeCompare(b.name || '', 'ko'));
+        });
+        
+        // 그룹 키 정렬 (초→중→고, 학년 오름차순)
+        const sortedKeys = Object.keys(groupedStudents).sort((a, b) => {
+            const schoolOrder = { '초': 1, '중': 2, '고': 3, '기타': 4 };
+            const [typeA, gradeA] = a.split(' ');
+            const [typeB, gradeB] = b.split(' ');
+            
+            if (typeA !== typeB) {
+                return (schoolOrder[typeA] || 999) - (schoolOrder[typeB] || 999);
+            }
+            
+            const gradeNumA = parseInt(gradeA) || 999;
+            const gradeNumB = parseInt(gradeB) || 999;
+            return gradeNumA - gradeNumB;
+        });
+        
         let html = '<table class="student-info-table">';
         html += '<thead><tr>';
-        html += '<th style="width: 12.5%;">이름</th>';
-        html += '<th style="width: 15%;">학교</th>';
-        html += '<th style="width: 72.5%;">메모</th>';
+        html += '<th style="width: 30%;">이름(학교)</th>';
+        html += '<th style="width: 70%;">메모</th>';
         html += '</tr></thead>';
         html += '<tbody>';
         
-        activeStudents.forEach(student => {
-            const schoolName = student.school || '-';
-            const memo = student.view_memo || '';
+        // 학년별로 렌더링
+        sortedKeys.forEach(groupKey => {
+            const students = groupedStudents[groupKey];
             
-            html += '<tr>';
-            html += `<td>${student.name}</td>`;
-            html += `<td>${schoolName}</td>`;
-            html += `<td><input type="text" value="${memo}" data-student-id="${student.id}" onchange="saveStudentViewMemo('${student.id}', this.value)" /></td>`;
+            // 학년 헤더 행
+            html += '<tr class="grade-header-row">';
+            html += `<td colspan="2" style="background-color: #f8f9fa; padding: 0.8rem; font-weight: 600; color: #8B4513; text-align: left;">${groupKey}</td>`;
             html += '</tr>';
+            
+            // 학생 행
+            students.forEach(student => {
+                const schoolName = student.school || '-';
+                const memo = student.view_memo || '';
+                
+                html += '<tr>';
+                html += `<td class="student-name-cell" onclick="highlightViewStudent('${student.name}')">
+                    <div class="student-name-text">${student.name}</div>
+                    <div class="student-school-line">${schoolName}</div>
+                </td>`;
+                html += `<td><input type="text" value="${memo}" data-student-id="${student.id}" onchange="saveStudentViewMemo('${student.id}', this.value)" placeholder="메모 입력..." /></td>`;
+                html += '</tr>';
+            });
         });
         
         html += '</tbody></table>';
@@ -3014,6 +3085,25 @@ async function saveStudentViewMemo(studentId, memo) {
         console.error('메모 저장 실패:', error);
         alert('메모 저장에 실패했습니다.');
     }
+}
+
+// 출석조회 페이지에서 학생 형광펜 표시
+async function highlightViewStudent(studentName) {
+    if (highlightedViewStudentName === studentName) {
+        // 이미 선택된 학생 클릭 시 해제
+        highlightedViewStudentName = null;
+    } else {
+        // 새로운 학생 선택
+        highlightedViewStudentName = studentName;
+    }
+    
+    // 월별 달력 다시 렌더링 (데이터 먼저 로드)
+    const year = currentViewYear;
+    const month = currentViewMonth;
+    
+    // 출석 데이터 로드 후 렌더링
+    await loadMonthAttendance(year, month - 1, 'view'); // month는 1-based이므로 -1
+    renderViewMonthlyCalendar(year, month - 1);
 }
 
 function printAttendanceView() {
