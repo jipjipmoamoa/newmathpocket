@@ -848,6 +848,7 @@ function renderAttendanceTable() {
                             <option value="출석" ${status === '출석' ? 'selected' : ''}>출석</option>
                             <option value="결석" ${status === '결석' ? 'selected' : ''}>결석</option>
                             <option value="보강" ${status === '보강' ? 'selected' : ''}>보강</option>
+                            <option value="보충" ${status === '보충' ? 'selected' : ''}>보충</option>
                         </select>
                         <input type="text" class="form-input" id="absence-reason-${rowId}" value="${absenceReason}" placeholder="결석 사유 입력" style="display: ${status === '결석' ? 'block' : 'none'}; margin-top: 5px;" />
                         <div id="makeup-date-${rowId}" style="display: ${status === '보강' ? 'block' : 'none'}; margin-top: 5px;">
@@ -1265,14 +1266,30 @@ function addMinutesToTime(time, minutes) {
 async function saveAttendance(rowId, recordId) {
     const selectedDate = getSelectedDateString();
     
-    // rowId에서 studentId 추출 (rowId = "studentId-scheduleType" 형식)
-    // scheduleType은 'main' 또는 'extra'이므로 마지막 부분 제거
-    const parts = rowId.split('-');
-    const studentId = parts.slice(0, -1).join('-'); // 마지막 부분(scheduleType) 제거
+    // rowId에서 studentId 추출
+    // rowId 형식:
+    //   - scheduled/extra: "studentId-scheduleType" (예: uuid-main)
+    //   - manual: "studentId-recordId" (예: uuid-uuid)
+    let studentId;
+    
+    if (recordId && rowId.includes(recordId)) {
+        // manual 타입: rowId에서 recordId 부분 제거
+        studentId = rowId.replace(`-${recordId}`, '');
+    } else {
+        // scheduled/extra 타입: 마지막 부분(scheduleType) 제거
+        const parts = rowId.split('-');
+        const lastPart = parts[parts.length - 1];
+        if (lastPart === 'main' || lastPart === 'extra') {
+            studentId = parts.slice(0, -1).join('-');
+        } else {
+            // 알 수 없는 형식이면 rowId 전체를 studentId로 사용
+            studentId = rowId;
+        }
+    }
     
     console.log('[saveAttendance] rowId:', rowId);
-    console.log('[saveAttendance] studentId 추출:', studentId);
     console.log('[saveAttendance] recordId:', recordId);
+    console.log('[saveAttendance] studentId 추출:', studentId);
     
     // 입력 필드에서 값 가져오기
     let checkInTime = document.getElementById(`edit-checkin-${rowId}`)?.value || '';
