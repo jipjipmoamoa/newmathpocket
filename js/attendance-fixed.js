@@ -3232,7 +3232,25 @@ async function renderViewStudentInfoTable() {
         });
         
         html += '</tbody></table>';
+        
+        // 2단 하단에 MEMO 섹션 추가
+        html += '<div class="view-memo-section" style="margin-top: 1rem; padding: 1rem; background: #f8f9fa; border-radius: 8px;">';
+        html += '<h4 style="margin: 0 0 0.5rem 0; font-size: 0.9rem; font-weight: 600; color: #495057;">MEMO</h4>';
+        html += '<textarea id="viewMemoTextarea" style="width: 100%; min-height: 100px; padding: 0.5rem; border: 1px solid #ced4da; border-radius: 4px; font-family: \'Noto Sans KR\', sans-serif; font-size: 0.9rem; resize: vertical;" placeholder="메모를 입력하세요..."></textarea>';
+        html += '</div>';
+        
         container.innerHTML = html;
+        
+        // MEMO textarea에 엔터 키 이벤트 추가 (줄바꿈)
+        const memoTextarea = document.getElementById('viewMemoTextarea');
+        if (memoTextarea) {
+            memoTextarea.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter') {
+                    // 엔터 키로 줄바꿈 (기본 동작)
+                    // 아무 동작도 하지 않으면 자동으로 줄바꿈됨
+                }
+            });
+        }
         
     } catch (error) {
         console.error('학생 정보 테이블 렌더링 실패:', error);
