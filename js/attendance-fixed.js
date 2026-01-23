@@ -722,12 +722,12 @@ function renderAttendanceTable() {
             <td>
                 <span class="display-mode" id="display-status-${rowId}" ${statusColor}>${statusText || '-'}</span>
                 <div class="edit-mode" id="edit-status-container-${rowId}" style="display: none;">
-                    <select class="form-select" id="status-${rowId}" onchange="handleStatusChange('${rowId}')">
+                    <select class="form-select status-select" id="status-${rowId}" onchange="handleStatusChange('${rowId}')">
                         <option value="" ${status === '' ? 'selected' : ''}></option>
-                        <option value="출석" ${status === '출석' ? 'selected' : ''}>출석</option>
-                        <option value="결석" ${status === '결석' ? 'selected' : ''}>결석</option>
-                        <option value="보강" ${status === '보강' ? 'selected' : ''}>보강</option>
-                        <option value="보충" ${status === '보충' ? 'selected' : ''}>보충</option>
+                        <option value="출석" ${status === '출석' ? 'selected' : ''} style="color: #4CAF50; font-weight: 600;">출석</option>
+                        <option value="결석" ${status === '결석' ? 'selected' : ''} style="color: #000; text-decoration: line-through;">결석</option>
+                        <option value="보강" ${status === '보강' ? 'selected' : ''} style="color: #f44336; font-weight: 600;">보강</option>
+                        <option value="보충" ${status === '보충' ? 'selected' : ''} style="color: #9C27B0; font-weight: 600;">보충</option>
                     </select>
                     <select class="form-select" id="absence-reason-${rowId}" style="display: ${status === '결석' ? 'block' : 'none'}; margin-top: 5px;">
                         <option value="">사유 선택</option>
@@ -3002,13 +3002,17 @@ async function renderViewStudentInfoTable() {
             return;
         }
         
-        // 학교급/학년별로 그룹화 (초/중/고 + 학년)
+        // 학교급/학년별로 그룹화 (초등/중등/고등 + 학년)
         const groupedStudents = {};
         
         activeStudents.forEach(student => {
             const schoolType = student.school_type || '기타';
             const grade = student.grade || '미정';
-            const key = `${schoolType} ${grade}학년`;
+            // 학교급을 풀네임으로 변환
+            const schoolTypeFull = schoolType === '초' ? '초등' : 
+                                   schoolType === '중' ? '중등' : 
+                                   schoolType === '고' ? '고등' : schoolType;
+            const key = `${schoolTypeFull} ${grade}학년`;
             
             if (!groupedStudents[key]) {
                 groupedStudents[key] = [];
@@ -3021,9 +3025,9 @@ async function renderViewStudentInfoTable() {
             groupedStudents[key].sort((a, b) => (a.name || '').localeCompare(b.name || '', 'ko'));
         });
         
-        // 그룹 키 정렬 (초→중→고, 학년 오름차순)
+        // 그룹 키 정렬 (초등→중등→고등, 학년 오름차순)
         const sortedKeys = Object.keys(groupedStudents).sort((a, b) => {
-            const schoolOrder = { '초': 1, '중': 2, '고': 3, '기타': 4 };
+            const schoolOrder = { '초등': 1, '중등': 2, '고등': 3, '기타': 4 };
             const [typeA, gradeA] = a.split(' ');
             const [typeB, gradeB] = b.split(' ');
             
@@ -3047,22 +3051,24 @@ async function renderViewStudentInfoTable() {
         sortedKeys.forEach(groupKey => {
             const students = groupedStudents[groupKey];
             
-            // 학년 헤더 행
+            // 학년 헤더 (테이블 칸이 아닌 텍스트로)
             html += '<tr class="grade-header-row">';
-            html += `<td colspan="2" style="background-color: #f8f9fa; padding: 0.8rem; font-weight: 600; color: #8B4513; text-align: left;">${groupKey}</td>`;
+            html += `<td colspan="2"><div class="grade-header-text">${groupKey}</div></td>`;
             html += '</tr>';
             
             // 학생 행
             students.forEach(student => {
                 const schoolName = student.school || '-';
+                // 학교명에서 마지막 글자 제거 (예: "용소초" → "용소")
+                const shortSchoolName = schoolName.length > 1 ? schoolName.slice(0, -1) : schoolName;
                 const memo = student.view_memo || '';
                 
                 html += '<tr>';
                 html += `<td class="student-name-cell" onclick="highlightViewStudent('${student.name}')">
-                    <div class="student-name-text">${student.name}</div>
-                    <div class="student-school-line">${schoolName}</div>
+                    <span class="student-name-text">${student.name}</span>
+                    <span class="student-school-inline">(${shortSchoolName})</span>
                 </td>`;
-                html += `<td><input type="text" value="${memo}" data-student-id="${student.id}" onchange="saveStudentViewMemo('${student.id}', this.value)" placeholder="메모 입력..." /></td>`;
+                html += `<td><textarea rows="1" data-student-id="${student.id}" onchange="saveStudentViewMemo('${student.id}', this.value)" onkeydown="if(event.key==='Enter'){event.preventDefault();this.blur();}" placeholder="특이사항">${memo}</textarea></td>`;
                 html += '</tr>';
             });
         });
