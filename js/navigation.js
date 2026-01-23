@@ -10,7 +10,7 @@ const Navigation = {
             { id: 'all-members', label: '전체 회원 관리' }
         ],
         attendance: [
-            { id: 'attendance-check', label: '출석체크' },
+            { id: 'attendance-check', label: '출석 체크' },
             { id: 'attendance-view', label: '출석 조회' }
         ],
         tuition: [
@@ -19,6 +19,10 @@ const Navigation = {
         ],
         schedule: [
             { id: 'schedule-current', label: '이번달 스케줄표' }
+        ],
+        prints: [
+            { id: 'print-distribute', label: '프린트물' },
+            { id: 'print-list', label: '프린트 목록' }
         ]
     },
     
@@ -30,8 +34,11 @@ const Navigation = {
         
         const role = Auth.getRole();
         
-        if (role === 'admin' || role === 'subadmin') {
-            // 관리자와 부관리자는 모든 메뉴 접근 가능
+        if (role === 'admin') {
+            // 관리자만 모든 메뉴 접근 가능
+            return ['members', 'attendance', 'tuition', 'schedule', 'curriculum', 'prints', 'settings'];
+        } else if (role === 'subadmin') {
+            // 부관리자는 프린트 제외
             return ['members', 'attendance', 'tuition', 'schedule', 'curriculum', 'settings'];
         } else if (role === 'teacher') {
             // 선생님은 제한된 메뉴만 접근 가능
@@ -49,8 +56,14 @@ const Navigation = {
         
         const role = Auth.getRole();
         
-        if (role === 'admin' || role === 'subadmin') {
-            // 관리자와 부관리자는 모든 서브메뉴 접근 가능
+        if (role === 'admin') {
+            // 관리자만 모든 서브메뉴 접근 가능
+            return this.subMenus[menuId] || [];
+        } else if (role === 'subadmin') {
+            // 부관리자는 프린트 제외하고 모든 서브메뉴 접근 가능
+            if (menuId === 'prints') {
+                return [];
+            }
             return this.subMenus[menuId] || [];
         } else if (role === 'teacher') {
             // 선생님은 제한된 서브메뉴만 접근 가능
@@ -61,7 +74,7 @@ const Navigation = {
                 ];
             } else if (menuId === 'attendance') {
                 return [
-                    { id: 'attendance-check', label: '출석체크' },
+                    { id: 'attendance-check', label: '출석 체크' },
                     { id: 'attendance-view', label: '출석 조회' }
                 ];
             } else if (menuId === 'schedule') {
@@ -271,6 +284,22 @@ function showPage(pageId) {
             break;
         case 'curriculum':
             showCurriculumPage();
+            break;
+        case 'print-distribute':
+            if (typeof showPrintDistributePage === 'function') {
+                showPrintDistributePage();
+            } else {
+                console.error('showPrintDistributePage is not defined');
+                mainContent.innerHTML = '<div style="padding: 2rem; text-align: center;"><h2>프린트물 페이지를 불러오는 중...</h2><p>잠시 후 다시 시도해주세요.</p></div>';
+            }
+            break;
+        case 'print-list':
+            if (typeof showPrintListPage === 'function') {
+                showPrintListPage();
+            } else {
+                console.error('showPrintListPage is not defined');
+                mainContent.innerHTML = '<div style="padding: 2rem; text-align: center;"><h2>프린트 목록 페이지를 불러오는 중...</h2><p>잠시 후 다시 시도해주세요.</p></div>';
+            }
             break;
         case 'settings':
             showSettingsPage();
