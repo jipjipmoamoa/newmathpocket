@@ -1672,18 +1672,8 @@ async function renderMonthlyCalendar() {
     const today = new Date();
     const todayDate = today.getDate();
     
-    // 타이틀에 년월과 범례를 같은 줄에 표시
-    title.innerHTML = `
-        <div style="display: flex; justify-content: space-between; align-items: center;">
-            <span>${currentYear}년 ${currentMonth + 1}월</span>
-            <span style="font-size: 0.9rem; font-weight: normal;">
-                <span style="color: #000;">출석</span>
-                <span style="color: #000; text-decoration: line-through; margin-left: 15px;">결석</span>
-                <span style="color: #f44336; margin-left: 15px;">보강</span>
-                <span style="color: #9C27B0; margin-left: 15px;">보충</span>
-            </span>
-        </div>
-    `;
+    // 타이틀에 년월만 표시
+    title.innerHTML = `${currentYear}년 ${currentMonth + 1}월`;
     
     // 해당 월의 출석 기록 로드 (출석체크 페이지) [CHECK_PAGE_MARKER]
     await loadMonthAttendance(currentYear, currentMonth, 'check');
@@ -1703,8 +1693,19 @@ async function renderMonthlyCalendar() {
     // 달력 테이블 생성
     let calendarHTML = '<table class="monthly-calendar">';
     
+    // 범례 행 (금요일 행 바로 위, 오른쪽 정렬)
+    calendarHTML += '<thead>';
+    calendarHTML += '<tr>';
+    calendarHTML += '<th colspan="5" style="text-align: right; padding: 0.5rem; font-size: 0.9rem; font-weight: normal; border-bottom: none;">';
+    calendarHTML += '<span style="color: #000;">출석</span>';
+    calendarHTML += '<span style="color: #000; text-decoration: line-through; margin-left: 15px;">결석</span>';
+    calendarHTML += '<span style="color: #f44336; margin-left: 15px;">보강</span>';
+    calendarHTML += '<span style="color: #9C27B0; margin-left: 15px;">보충</span>';
+    calendarHTML += '</th>';
+    calendarHTML += '</tr>';
+    
     // 요일 헤더
-    calendarHTML += '<thead><tr>';
+    calendarHTML += '<tr>';
     const dayNames = ['월', '화', '수', '목', '금'];
     for (let i = 0; i <= maxDayOfWeek; i++) {
         calendarHTML += `<th>${dayNames[i]}</th>`;
