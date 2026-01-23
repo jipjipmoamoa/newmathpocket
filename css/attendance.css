@@ -827,7 +827,7 @@ input[type="date"] {
 .view-two-column-layout {
     display: grid;
     grid-template-columns: 2fr 1fr;
-    gap: 1rem; /* 1,2단 사이 간격 축소 (기존 2rem의 50% = 1rem) */
+    gap: 0.5rem; /* 1,2단 사이 간격 추가 축소 (1rem → 0.5rem) */
     margin-top: 2rem;
 }
 
@@ -839,7 +839,12 @@ input[type="date"] {
 }
 
 .view-column-left {
-    padding: 0;
+    padding: 0; /* 여백 제거 */
+}
+
+.view-column-left .monthly-calendar tbody td {
+    padding: 0.25rem; /* 1단 안쪽 여백 50% 축소 (0.5rem → 0.25rem) */
+    height: 140px; /* 날짜칸 높이 확대 (120px → 140px) */
 }
 
 .view-column-right {
