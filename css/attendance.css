@@ -677,11 +677,10 @@
     background: transparent;
 }
 
-/* 결석: 검정색 글자 + 가로선, 배경 없음 */
+/* 결석: 검정색 글자, 배경 없음 (취소선은 이름에만 적용됨) */
 .schedule-item.absent {
     color: #000000;
     background: transparent;
-    text-decoration: line-through;
 }
 
 /* 보강: 빨간색 글자, 배경 없음 */
@@ -1492,7 +1491,6 @@ input[type="date"] {
     .schedule-item.absent {
         color: #000 !important;
         background: transparent !important;
-        text-decoration: line-through !important;
         -webkit-print-color-adjust: exact;
         print-color-adjust: exact;
     }
