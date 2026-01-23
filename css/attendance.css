@@ -827,7 +827,7 @@ input[type="date"] {
 .view-two-column-layout {
     display: grid;
     grid-template-columns: 2fr 1fr;
-    gap: 2rem;
+    gap: 1rem; /* 1,2단 사이 간격 축소 (기존 2rem의 50% = 1rem) */
     margin-top: 2rem;
 }
 
@@ -843,14 +843,12 @@ input[type="date"] {
 }
 
 .view-column-right {
-    padding: 2rem;
+    padding: 1rem; /* 안쪽 여백 50% 축소 (2rem → 1rem) */
 }
 
 /* 학생 정보 섹션 */
 .student-info-section h3 {
-    margin: 0 0 1.5rem 0;
-    color: #333;
-    font-size: 1.3rem;
+    display: none; /* '학생 정보' 글자 제거 */
 }
 
 .student-info-table {
@@ -879,14 +877,30 @@ input[type="date"] {
 }
 
 .student-info-table td {
-    padding: 0.3rem; /* 행 간격 축소 */
+    padding: 0.15rem; /* 행 간격 50% 축소 (0.3rem → 0.15rem) */
     color: #495057;
     border: none; /* 경계선 제거 */
     text-align: left;
 }
 
-.student-info-table .grade-header-row td {
-    padding: 0.4rem 0.8rem; /* 학년 헤더 세로폭 40% 축소 (기존 0.8rem → 0.4rem) */
+.student-info-table td:first-child {
+    width: 25%; /* 1열 가로폭 */
+}
+
+.student-info-table td:last-child {
+    width: 75%; /* 2열 가로폭 확대 */
+}
+
+.student-info-table .grade-header-row {
+    background: none; /* 배경색 제거 */
+}
+
+.student-info-table .grade-header-text {
+    display: block;
+    padding: 0.5rem 0;
+    font-weight: 700; /* 두껍게 */
+    color: #8B4513;
+    font-size: 0.95rem;
 }
 
 .student-info-table .student-name-cell {
@@ -898,25 +912,51 @@ input[type="date"] {
     font-size: 1rem;
 }
 
-.student-info-table .student-school-line {
+.student-info-table .student-school-inline {
     color: #999;
-    font-size: 0.8em; /* 학교 글자 크기 */
-    margin-top: 0.2rem;
+    font-size: 0.85em; /* 학교 글자 크기 */
+    margin-left: 0.15rem; /* 이름과 학교 사이 간격 축소 (0.3rem → 0.15rem) */
     font-weight: normal;
 }
 
-.student-info-table input[type="text"] {
+.student-info-table input[type="text"],
+.student-info-table textarea {
     width: 100%;
     padding: 0.4rem;
     border: 1px solid #ced4da;
     border-radius: 4px;
     font-size: 0.9rem;
+    font-family: 'Noto Sans KR', sans-serif;
+    resize: vertical;
 }
 
-.student-info-table input[type="text"]:focus {
+.student-info-table input[type="text"]:focus,
+.student-info-table textarea:focus {
     outline: none;
     border-color: #FF6B35;
     box-shadow: 0 0 0 2px rgba(255, 107, 53, 0.1);
+}
+
+/* 상태 select 색상 적용 */
+.status-select {
+    font-weight: 600;
+}
+
+.status-select option[value="출석"] {
+    color: #4CAF50 !important;
+}
+
+.status-select option[value="결석"] {
+    color: #000 !important;
+    text-decoration: line-through !important;
+}
+
+.status-select option[value="보강"] {
+    color: #f44336 !important;
+}
+
+.status-select option[value="보충"] {
+    color: #9C27B0 !important;
 }
 
 .view-controls {
