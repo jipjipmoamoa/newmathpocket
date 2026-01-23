@@ -505,13 +505,7 @@ function renderAttendanceTable() {
                 <option value="보강" style="color: #f44336; font-weight: 600;">보강</option>
                 <option value="보충" style="color: #9C27B0; font-weight: 600;">보충</option>
             </select>
-            <select id="registerAbsenceReason" class="form-select" style="display: none; margin-top: 5px;">
-                <option value="">사유 선택</option>
-                <option value="병결">병결</option>
-                <option value="학교">학교</option>
-                <option value="여행">여행</option>
-                <option value="기타">기타</option>
-            </select>
+            <input type="text" id="registerAbsenceReason" class="form-input" placeholder="결석 사유 입력" style="display: none; margin-top: 5px;" />
             <div id="registerMakeupDate" style="display: none; margin-top: 5px;">
                 <input type="date" id="registerMakeupDateInput" class="form-input" style="width: 100%;" placeholder="보강 날짜" />
             </div>
@@ -747,13 +741,7 @@ function renderAttendanceTable() {
                         <option value="보강" ${status === '보강' ? 'selected' : ''} style="color: #f44336; font-weight: 600;">보강</option>
                         <option value="보충" ${status === '보충' ? 'selected' : ''} style="color: #9C27B0; font-weight: 600;">보충</option>
                     </select>
-                    <select class="form-select" id="absence-reason-${rowId}" style="display: ${status === '결석' ? 'block' : 'none'}; margin-top: 5px;">
-                        <option value="">사유 선택</option>
-                        <option value="병결" ${absenceReason === '병결' ? 'selected' : ''}>병결</option>
-                        <option value="학교" ${absenceReason === '학교' ? 'selected' : ''}>학교</option>
-                        <option value="여행" ${absenceReason === '여행' ? 'selected' : ''}>여행</option>
-                        <option value="기타" ${absenceReason === '기타' ? 'selected' : ''}>기타</option>
-                    </select>
+                    <input type="text" class="form-input" id="absence-reason-${rowId}" value="${absenceReason}" placeholder="결석 사유 입력" style="display: ${status === '결석' ? 'block' : 'none'}; margin-top: 5px;" />
                     <div id="makeup-date-${rowId}" style="display: ${status === '보강' ? 'block' : 'none'}; margin-top: 5px;">
                         <input type="date" id="makeup-date-input-${rowId}" class="form-input" value="${makeupDate}" style="width: 100%;" placeholder="보강 날짜" />
                     </div>
@@ -861,13 +849,7 @@ function renderAttendanceTable() {
                             <option value="결석" ${status === '결석' ? 'selected' : ''}>결석</option>
                             <option value="보강" ${status === '보강' ? 'selected' : ''}>보강</option>
                         </select>
-                        <select class="form-select" id="absence-reason-${rowId}" style="display: ${status === '결석' ? 'block' : 'none'}; margin-top: 5px;">
-                            <option value="">사유 선택</option>
-                            <option value="병결" ${absenceReason === '병결' ? 'selected' : ''}>병결</option>
-                            <option value="학교" ${absenceReason === '학교' ? 'selected' : ''}>학교</option>
-                            <option value="여행" ${absenceReason === '여행' ? 'selected' : ''}>여행</option>
-                            <option value="기타" ${absenceReason === '기타' ? 'selected' : ''}>기타</option>
-                        </select>
+                        <input type="text" class="form-input" id="absence-reason-${rowId}" value="${absenceReason}" placeholder="결석 사유 입력" style="display: ${status === '결석' ? 'block' : 'none'}; margin-top: 5px;" />
                         <div id="makeup-date-${rowId}" style="display: ${status === '보강' ? 'block' : 'none'}; margin-top: 5px;">
                             <input type="date" id="makeup-date-input-${rowId}" class="form-input" value="${makeupDate}" style="width: 100%;" placeholder="보강 날짜" />
                         </div>
@@ -979,13 +961,7 @@ function renderAttendanceTable() {
                             <option value="보강" ${status === '보강' ? 'selected' : ''} style="color: #f44336; font-weight: 600;">보강</option>
                             <option value="보충" ${status === '보충' ? 'selected' : ''} style="color: #9C27B0; font-weight: 600;">보충</option>
                         </select>
-                        <select class="form-select" id="absence-reason-${rowId}" style="display: ${status === '결석' ? 'block' : 'none'}; margin-top: 5px;">
-                            <option value="">사유 선택</option>
-                            <option value="병결" ${absenceReason === '병결' ? 'selected' : ''}>병결</option>
-                            <option value="학교" ${absenceReason === '학교' ? 'selected' : ''}>학교</option>
-                            <option value="여행" ${absenceReason === '여행' ? 'selected' : ''}>여행</option>
-                            <option value="기타" ${absenceReason === '기타' ? 'selected' : ''}>기타</option>
-                        </select>
+                        <input type="text" class="form-input" id="absence-reason-${rowId}" value="${absenceReason}" placeholder="결석 사유 입력" style="display: ${status === '결석' ? 'block' : 'none'}; margin-top: 5px;" />
                         <div id="makeup-date-${rowId}" style="display: ${status === '보강' ? 'block' : 'none'}; margin-top: 5px;">
                             <input type="date" id="makeup-date-input-${rowId}" class="form-input" value="${makeupDate}" style="width: 100%;" placeholder="보강 날짜" />
                         </div>
@@ -1998,7 +1974,7 @@ async function loadMonthAttendance(year, month, pageType = 'check') {
     }
 }
 
-// 특정 날짜의 스케줄 가져오기 (상태가 확정된 출석만, 입실시간 빠른순 정렬, 중복 제거)
+// 특정 날짜의 스케줄 가져오기 (상태가 확정된 출석만, 입실시간 빠른순 정렬, 모든 기록 표시)
 function getSchedulesForDate(dateString) {
     const filtered = allMonthAttendance.filter(record => {
         const hasDate = record.date === dateString;
@@ -2008,43 +1984,22 @@ function getSchedulesForDate(dateString) {
         return hasDate && hasStatus;
     });
     
-    // 중복 제거: 같은 student_id가 있으면 가장 최신(updated_at 또는 created_at 기준) 기록만 유지
-    const uniqueMap = new Map();
-    filtered.forEach(record => {
-        const key = record.student_id || record.student_name; // student_id가 없으면 이름으로 구분
-        const existing = uniqueMap.get(key);
-        
-        if (!existing) {
-            uniqueMap.set(key, record);
-        } else {
-            // 최신 기록 유지 (updated_at 또는 created_at 비교)
-            const existingTime = existing.updated_at || existing.created_at || 0;
-            const recordTime = record.updated_at || record.created_at || 0;
-            
-            if (recordTime > existingTime) {
-                uniqueMap.set(key, record);
-            }
-        }
-    });
-    
-    // Map에서 배열로 변환
-    const uniqueRecords = Array.from(uniqueMap.values());
-    
-    // 입실시간 빠른순 정렬
-    uniqueRecords.sort((a, b) => {
+    // ✅ 중복 제거 제거: 같은 날 같은 학생의 여러 스케줄 모두 표시
+    // 입실시간 빠른순 정렬만 수행
+    filtered.sort((a, b) => {
         const timeA = a.check_in_time || '23:59';
         const timeB = b.check_in_time || '23:59';
         return timeA.localeCompare(timeB);
     });
     
-    if (uniqueRecords.length > 0) {
-        console.log(`[getSchedulesForDate] ${dateString} 결과: ${uniqueRecords.length}개 (중복 제거, 입실시간 빠른순)`);
-        uniqueRecords.forEach((record, index) => {
+    if (filtered.length > 0) {
+        console.log(`[getSchedulesForDate] ${dateString} 결과: ${filtered.length}개 (입실시간 빠른순, 모든 기록 표시)`);
+        filtered.forEach((record, index) => {
             console.log(`  ${index + 1}. ${record.check_in_time} - ${record.student_name}, 상태: ${record.status}, 퇴실: ${record.check_out_time}`);
         });
     }
     
-    return uniqueRecords;
+    return filtered;
 }
 
 // 스케줄 아이템 렌더링 (pageType: 'check' 또는 'view')
@@ -2079,10 +2034,10 @@ function renderScheduleItem(schedule, pageType = 'check') {
     }
     
     if (schedule.status === '결석') {
-        // 결석: "이름, 결석(사유)" - 검정색 + 가로선
+        // 결석: "이름, 결석(사유)" - 이름에만 취소선
         itemClass += ' absent';
         const reason = schedule.absence_reason ? `(${schedule.absence_reason})` : '';
-        content = `${schedule.student_name} 결석${reason}`;
+        content = `<span style="text-decoration: line-through;">${schedule.student_name}</span> 결석${reason}`;
     } else if (schedule.status === '보강') {
         // 보강: "입실시간, 이름, 퇴실시간 (결석날짜)" - 빨간색
         itemClass += ' makeup';
