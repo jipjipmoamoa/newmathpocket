@@ -820,14 +820,14 @@ input[type="date"] {
 .attendance-view-container {
     max-width: 100%;
     margin: 0 auto;
-    padding: 2rem;
+    padding: 1.5rem; /* 여백 축소 (2rem → 1.5rem) */
 }
 
-/* 2단 레이아웃 - 2:1 비율 */
+/* 2단 레이아웃 - 2.3:1 비율로 1단 확대 */
 .view-two-column-layout {
     display: grid;
-    grid-template-columns: 2fr 1fr;
-    gap: 0.5rem; /* 1,2단 사이 간격 추가 축소 (1rem → 0.5rem) */
+    grid-template-columns: 2.3fr 1fr; /* 1단 비율 증가 (2fr → 2.3fr) */
+    gap: 0.4rem; /* 간격 축소 (0.5rem → 0.4rem) */
     margin-top: 2rem;
 }
 
@@ -920,7 +920,7 @@ input[type="date"] {
 .student-info-table .student-school-inline {
     color: #999;
     font-size: 0.85em; /* 학교 글자 크기 */
-    margin-left: 0.15rem; /* 이름과 학교 사이 간격 축소 (0.3rem → 0.15rem) */
+    margin-left: 0; /* 이름과 학교 붙여쓰기 */
     font-weight: normal;
 }
 
@@ -1079,22 +1079,49 @@ input[type="date"] {
         page-break-inside: avoid !important;
     }
     
-    /* 학생 정보 테이블 인쇄 스타일 */
+    /* 학생 정보 테이블 인쇄 스타일 - 스케줄과 동일하게 */
     .student-info-table {
-        font-size: 9pt !important;
+        font-size: 6pt !important;
         page-break-inside: avoid !important;
     }
     
     .student-info-table th,
     .student-info-table td {
-        padding: 4px !important;
-        font-size: 9pt !important;
+        padding: 2px !important;
+        font-size: 6pt !important;
     }
     
-    .student-info-table input[type="text"] {
+    .student-info-table input[type="text"],
+    .student-info-table textarea {
         border: none !important;
         padding: 0 !important;
-        font-size: 9pt !important;
+        font-size: 6pt !important;
+    }
+    
+    /* 특이사항이 비어있으면 인쇄 시 숨기기 */
+    .student-info-table textarea.print-hide-if-empty {
+        display: none !important;
+    }
+    
+    .student-info-table .grade-header-text {
+        font-size: 6pt !important;
+        font-weight: 700 !important;
+    }
+    
+    .student-info-table .student-name-text {
+        font-size: 6pt !important;
+        font-weight: 700 !important;
+    }
+    
+    .student-info-table .student-school-inline {
+        font-size: 6pt !important;
+        margin-left: 0 !important; /* 이름과 학교 붙여쓰기 */
+    }
+    
+    /* 2단 행 간격 추가 축소 */
+    .student-info-table td {
+        padding: 0px !important;
+        line-height: 1 !important;
     }
     
     /* 페이지 설정 - 세로 방향 (출석체크용) */
@@ -1317,10 +1344,10 @@ input[type="date"] {
    인쇄 스타일
    ============================================ */
 @media print {
-    /* 기본 페이지 설정 */
+    /* 기본 페이지 설정 - 위/아래 여백 축소 */
     @page {
-        size: A4 portrait;
-        margin: 8mm 10mm;
+        size: A4 landscape; /* 출석조회는 가로 */
+        margin: 5mm 10mm; /* 위/아래 8mm → 5mm */
     }
     
     /* 모든 요소 숨기고 출석 조회 페이지만 표시 */
@@ -1422,12 +1449,18 @@ input[type="date"] {
         print-color-adjust: exact;
     }
     
-    /* 날짜 숫자 */
+    /* 날짜 숫자 - 스케줄과 동일하게 */
     .date-number {
-        font-size: 8pt !important;
+        font-size: 6pt !important;
         font-weight: 600 !important;
         margin-bottom: 2px !important;
         line-height: 1 !important;
+    }
+    
+    /* 날짜별 통계 텍스트 (형광펜 부분) 크기 축소 */
+    .date-number span {
+        font-size: 5pt !important;
+        padding: 0px 2px !important;
     }
     
     /* 스케줄 리스트 */
@@ -1437,11 +1470,11 @@ input[type="date"] {
         gap: 1px !important;
     }
     
-    /* 스케줄 아이템 - 크기 축소 */
+    /* 스케줄 아이템 - 크기 약간 증가 */
     .schedule-item {
-        font-size: 6pt !important;
+        font-size: 6.5pt !important; /* 6pt → 6.5pt */
         padding: 0px 2px !important;
-        line-height: 1.1 !important;
+        line-height: 1.2 !important; /* 1.1 → 1.2 */
         border-radius: 0 !important;
         white-space: nowrap !important;
         overflow: hidden !important;
@@ -1529,7 +1562,7 @@ input[type="date"] {
     }
     
     .stats-table .student-name {
-        font-size: 7pt !important;
+        font-size: 6pt !important;
         font-weight: 600 !important;
         line-height: 1.1 !important;
         margin-bottom: 1px !important;
