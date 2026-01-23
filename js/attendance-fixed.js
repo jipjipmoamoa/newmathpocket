@@ -549,6 +549,8 @@ function renderAttendanceTable() {
         const studentRecords = todayAttendanceRecords.filter(r => r.student_id === student.id);
         
         // ✅ 기본 요일 스케줄이 있으면 추가
+        const usedRecordIds = new Set(); // 이미 사용된 기록 ID 추적
+        
         if (daySchedule.enabled) {
             // 기본 스케줄의 checkIn 시간과 가장 가까운 출석 기록 찾기
             let mainRecord = null;
@@ -566,6 +568,8 @@ function renderAttendanceTable() {
                     
                     return recordDiff < closestDiff ? record : closest;
                 }, null);
+                
+                if (mainRecord) usedRecordIds.add(mainRecord.id); // 사용된 기록 마킹
             }
             
             const checkInTime = mainRecord?.check_in_time || daySchedule.checkIn || '23:59';
@@ -578,6 +582,19 @@ function renderAttendanceTable() {
                 scheduleType: 'main'
             });
         }
+        
+        // ✅ 같은 학생의 나머지 출석 기록도 추가 (보충, 추가 수업 등)
+        studentRecords.forEach(record => {
+            if (!usedRecordIds.has(record.id)) {
+                allAttendanceRows.push({
+                    type: 'extra',
+                    student: student,
+                    record: record,
+                    checkInTime: record.check_in_time || '23:59',
+                    scheduleType: 'extra'
+                });
+            }
+        });
     });
     
     // 2. 스케줄이 없지만 수동으로 등록된 출석 기록 추가
@@ -861,6 +878,124 @@ function renderAttendanceTable() {
                     <button class="btn-quick-checkout" onclick="quickCheckOut('${record.student_id}', '${record.id}')" title="퇴실">퇴실</button>
                 </td>
                 <td style="text-align: center;">
+                    <button class="btn-icon btn-edit display-mode" id="btn-edit-${rowId}" onclick="enterEditMode('${rowId}')" title="수정"></button>
+                    <button class="btn-icon btn-delete display-mode" id="btn-delete-${rowId}" onclick="deleteAttendance('${rowId}', '${record.id}')" style="margin-left: 0.5rem;" title="삭제"></button>
+                    <div class="edit-mode" id="edit-buttons-${rowId}" style="display: none;">
+                        <button class="btn-save" onclick="saveAttendance('${rowId}', '${record.id}')">저장</button>
+                        <button class="btn-cancel" onclick="cancelEditMode('${rowId}')">취소</button>
+                    </div>
+                </td>
+            `;
+            
+            tbody.appendChild(row);
+        } else if (item.type === 'extra') {
+            // 같은 학생의 추가 출석 기록 (보충 등)
+            const student = item.student;
+            const record = item.record;
+            const checkInTime = record.check_in_time || '';
+            const expectedOutTime = record.expected_out_time || '';
+            const checkOutTime = record.check_out_time || '';
+            let status = record.status || '';
+            const absenceReason = record.absence_reason || '';
+            const makeupDate = record.makeup_date || '';
+            
+            let actualDuration = '';
+            let durationText = '';
+            let durationColor = '';
+            
+            if (checkInTime && checkOutTime) {
+                actualDuration = calculateDurationInMinutes(checkInTime, checkOutTime);
+                durationText = `${actualDuration}분`;
+            }
+            
+            const rowId = `${student.id}-${record.id}`;
+            
+            // 상태별 색상 및 텍스트
+            let statusColor = '';
+            let statusText = status || '';
+            
+            if (status === '출석') {
+                statusColor = 'style="color: #4CAF50; font-weight: 600;"';
+            } else if (status === '보강') {
+                if (makeupDate) {
+                    const formattedDate = makeupDate.substring(5).replace('-', '/');
+                    statusText = `보강(${formattedDate})`;
+                }
+                statusColor = 'style="color: #f44336; font-weight: 600;"';
+            } else if (status === '보충') {
+                statusColor = 'style="color: #9C27B0; font-weight: 600;"';
+            } else if (status === '결석') {
+                if (absenceReason) {
+                    statusText = `결석(${absenceReason})`;
+                }
+                statusColor = 'style="color: #000; font-weight: 600; text-decoration: line-through;"';
+            } else {
+                // 상태가 비어있을 때: 입실만 있으면 초록색 체크, 입실도 없으면 검정색
+                if (checkInTime && !checkOutTime) {
+                    statusText = '✓';
+                    statusColor = 'style="color: #4CAF50; font-weight: 600; font-size: 1.2rem;"';
+                } else {
+                    statusColor = 'style="color: #000;"';
+                }
+            }
+            
+            const row = document.createElement('tr');
+            row.dataset.studentId = student.id;
+            row.dataset.studentName = student.name;
+            row.dataset.recordId = record.id;
+            
+            // 담당 선생님 색상 적용 (관리자/부관리자만)
+            if (Auth.isAdminOrSubAdmin() && student.teacher_id && typeof getTeacherColorClass === 'function') {
+                const teacherColor = getTeacherColorClass(student.teacher_id);
+                if (teacherColor) {
+                    row.style.backgroundColor = teacherColor;
+                }
+            }
+            
+            row.innerHTML = `
+                <td>${student.name} (${student.attendance_number || '-'})</td>
+                <td>
+                    <span class="display-mode" id="display-checkin-${rowId}">${checkInTime || '-'}</span>
+                    <input type="text" class="form-input edit-mode" id="edit-checkin-${rowId}" value="${checkInTime}" placeholder="14:00" style="display: none;"
+                        onblur="this.value = formatTimeInput(this.value)" />
+                </td>
+                <td>
+                    <span class="display-mode" id="display-expected-${rowId}">${expectedOutTime || '-'}</span>
+                    <input type="text" class="form-input edit-mode" id="edit-expected-${rowId}" value="${expectedOutTime}" placeholder="15:30" readonly style="display: none;" />
+                </td>
+                <td>
+                    <span class="display-mode" id="display-checkout-${rowId}">${checkOutTime || '-'}</span>
+                    <input type="text" class="form-input edit-mode" id="edit-checkout-${rowId}" value="${checkOutTime}" placeholder="15:30" style="display: none;"
+                        onblur="this.value = formatTimeInput(this.value)" />
+                </td>
+                <td class="duration-display">${durationText}</td>
+                <td>
+                    <span class="display-mode" id="display-status-${rowId}" ${statusColor}>${statusText || '-'}</span>
+                    <div class="edit-mode" id="edit-status-container-${rowId}" style="display: none;">
+                        <select class="form-select status-select" id="status-${rowId}" onchange="handleStatusChange('${rowId}')">
+                            <option value="" ${status === '' ? 'selected' : ''}></option>
+                            <option value="출석" ${status === '출석' ? 'selected' : ''} style="color: #4CAF50; font-weight: 600;">출석</option>
+                            <option value="결석" ${status === '결석' ? 'selected' : ''} style="color: #000; text-decoration: line-through;">결석</option>
+                            <option value="보강" ${status === '보강' ? 'selected' : ''} style="color: #f44336; font-weight: 600;">보강</option>
+                            <option value="보충" ${status === '보충' ? 'selected' : ''} style="color: #9C27B0; font-weight: 600;">보충</option>
+                        </select>
+                        <select class="form-select" id="absence-reason-${rowId}" style="display: ${status === '결석' ? 'block' : 'none'}; margin-top: 5px;">
+                            <option value="">사유 선택</option>
+                            <option value="병결" ${absenceReason === '병결' ? 'selected' : ''}>병결</option>
+                            <option value="학교" ${absenceReason === '학교' ? 'selected' : ''}>학교</option>
+                            <option value="여행" ${absenceReason === '여행' ? 'selected' : ''}>여행</option>
+                            <option value="기타" ${absenceReason === '기타' ? 'selected' : ''}>기타</option>
+                        </select>
+                        <div id="makeup-date-${rowId}" style="display: ${status === '보강' ? 'block' : 'none'}; margin-top: 5px;">
+                            <input type="date" id="makeup-date-input-${rowId}" class="form-input" value="${makeupDate}" style="width: 100%;" placeholder="보강 날짜" />
+                        </div>
+                    </div>
+                </td>
+                <td>
+                    <button class="btn-quick-checkin" onclick="quickCheckIn('${student.id}', 'extra', '${record.id}')" title="입실">입실</button>
+                    <button class="btn-quick-checkout" onclick="quickCheckOut('${student.id}', 'extra', '${record.id}')" title="퇴실">퇴실</button>
+                </td>
+                <td>
                     <button class="btn-icon btn-edit display-mode" id="btn-edit-${rowId}" onclick="enterEditMode('${rowId}')" title="수정"></button>
                     <button class="btn-icon btn-delete display-mode" id="btn-delete-${rowId}" onclick="deleteAttendance('${rowId}', '${record.id}')" style="margin-left: 0.5rem;" title="삭제"></button>
                     <div class="edit-mode" id="edit-buttons-${rowId}" style="display: none;">
