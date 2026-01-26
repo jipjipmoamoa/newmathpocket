@@ -18,6 +18,41 @@ let highlightedViewStudentName = null;
 // ============================================
 // 헬퍼 함수: 시간을 분 단위로 변환
 // ============================================
+function formatMakeupDateInput(input) {
+    let value = input.value.replace(/[^0-9/]/g, '');
+    
+    // YYMMDD 형식 입력 처리
+    if (value.indexOf('/') === -1 && value.length >= 4) {
+        // YYMMDD 형식으로 입력된 경우
+        const numbers = value.replace(/\//g, '');
+        if (numbers.length === 4) {
+            // MMDD 형식
+            const month = numbers.substring(0, 2);
+            const day = numbers.substring(2, 4);
+            value = `${parseInt(month, 10)}/${parseInt(day, 10)}`;
+        } else if (numbers.length >= 6) {
+            // YYMMDD 형식
+            const month = numbers.substring(2, 4);
+            const day = numbers.substring(4, 6);
+            value = `${parseInt(month, 10)}/${parseInt(day, 10)}`;
+        }
+    }
+    
+    // MM/DD 형식 검증
+    if (value.indexOf('/') !== -1) {
+        const parts = value.split('/');
+        if (parts.length === 2) {
+            const month = parseInt(parts[0], 10);
+            const day = parseInt(parts[1], 10);
+            if (month >= 1 && month <= 12 && day >= 1 && day <= 31) {
+                value = `${month}/${day}`;
+            }
+        }
+    }
+    
+    input.value = value;
+}
+
 function timeToMinutes(timeString) {
     if (!timeString) return 0;
     const parts = timeString.split(':');
@@ -690,7 +725,11 @@ function renderAttendanceTable() {
         } else if (status === '보강') {
             // 보강 날짜 표시
             if (makeupDate) {
-                const formattedDate = makeupDate.substring(5).replace('-', '/');
+                // "2025-01-05" → "1/5" 형식으로 변환
+                const dateParts = makeupDate.substring(5).split('-');
+                const month = parseInt(dateParts[0], 10);
+                const day = parseInt(dateParts[1], 10);
+                const formattedDate = `${month}/${day}`;
                 statusText = `보강(${formattedDate})`;
             }
             statusColor = 'style="color: #f44336; font-weight: 600;"';
@@ -743,13 +782,13 @@ function renderAttendanceTable() {
                     </select>
                     <input type="text" class="form-input" id="absence-reason-${rowId}" value="${absenceReason}" placeholder="결석 사유 입력" style="display: ${status === '결석' ? 'block' : 'none'}; margin-top: 5px;" />
                     <div id="makeup-date-${rowId}" style="display: ${status === '보강' ? 'block' : 'none'}; margin-top: 5px;">
-                        <input type="date" id="makeup-date-input-${rowId}" class="form-input" value="${makeupDate}" style="width: 100%;" placeholder="보강 날짜" />
+                        <input type="text" id="makeup-date-input-${rowId}" class="form-input" value="${makeupDate ? makeupDate.substring(5).replace('-', '/') : ''}" style="width: 100%;" placeholder="결석날짜 (MM/DD)" maxlength="5" oninput="formatMakeupDateInput(this)" />
                     </div>
                 </div>
             </td>
             <td>
-                <button class="btn-quick-checkin" onclick="quickCheckIn('${student.id}', '${item.scheduleType}', '${existingRecord ? existingRecord.id : ''}')" title="입실">입실</button>
-                <button class="btn-quick-checkout" onclick="quickCheckOut('${student.id}', '${item.scheduleType}', '${existingRecord ? existingRecord.id : ''}')" title="퇴실">퇴실</button>
+                <button class="btn-quick-checkin" onclick="quickCheckIn('${student.id}', '${existingRecord ? existingRecord.id : ''}')" title="입실">입실</button>
+                <button class="btn-quick-checkout" onclick="quickCheckOut('${student.id}', '${existingRecord ? existingRecord.id : ''}')" title="퇴실">퇴실</button>
             </td>
             <td>
                 <button class="btn-icon btn-edit display-mode" id="btn-edit-${rowId}" onclick="enterEditMode('${rowId}')" title="수정"></button>
@@ -793,7 +832,11 @@ function renderAttendanceTable() {
             } else if (status === '보강') {
                 // 보강 날짜 표시
                 if (makeupDate) {
-                    const formattedDate = makeupDate.substring(5).replace('-', '/');
+                    // "2025-01-05" → "1/5" 형식으로 변환
+                    const dateParts = makeupDate.substring(5).split('-');
+                    const month = parseInt(dateParts[0], 10);
+                    const day = parseInt(dateParts[1], 10);
+                    const formattedDate = `${month}/${day}`;
                     statusText = `보강(${formattedDate})`;
                 }
                 statusColor = 'color: #f44336; font-weight: 600;';
@@ -852,7 +895,7 @@ function renderAttendanceTable() {
                         </select>
                         <input type="text" class="form-input" id="absence-reason-${rowId}" value="${absenceReason}" placeholder="결석 사유 입력" style="display: ${status === '결석' ? 'block' : 'none'}; margin-top: 5px;" />
                         <div id="makeup-date-${rowId}" style="display: ${status === '보강' ? 'block' : 'none'}; margin-top: 5px;">
-                            <input type="date" id="makeup-date-input-${rowId}" class="form-input" value="${makeupDate}" style="width: 100%;" placeholder="보강 날짜" />
+                            <input type="text" id="makeup-date-input-${rowId}" class="form-input" value="${makeupDate ? makeupDate.substring(5).replace('-', '/') : ''}" style="width: 100%;" placeholder="결석날짜 (MM/DD)" maxlength="5" oninput="formatMakeupDateInput(this)" />
                         </div>
                     </div>
                 </td>
@@ -964,13 +1007,13 @@ function renderAttendanceTable() {
                         </select>
                         <input type="text" class="form-input" id="absence-reason-${rowId}" value="${absenceReason}" placeholder="결석 사유 입력" style="display: ${status === '결석' ? 'block' : 'none'}; margin-top: 5px;" />
                         <div id="makeup-date-${rowId}" style="display: ${status === '보강' ? 'block' : 'none'}; margin-top: 5px;">
-                            <input type="date" id="makeup-date-input-${rowId}" class="form-input" value="${makeupDate}" style="width: 100%;" placeholder="보강 날짜" />
+                            <input type="text" id="makeup-date-input-${rowId}" class="form-input" value="${makeupDate ? makeupDate.substring(5).replace('-', '/') : ''}" style="width: 100%;" placeholder="결석날짜 (MM/DD)" maxlength="5" oninput="formatMakeupDateInput(this)" />
                         </div>
                     </div>
                 </td>
                 <td>
-                    <button class="btn-quick-checkin" onclick="quickCheckIn('${student.id}', 'extra', '${record.id}')" title="입실">입실</button>
-                    <button class="btn-quick-checkout" onclick="quickCheckOut('${student.id}', 'extra', '${record.id}')" title="퇴실">퇴실</button>
+                    <button class="btn-quick-checkin" onclick="quickCheckIn('${student.id}', '${record.id}')" title="입실">입실</button>
+                    <button class="btn-quick-checkout" onclick="quickCheckOut('${student.id}', '${record.id}')" title="퇴실">퇴실</button>
                 </td>
                 <td>
                     <button class="btn-icon btn-edit display-mode" id="btn-edit-${rowId}" onclick="enterEditMode('${rowId}')" title="수정"></button>
@@ -1297,7 +1340,19 @@ async function saveAttendance(rowId, recordId) {
     let checkOutTime = document.getElementById(`edit-checkout-${rowId}`)?.value || '';
     let status = document.getElementById(`status-${rowId}`)?.value || '';
     const absenceReason = document.getElementById(`absence-reason-${rowId}`)?.value || '';
-    const makeupDate = document.getElementById(`makeup-date-input-${rowId}`)?.value || '';
+    let makeupDateInput = document.getElementById(`makeup-date-input-${rowId}`)?.value || '';
+    
+    // MM/DD 형식을 YYYY-MM-DD 형식으로 변환
+    let makeupDate = '';
+    if (makeupDateInput && status === '보강') {
+        const currentYear = new Date().getFullYear();
+        const parts = makeupDateInput.split('/');
+        if (parts.length === 2) {
+            const month = parts[0].padStart(2, '0');
+            const day = parts[1].padStart(2, '0');
+            makeupDate = `${currentYear}-${month}-${day}`;
+        }
+    }
     
     // 스케줄에서 기본값 가져오기
     const student = attendanceStudents.find(s => s.id === studentId);
@@ -2727,18 +2782,38 @@ async function showAttendanceViewPage() {
                     </div>
                 </div>
                 
-                <!-- 2단: 학생 정보 테이블 -->
+                <!-- 2단: 학생 목록 + MEMO -->
                 <div class="view-column-right">
-                    <div class="student-info-section">
-                        <h3>학생 정보</h3>
-                        <div id="viewStudentInfoContainer">
-                            <p style="text-align: center; color: #999;">조회된 학생이 없습니다.</p>
+                    <!-- 학생 목록 -->
+                    <div class="view-student-list">
+                        <h3>학생 목록</h3>
+                        <div id="viewStudentListContainer" class="student-list-items">
+                            <p style="text-align: center; color: #999; padding: 2rem;">학생 목록을 불러오는 중...</p>
                         </div>
+                    </div>
+                    
+                    <!-- MEMO -->
+                    <div class="view-memo-section">
+                        <h4>MEMO</h4>
+                        <textarea id="viewMemoTextarea" placeholder="" onblur="saveViewStudentMemo()"></textarea>
                     </div>
                 </div>
             </div>
         </div>
     `;
+
+    // MEMO textarea에 Enter 키 이벤트 추가
+    setTimeout(() => {
+        const memoTextarea = document.getElementById('viewMemoTextarea');
+        if (memoTextarea) {
+            memoTextarea.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                    // Enter만 누르면 줄바꿈 (기본 동작)
+                    // Shift+Enter는 저장 없이 줄바꿈
+                }
+            });
+        }
+    }, 100);
 
     // 관리자/부관리자인 경우 선생님 목록 로드
     if (Auth.isAdmin() || Auth.isSubAdmin()) {
@@ -2826,16 +2901,16 @@ async function loadAttendanceViewData() {
     
     const titleElement = document.getElementById('viewCalendarMonthTitle');
     const calendarContainer = document.getElementById('viewMonthlyCalendarContainer');
-    const studentInfoContainer = document.getElementById('viewStudentInfoContainer');
+    const studentListContainer = document.getElementById('viewStudentListContainer');
     
-    if (!titleElement || !calendarContainer || !studentInfoContainer) {
+    if (!titleElement || !calendarContainer || !studentListContainer) {
         console.error('출결조회 컨테이너를 찾을 수 없습니다.');
         return;
     }
     
     titleElement.textContent = `${year}년 ${month}월`;
     calendarContainer.innerHTML = '<p style="text-align: center;">로딩 중...</p>';
-    studentInfoContainer.innerHTML = '<p style="text-align: center;">로딩 중...</p>';
+    studentListContainer.innerHTML = '<p style="text-align: center; color: #999; padding: 2rem;">로딩 중...</p>';
     
     try {
         // 해당 월의 출석 기록 로드 (출석조회 페이지)
@@ -2844,8 +2919,8 @@ async function loadAttendanceViewData() {
         // 달력 렌더링
         renderViewMonthlyCalendar(year, month - 1);
         
-        // 학생 정보 테이블 렌더링
-        await renderViewStudentInfoTable();
+        // 학생 목록 렌더링
+        await renderViewStudentList();
         
     } catch (error) {
         console.error('출결조회 로드 실패:', error);
@@ -3134,7 +3209,188 @@ async function loadAttendanceViewCalendar() {
     }
 }
 
-// 학생 정보 테이블 렌더링
+// 학생 목록 렌더링 (2단용)
+async function renderViewStudentList() {
+    const container = document.getElementById('viewStudentListContainer');
+    if (!container) return;
+    
+    try {
+        // 학생 목록 로드
+        const response = await API.getList('students', { limit: 1000 });
+        let allStudents = Array.isArray(response) ? response : (response.data || []);
+        
+        // 권한 필터링
+        allStudents = Permissions.filterStudentsByTeacher(allStudents);
+        
+        // 관리자/부관리자인 경우 선택된 선생님으로 추가 필터링
+        if ((Auth.isAdmin() || Auth.isSubAdmin()) && currentAttendanceViewTeacherFilter !== 'all') {
+            allStudents = allStudents.filter(s => s.teacher_id === currentAttendanceViewTeacherFilter);
+        }
+        
+        // 재원생만 필터링
+        const activeStudents = allStudents.filter(s => s.status === '재원');
+        
+        if (activeStudents.length === 0) {
+            container.innerHTML = '<p style="text-align: center; color: #999; padding: 2rem;">조회된 학생이 없습니다.</p>';
+            return;
+        }
+        
+        // 학교급/학년별로 그룹화
+        const groupedStudents = {};
+        
+        activeStudents.forEach(student => {
+            const schoolType = student.school_type || '기타';
+            const grade = student.grade || '미정';
+            const schoolTypeFull = schoolType === '초' ? '초등' : 
+                                   schoolType === '중' ? '중등' : 
+                                   schoolType === '고' ? '고등' : schoolType;
+            const key = `${schoolTypeFull} ${grade}학년`;
+            
+            if (!groupedStudents[key]) {
+                groupedStudents[key] = [];
+            }
+            groupedStudents[key].push(student);
+        });
+        
+        // 각 그룹 내에서 이름순 정렬
+        Object.keys(groupedStudents).forEach(key => {
+            groupedStudents[key].sort((a, b) => (a.name || '').localeCompare(b.name || '', 'ko'));
+        });
+        
+        // 그룹 키 정렬
+        const sortedKeys = Object.keys(groupedStudents).sort((a, b) => {
+            const schoolOrder = { '초등': 1, '중등': 2, '고등': 3, '기타': 4 };
+            const [typeA, gradeA] = a.split(' ');
+            const [typeB, gradeB] = b.split(' ');
+            
+            if (typeA !== typeB) {
+                return (schoolOrder[typeA] || 999) - (schoolOrder[typeB] || 999);
+            }
+            
+            const gradeNumA = parseInt(gradeA) || 999;
+            const gradeNumB = parseInt(gradeB) || 999;
+            return gradeNumA - gradeNumB;
+        });
+        
+        let html = '';
+        
+        // 학년별로 렌더링
+        sortedKeys.forEach(groupKey => {
+            const students = groupedStudents[groupKey];
+            
+            // 학년 헤더
+            html += `<div style="font-weight: 700; color: #8B4513; font-size: 0.95rem; margin-top: 1rem; margin-bottom: 0.5rem; padding-bottom: 0.3rem; border-bottom: 2px solid #d0d0d0;">${groupKey}</div>`;
+            
+            // 학생 아이템 (텍스트 형식)
+            students.forEach(student => {
+                const schoolName = student.school || '-';
+                const shortSchoolName = schoolName.length > 1 ? schoolName.slice(0, -1) : schoolName;
+                
+                html += `
+                    <div class="student-text-item" data-student-id="${student.id}">
+                        <span class="student-text-name" onclick="selectViewStudent('${student.id}', '${student.name}', event)">${student.name}</span>
+                        <span class="student-text-school">(${shortSchoolName})</span>
+                        <input 
+                            type="text"
+                            class="student-text-memo"
+                            placeholder="" 
+                            value=""
+                            data-student-id="${student.id}"
+                            onblur="saveStudentItemMemo('${student.id}', this.value)"
+                            onclick="event.stopPropagation()"
+                        />
+                    </div>
+                `;
+            });
+        });
+        
+        container.innerHTML = html;
+        
+    } catch (error) {
+        console.error('학생 목록 로드 실패:', error);
+        container.innerHTML = '<p style="text-align: center; color: red; padding: 2rem;">학생 목록 로드에 실패했습니다.</p>';
+    }
+}
+
+// 학생 선택
+let selectedViewStudentId = null;
+
+function selectViewStudent(studentId, studentName, event) {
+    if (event) {
+        event.stopPropagation();
+    }
+    
+    selectedViewStudentId = studentId;
+    
+    // 모든 학생 아이템에서 active 클래스 제거
+    document.querySelectorAll('.student-text-item').forEach(item => {
+        item.classList.remove('active');
+    });
+    
+    // 클릭한 아이템에 active 클래스 추가
+    const studentItem = document.querySelector(`.student-text-item[data-student-id="${studentId}"]`);
+    if (studentItem) {
+        studentItem.classList.add('active');
+    }
+    
+    // 달력에서 해당 학생 하이라이트
+    highlightViewStudent(studentName);
+    
+    // MEMO 불러오기
+    loadViewStudentMemo(studentId);
+}
+
+// 학생 아이템 메모 저장
+async function saveStudentItemMemo(studentId, memo) {
+    try {
+        await API.update('students', studentId, { memo });
+        console.log('학생 메모 저장 완료:', studentId);
+    } catch (error) {
+        console.error('학생 메모 저장 실패:', error);
+        alert('메모 저장에 실패했습니다.');
+    }
+}
+
+// 학생 메모 textarea 키 이벤트 처리
+function handleStudentMemoKeydown(event) {
+    if (event.key === 'Enter' && !event.shiftKey) {
+        // Enter만 누르면 줄바꿈 (기본 동작)
+        // Shift+Enter도 줄바꿈
+    }
+    // textarea 클릭 시 이벤트 전파 방지는 onclick에서 처리
+}
+
+// 학생 MEMO 불러오기
+async function loadViewStudentMemo(studentId) {
+    const textarea = document.getElementById('viewMemoTextarea');
+    if (!textarea) return;
+    
+    // 항상 빈 상태로 표시
+    textarea.value = '';
+}
+
+// 학생 MEMO 저장
+async function saveViewStudentMemo() {
+    if (!selectedViewStudentId) {
+        alert('학생을 먼저 선택해주세요.');
+        return;
+    }
+    
+    const textarea = document.getElementById('viewMemoTextarea');
+    if (!textarea) return;
+    
+    const memo = textarea.value;
+    
+    try {
+        await API.update('students', selectedViewStudentId, { memo });
+        console.log('메모 저장 완료');
+    } catch (error) {
+        console.error('메모 저장 실패:', error);
+        alert('메모 저장에 실패했습니다.');
+    }
+}
+
+// 학생 정보 테이블 렌더링 (기존 함수 - 필요시 사용)
 async function renderViewStudentInfoTable() {
     const container = document.getElementById('viewStudentInfoContainer');
     if (!container) return;
@@ -3236,21 +3492,10 @@ async function renderViewStudentInfoTable() {
         // 2단 하단에 MEMO 섹션 추가
         html += '<div class="view-memo-section" style="margin-top: 1rem; padding: 1rem; background: #f8f9fa; border-radius: 8px;">';
         html += '<h4 style="margin: 0 0 0.5rem 0; font-size: 0.9rem; font-weight: 600; color: #495057;">MEMO</h4>';
-        html += '<textarea id="viewMemoTextarea" style="width: 100%; min-height: 100px; padding: 0.5rem; border: 1px solid #ced4da; border-radius: 4px; font-family: \'Noto Sans KR\', sans-serif; font-size: 0.9rem; resize: vertical;" placeholder="메모를 입력하세요..."></textarea>';
+        html += '<textarea id="viewMemoTextarea" style="width: 100%; min-height: 100px; padding: 0.5rem; border: 1px solid #ced4da; border-radius: 4px; font-family: \'Noto Sans KR\', sans-serif; font-size: 0.9rem; resize: vertical;" placeholder=""></textarea>';
         html += '</div>';
         
         container.innerHTML = html;
-        
-        // MEMO textarea에 엔터 키 이벤트 추가 (줄바꿈)
-        const memoTextarea = document.getElementById('viewMemoTextarea');
-        if (memoTextarea) {
-            memoTextarea.addEventListener('keydown', (e) => {
-                if (e.key === 'Enter') {
-                    // 엔터 키로 줄바꿈 (기본 동작)
-                    // 아무 동작도 하지 않으면 자동으로 줄바꿈됨
-                }
-            });
-        }
         
     } catch (error) {
         console.error('학생 정보 테이블 렌더링 실패:', error);
