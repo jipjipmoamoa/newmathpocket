@@ -607,6 +607,11 @@
     margin-bottom: 1.5rem;
 }
 
+/* 출석조회 페이지용 달력 헤더 - 여백 축소 */
+.view-column-left .calendar-header {
+    margin-bottom: 0.5rem;
+}
+
 .calendar-header h3 {
     margin: 0;
     font-size: 1.3rem;
@@ -626,15 +631,24 @@
     text-align: center;
     font-weight: 600;
     color: #495057;
-    border: 1px solid #dee2e6;
+    border: 1px solid #e9ecef;
 }
 
 .monthly-calendar tbody td {
-    border: 1px solid #dee2e6;
+    border: 1px solid #e9ecef;
     padding: 0.5rem;
     vertical-align: top;
     height: 120px;
     background: white;
+}
+
+/* 출석조회 페이지용 달력 - 여백 축소 */
+.view-column-left .monthly-calendar thead th {
+    padding: 0.25rem;
+}
+
+.view-column-left .monthly-calendar tbody td {
+    padding: 0.3rem;
 }
 
 .monthly-calendar .empty-cell {
@@ -819,14 +833,14 @@ input[type="date"] {
 .attendance-view-container {
     max-width: 100%;
     margin: 0 auto;
-    padding: 1.5rem; /* 여백 축소 (2rem → 1.5rem) */
+    padding: 2rem;
 }
 
-/* 2단 레이아웃 - 2.3:1 비율로 1단 확대 */
+/* 2단 레이아웃 (2:1 비율) */
 .view-two-column-layout {
     display: grid;
-    grid-template-columns: 2.3fr 1fr; /* 1단 비율 증가 (2fr → 2.3fr) */
-    gap: 0.4rem; /* 간격 축소 (0.5rem → 0.4rem) */
+    grid-template-columns: 2fr 1fr;
+    gap: 0.45rem;
     margin-top: 2rem;
 }
 
@@ -834,155 +848,122 @@ input[type="date"] {
 .view-column-right {
     background: white;
     border-radius: 12px;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    box-shadow: none;
+    border: none;
 }
 
 .view-column-left {
-    padding: 0; /* 여백 제거 */
-}
-
-.view-column-left .monthly-calendar tbody td {
-    padding: 0.25rem; /* 1단 안쪽 여백 50% 축소 (0.5rem → 0.25rem) */
-    height: 140px; /* 날짜칸 높이 확대 (120px → 140px) */
+    padding: 0.3rem;
 }
 
 .view-column-right {
-    padding: 1rem; /* 안쪽 여백 50% 축소 (2rem → 1rem) */
+    padding: 0.5rem;
+    padding-top: 6.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
 }
 
-/* 학생 정보 섹션 */
-.student-info-section h3 {
-    display: none; /* '학생 정보' 글자 제거 */
+/* 2단 학생 목록 */
+.view-student-list {
+    flex: 1;
+    overflow-y: visible;
 }
 
-.student-info-table {
-    width: 100%;
-    border-collapse: collapse;
+.view-student-list h3 {
+    display: none;
 }
 
-.student-info-table thead {
-    display: none; /* 헤더 숨김 */
+.student-list-items {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
 }
 
-.student-info-table th {
-    padding: 0.8rem;
-    text-align: center;
-    font-weight: 600;
-    color: #495057;
-    border: none; /* 경계선 제거 */
+/* 학생 텍스트 아이템 */
+.student-text-item {
+    padding: 0.25rem 0;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    border-bottom: 1px solid #f0f0f0;
 }
 
-.student-info-table tbody tr {
-    border: none; /* 경계선 제거 */
+.student-text-item:last-child {
+    border-bottom: none;
 }
 
-.student-info-table tbody tr:hover {
-    background-color: #f8f9fa;
-}
-
-.student-info-table td {
-    padding: 0.15rem; /* 행 간격 50% 축소 (0.3rem → 0.15rem) */
-    color: #495057;
-    border: none; /* 경계선 제거 */
-    text-align: left;
-}
-
-.student-info-table td:first-child {
-    width: 25%; /* 1열 가로폭 */
-}
-
-.student-info-table td:last-child {
-    width: 75%; /* 2열 가로폭 확대 */
-}
-
-.student-info-table .grade-header-row {
-    background: none; /* 배경색 제거 */
-}
-
-.student-info-table .grade-header-text {
-    display: block;
-    padding: 0.5rem 0;
-    font-weight: 700; /* 두껍게 */
-    color: #8B4513;
-    font-size: 0.95rem;
-}
-
-.student-info-table .student-name-cell {
-    cursor: pointer;
-}
-
-.student-info-table .student-name-text {
-    font-weight: 700; /* 이름 진하게 */
-    font-size: 1rem;
-}
-
-.student-info-table .student-school-inline {
-    color: #000;
-    font-size: 0.85em; /* 학교 글자 크기 */
-    margin-left: 0.2rem; /* 이름과 학교 간격 축소 */
-    font-weight: normal;
-}
-
-.student-info-table input[type="text"],
-.student-info-table textarea {
-    width: 100%;
-    padding: 0.4rem;
-    border: 1px solid #ced4da;
-    border-radius: 4px;
+.student-text-name {
+    font-weight: 700;
     font-size: 0.9rem;
-    font-family: 'Noto Sans KR', sans-serif;
-    resize: vertical;
+    color: #333;
+    cursor: pointer;
+    transition: color 0.2s;
 }
 
-.student-info-table input[type="text"]:focus,
-.student-info-table textarea:focus {
+.student-text-name:hover {
+    color: #FF6B35;
+}
+
+.student-text-school {
+    font-size: 0.8rem;
+    color: #666;
+    margin-right: 0.5rem;
+}
+
+.student-text-memo {
+    flex: 1;
+    padding: 0.3rem 0.5rem;
+    border: 1px solid #e0e0e0;
+    border-radius: 4px;
+    font-size: 0.75rem;
+    font-family: 'Noto Sans KR', sans-serif;
+    background: white;
+}
+
+.student-text-memo:focus {
     outline: none;
     border-color: #FF6B35;
     box-shadow: 0 0 0 2px rgba(255, 107, 53, 0.1);
 }
 
-/* 상태 select 색상 적용 */
-.status-select {
-    font-weight: 600;
+.student-text-item.active .student-text-name {
+    color: #FF6B35;
 }
 
-.status-select option[value="출석"] {
-    color: #4CAF50 !important;
+/* 2단 MEMO 섹션 */
+.view-memo-section {
+    background: #f8f9fa;
+    padding: 1rem;
+    border-radius: 8px;
+    border: 1px solid #dee2e6;
 }
 
-.status-select option[value="결석"] {
-    color: #000 !important;
-    text-decoration: line-through !important;
+.view-memo-section h4 {
+    font-size: 1rem;
+    font-weight: 700;
+    color: #333;
+    margin-bottom: 0.75rem;
 }
 
-.status-select option[value="보강"] {
-    color: #f44336 !important;
+.view-memo-section textarea {
+    width: 100%;
+    min-height: 120px;
+    padding: 0.75rem;
+    border: 1px solid #ced4da;
+    border-radius: 6px;
+    font-size: 0.9rem;
+    font-family: 'Noto Sans KR', sans-serif;
+    resize: vertical;
+    transition: border-color 0.2s;
 }
 
-.status-select option[value="보충"] {
-    color: #9C27B0 !important;
+.view-memo-section textarea:focus {
+    outline: none;
+    border-color: #FF6B35;
+    box-shadow: 0 0 0 3px rgba(255, 107, 53, 0.1);
 }
 
-/* 출석현황 상태 드롭다운 색상 */
-.form-select[id^="status-"] option[value="출석"] {
-    color: #4CAF50;
-    font-weight: 600;
-}
-
-.form-select[id^="status-"] option[value="결석"] {
-    color: #000;
-    text-decoration: line-through;
-}
-
-.form-select[id^="status-"] option[value="보강"] {
-    color: #f44336;
-    font-weight: 600;
-}
-
-.form-select[id^="status-"] option[value="보충"] {
-    color: #9C27B0;
-    font-weight: 600;
-}
 
 .view-controls {
     display: flex;
@@ -1055,114 +1036,282 @@ input[type="date"] {
 
 /* 출석조회 페이지 인쇄 스타일 (가로) */
 @media print {
+    /* 페이지 설정 */
+    @page {
+        margin: 3mm !important;
+        margin-top: 18mm !important;
+        size: A4 landscape !important;
+    }
+    
+    /* 브라우저 기본 인쇄 헤더/푸터 제거 시도 */
+    @page :first {
+        margin-top: 18mm !important;
+    }
+    
+    @page :left {
+        margin-left: 3mm !important;
+    }
+    
+    @page :right {
+        margin-right: 3mm !important;
+    }
+    
+    /* 인쇄 시 불필요한 요소 숨김 */
+    header,
+    .main-menu,
+    .sub-menu-container,
+    .view-controls,
+    .btn-month-nav,
+    button,
+    .btn-secondary,
+    input[type="checkbox"],
+    label {
+        display: none !important;
+    }
+    
+    /* body 외부 텍스트 숨김 */
+    body {
+        margin: 0 !important;
+        padding: 0 !important;
+        background: white !important;
+    }
+    
+    /* body 직계 자식 텍스트 노드 숨김 (좌측 상단 숫자 제거) */
+    body::first-line {
+        font-size: 0 !important;
+        line-height: 0 !important;
+        color: transparent !important;
+        display: none !important;
+    }
+    
+    /* mainContent 내부만 정상 표시 */
+    #mainContent,
+    #mainContent * {
+        font-size: initial !important;
+        color: initial !important;
+        visibility: visible !important;
+    }
+    
+    /* 출석조회 컨테이너 정상 표시 */
+    .attendance-view-container,
+    .attendance-view-container * {
+        visibility: visible !important;
+        color: #000 !important;
+    }
+    
     /* 출석조회 페이지 가로 인쇄 */
     .attendance-view-container {
         display: block !important;
+        padding: 0 !important;
+        margin: 0 !important;
+        width: 100% !important;
+        max-width: 100% !important;
+        zoom: 0.49 !important;
     }
     
-    .attendance-view-container @page {
-        size: landscape;
-        margin: 1cm;
-    }
-    
-    /* 2단 레이아웃 유지 - 중앙 정렬 및 크기 최적화 */
+    /* 2단 레이아웃 인쇄 */
     .view-two-column-layout {
         display: grid !important;
-        grid-template-columns: 2fr 1fr !important;
-        gap: 0.8rem !important; /* 간격 축소 */
+        grid-template-columns: 2.5fr 1fr !important;
+        gap: 0.1rem !important;
         page-break-inside: avoid !important;
-        align-items: start !important;
-        margin-left: auto !important;
-        margin-right: auto !important;
-        max-width: 100% !important; /* 최대한 넓게 */
-        transform: scale(0.95) !important; /* 전체 크기 5% 축소 */
-        transform-origin: top center !important;
+        margin: 0 !important;
+        width: 100% !important;
     }
     
-    /* 1,2단 테두리 제거 */
     .view-column-left,
     .view-column-right {
         box-shadow: none !important;
         border: none !important;
         page-break-inside: avoid !important;
+        padding: 0.05rem !important;
+        overflow: hidden !important;
     }
     
-    /* 2단 위치를 1단 요일 행과 같은 높이로 조정 */
     .view-column-right {
-        margin-top: 40px !important; /* 요일 행 높이만큼 아래로 */
+        padding-top: 3.8rem !important;
     }
     
-    /* 학생 정보 테이블 인쇄 스타일 - 스케줄과 동일하게 */
-    .student-info-table {
-        font-size: 6pt !important;
-        page-break-inside: avoid !important;
-    }
-    
-    .student-info-table th,
-    .student-info-table td {
-        padding: 2px !important;
-        font-size: 6pt !important;
-    }
-    
-    .student-info-table input[type="text"],
-    .student-info-table textarea {
-        border: none !important;
+    /* 달력 헤더 축소 */
+    .calendar-header {
+        margin-bottom: 0.3rem !important;
+        display: flex !important;
+        justify-content: center !important;
+        align-items: center !important;
         padding: 0 !important;
-        font-size: 6pt !important;
     }
     
-    /* 특이사항이 비어있으면 인쇄 시 숨기기 */
-    .student-info-table textarea.print-hide-if-empty {
+    .calendar-header h3 {
+        font-size: 312pt !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        font-weight: 700 !important;
+    }
+    
+    /* 달력 테이블 축소 */
+    .monthly-calendar {
+        font-size: 7pt !important;
+        width: 100% !important;
+    }
+    
+    .monthly-calendar thead th {
+        padding: 0.2rem !important;
+        font-size: 6.3pt !important;
+        border: 1px solid #e9ecef !important;
+    }
+    
+    .monthly-calendar tbody td {
+        padding: 0.15rem !important;
+        height: 47px !important;
+        min-height: 47px !important;
+        max-height: 47px !important;
+        font-size: 4.7pt !important;
+        border: 1px solid #e9ecef !important;
+        overflow: hidden !important;
+        vertical-align: top !important;
+    }
+    
+    .date-number {
+        font-size: 4.7pt !important;
+        margin-bottom: 0.1rem !important;
+        line-height: 1 !important;
+    }
+    
+    .schedule-list {
+        gap: 0.05rem !important;
+    }
+    
+    .schedule-item {
+        font-size: 3.8pt !important;
+        padding: 0.05rem !important;
+        line-height: 1 !important;
+        white-space: nowrap !important;
+        overflow: hidden !important;
+        text-overflow: ellipsis !important;
+    }
+    
+    /* 2단 학생 목록 인쇄 */
+    .view-student-list {
+        max-height: none !important;
+        overflow: visible !important;
+        font-size: 4.7pt !important;
+    }
+    
+    .view-student-list h3 {
         display: none !important;
     }
     
-    /* 텍스트 영역 끝 무늬 제거 */
-    .student-info-table textarea {
-        resize: none !important;
+    /* 학년 헤더 축소 */
+    .student-list-items > div[style*="font-weight: 700"] {
+        font-size: 5.3pt !important;
+        margin-top: 0.3rem !important;
+        margin-bottom: 0.15rem !important;
+        padding-bottom: 0.15rem !important;
+        border-bottom: 1px solid #d0d0d0 !important;
     }
     
-    .student-info-table .grade-header-text {
-        font-size: 6pt !important;
-        font-weight: 700 !important;
-    }
-    
-    .student-info-table .student-name-text {
-        font-size: 6pt !important;
-        font-weight: 700 !important;
-    }
-    
-    .student-info-table .student-school-inline {
-        font-size: 6pt !important;
-        margin-left: 0 !important;
-        color: #000 !important;
-    }
-    
-    /* 2단 하단 MEMO 섹션 인쇄 스타일 */
-    .view-memo-section {
-        display: block !important;
-        margin-top: 0.5rem !important;
-        padding: 0.3rem !important;
-        background: white !important;
-        border: 1px solid #dee2e6 !important;
-        border-radius: 4px !important;
+    /* 학생 텍스트 아이템 인쇄 */
+    .student-text-item {
+        padding: 0.18rem 0 !important;
+        font-size: 4.7pt !important;
+        border-bottom: 1px solid #f5f5f5 !important;
         page-break-inside: avoid !important;
+        line-height: 1.05 !important;
+        display: block !important;
+        width: 100% !important;
+        max-width: 100% !important;
+        flex-direction: row !important;
+        flex-wrap: nowrap !important;
+    }
+    
+    .view-student-list .student-text-item {
+        display: block !important;
+    }
+    
+    .student-text-item:last-child {
+        border-bottom: none !important;
+    }
+    
+    .student-text-name {
+        font-size: 4.7pt !important;
+        font-weight: 700 !important;
+        display: inline-block !important;
+        vertical-align: top !important;
+    }
+    
+    .student-text-school {
+        font-size: 3.8pt !important;
+        display: inline-block !important;
+        vertical-align: top !important;
+    }
+    
+    .student-text-memo {
+        font-size: 3.8pt !important;
+        padding: 0.1rem 0.18rem !important;
+        border: none !important;
+        width: 5px !important;
+        min-width: 5px !important;
+        max-width: 5px !important;
+        height: auto !important;
+        min-height: 15px !important;
+        white-space: pre-wrap !important;
+        word-wrap: break-word !important;
+        overflow-wrap: break-word !important;
+        line-height: 1.1 !important;
+        display: inline-block !important;
+        vertical-align: top !important;
+        box-sizing: border-box !important;
+        flex: none !important;
+        flex-grow: 0 !important;
+        flex-shrink: 0 !important;
+    }
+    
+    .view-student-list .student-text-memo {
+        width: 5px !important;
+        min-width: 5px !important;
+        max-width: 5px !important;
+        flex: none !important;
+    }
+    
+    /* 2단 하단 MEMO 인쇄 */
+    .view-memo-section {
+        page-break-inside: avoid !important;
+        padding: 0.3rem !important;
+        margin-top: 0.4rem !important;
+        border-top: 1px solid #d0d0d0 !important;
+    }
+    
+    /* MEMO 내용이 없으면 숨김 */
+    .view-memo-section.empty-memo {
+        display: none !important;
     }
     
     .view-memo-section h4 {
-        font-size: 7pt !important;
-        font-weight: 700 !important;
-        margin: 0 0 0.2rem 0 !important;
-        color: #000 !important;
+        font-size: 5.3pt !important;
+        margin-bottom: 0.2rem !important;
     }
     
     .view-memo-section textarea {
-        width: 100% !important;
         min-height: 60px !important;
-        border: 1px solid #dee2e6 !important;
+        font-size: 4.7pt !important;
         padding: 0.2rem !important;
-        font-size: 6pt !important;
-        resize: none !important;
-        white-space: pre-wrap !important;
+        border: 1px solid #dee2e6 !important;
+        line-height: 1.05 !important;
+    }
+    
+    /* 페이지 나누기 방지 */
+    .view-two-column-layout,
+    .view-column-left,
+    .view-column-right,
+    .monthly-calendar,
+    tbody {
+        page-break-inside: avoid !important;
+    }
+    
+    /* 배경색 인쇄 강제 */
+    * {
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
     }
 }
 
@@ -1304,10 +1453,11 @@ input[type="date"] {
    인쇄 스타일
    ============================================ */
 @media print {
-    /* 기본 페이지 설정 - 여백 최소화 */
+    /* 기본 페이지 설정 */
     @page {
         size: A4 landscape; /* 출석조회는 가로 */
-        margin: 8mm 12mm; /* 여백 최소화로 내용이 한 페이지에 들어가도록 */
+        margin: 3mm !important;
+        margin-top: 18mm !important;
     }
     
     /* 모든 요소 숨기고 출석 조회 페이지만 표시 */
@@ -1352,16 +1502,16 @@ input[type="date"] {
         page-break-inside: avoid;
     }
     
-    /* 제목 스타일 - 최소화 */
+    /* 제목 스타일 */
     .calendar-header {
-        margin-bottom: 8px !important;
+        margin-bottom: 5px !important;
         text-align: center;
     }
     
     .calendar-header h3 {
-        font-size: 16pt !important;
+        font-size: 312pt !important;
         margin: 0 !important;
-        padding: 3px 0 !important;
+        padding: 0 !important;
         font-weight: 700 !important;
     }
     
@@ -1370,7 +1520,7 @@ input[type="date"] {
         margin-bottom: 10px !important;
     }
     
-    /* 달력 테이블 최적화 - 세로폭 맞춤 */
+    /* 달력 테이블 최적화 */
     .monthly-calendar {
         width: 100% !important;
         border-collapse: collapse !important;
@@ -1388,19 +1538,19 @@ input[type="date"] {
     }
     
     .monthly-calendar td {
-        padding: 1px 2px !important; /* 패딩 축소 */
-        height: 45px !important; /* 높이 축소 */
-        min-height: 45px !important;
-        max-height: 45px !important;
+        padding: 1px 2px !important;
+        height: 50px !important;
+        min-height: 50px !important;
+        max-height: 50px !important;
         vertical-align: top !important;
         border: none !important; /* 테두리 제거 */
         overflow: hidden !important;
     }
     
     .monthly-calendar .calendar-cell {
-        height: 45px !important; /* 높이 축소 */
-        min-height: 45px !important;
-        max-height: 45px !important;
+        height: 50px !important;
+        min-height: 50px !important;
+        max-height: 50px !important;
     }
     
     .monthly-calendar .empty-cell {
@@ -1409,7 +1559,7 @@ input[type="date"] {
         print-color-adjust: exact;
     }
     
-    /* 날짜 숫자 - 스케줄과 동일하게 */
+    /* 날짜 숫자 */
     .date-number {
         font-size: 7pt !important;
         font-weight: 700 !important;
@@ -1418,10 +1568,10 @@ input[type="date"] {
         color: #000 !important;
     }
     
-    /* 날짜별 통계 텍스트 (형광펜 부분) 크기 축소 */
+    /* 날짜별 통계 텍스트 (형광펜 부분) */
     .date-number span {
-        font-size: 5pt !important;
-        padding: 0px 2px !important;
+        font-size: 6pt !important;
+        padding: 1px 2px !important;
     }
     
     /* 스케줄 리스트 */
@@ -1431,11 +1581,11 @@ input[type="date"] {
         gap: 1px !important;
     }
     
-    /* 스케줄 아이템 - 크기 약간 증가 */
+    /* 스케줄 아이템 */
     .schedule-item {
-        font-size: 6.5pt !important; /* 6pt → 6.5pt */
-        padding: 0px 2px !important;
-        line-height: 1.2 !important; /* 1.1 → 1.2 */
+        font-size: 6pt !important;
+        padding: 1px 2px !important;
+        line-height: 1.1 !important;
         border-radius: 0 !important;
         white-space: nowrap !important;
         overflow: hidden !important;
@@ -1558,6 +1708,43 @@ input[type="date"] {
     * {
         -webkit-print-color-adjust: exact !important;
         print-color-adjust: exact !important;
+    }
+    
+    /* 학생 목록 메모 입력칸 크기 고정 */
+    .student-text-item {
+        display: block !important;
+        width: 100% !important;
+    }
+    
+    .student-text-name {
+        display: inline-block !important;
+        vertical-align: top !important;
+    }
+    
+    .student-text-school {
+        display: inline-block !important;
+        vertical-align: top !important;
+    }
+    
+    .student-text-memo {
+        width: 5px !important;
+        min-width: 5px !important;
+        max-width: 5px !important;
+        display: inline-block !important;
+        vertical-align: top !important;
+        flex: none !important;
+        flex-grow: 0 !important;
+        flex-shrink: 0 !important;
+        border: none !important;
+        white-space: pre-wrap !important;
+        word-wrap: break-word !important;
+    }
+    
+    .view-student-list .student-text-memo {
+        width: 5px !important;
+        min-width: 5px !important;
+        max-width: 5px !important;
+        flex: none !important;
     }
     
     /* today 배경색 제거 (인쇄 시) */
