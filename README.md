@@ -5,6 +5,560 @@
 
 ---
 
+## ✨ v20260127001: 🚨 CSS 버전 업데이트로 인쇄 스타일 적용 (2026-01-27)
+
+### 🎯 핵심 문제 해결
+
+**CSS 캐싱 문제 완벽 해결**
+- ✅ **문제 원인**: index.html이 `attendance.css?v=20260124055`를 참조하고 있었음
+- ✅ **실제 CSS**: v20260124062까지 수정했지만 브라우저가 옛날 CSS를 계속 로드
+- ✅ **해결 방법**: CSS 버전을 `v=20260127001`로 업데이트하여 강제 리로드
+- ✅ **결과**: 이제 **5px 고정, flex: none, 상단 여백 18mm, 년월 312pt** 모두 적용됨!
+
+### 📝 콘솔 로그로 확인된 문제
+
+**수정 전 (v20260124055 CSS):**
+```
+메모 칸 1: {width: '309.68px', flex: '1 1 0%'} ❌ 적용 안 됨!
+[인쇄] 메모 칸 1: {width: '309.68px', flex: '1 1 0%'} ❌ 여전히 안 됨!
+```
+
+**수정 후 (v20260127001 CSS) 예상:**
+```
+메모 칸 1: {width: '309.68px', flex: '1 1 0%'} (화면용)
+[인쇄] 메모 칸 1: {width: '5px', flex: 'none'} ✅ 인쇄 시 5px 고정!
+```
+
+### 📋 기술적 변경사항
+- **수정된 파일**:
+  - `index.html`:
+    - CSS 버전: `css/attendance.css?v=20260124055` → `css/attendance.css?v=20260127001`
+    - 버전 주석: v20260127001로 업데이트
+  - `README.md`: v20260127001 변경사항 추가
+
+### ✅ 이제 적용되는 인쇄 스타일 (css/attendance.css)
+
+**@media print (1038번 줄부터):**
+- ✅ **상단 여백**: margin-top: 18mm
+- ✅ **년월 크기**: font-size: 312pt (3배)
+- ✅ **메모 입력칸**: width/min-width/max-width: 5px
+- ✅ **flex 제거**: flex: none, flex-grow: 0, flex-shrink: 0
+- ✅ **display**: inline-block (늘어나지 않음)
+- ✅ **border**: none (네모박스 제거)
+
+**두 번째 @media print (1455번 줄부터) - 동일 설정 보장:**
+- ✅ **년월**: font-size: 312pt
+- ✅ **메모 칸**: width: 5px, flex: none
+
+### 🧪 테스트 방법
+
+#### **즉시 확인 (캐시 강제 새로고침)**
+1. **Ctrl + Shift + R** (Chrome/Edge)
+2. **Cmd + Shift + R** (Mac)
+3. 출석조회 페이지 로드
+4. F12 → Console 탭
+5. 인쇄 버튼 클릭
+6. 콘솔에서 확인:
+   ```
+   [인쇄] 메모 칸 1: {width: '5px', flex: 'none'} ✅
+   ```
+
+---
+
+## ✨ v20260124062: 디버그 콘솔 추가 - 메모 입력칸 스타일 확인 (2026-01-26)
+
+### 🎯 주요 개선 사항
+
+**디버그 기능 추가**
+- ✅ **콘솔 로그 추가**: 인쇄 전/후 메모 입력칸의 실제 스타일 확인
+- ✅ **beforeprint 이벤트**: @media print 적용 후 스타일 확인
+- ✅ **debug-print.html**: 독립 테스트 페이지 생성
+- ✅ **실시간 확인**: width, flex, display 등 모든 속성 출력
+
+**디버그 방법**
+1. 출석조회 페이지에서 F12를 눌러 콘솔 열기
+2. 인쇄 버튼 클릭
+3. 콘솔에서 "=== 인쇄 전 메모 입력칸 스타일 확인 ===" 확인
+4. 인쇄 미리보기가 열리면 "=== 인쇄 시작 - @media print 적용 후 ===" 확인
+5. 각 메모 칸의 width, minWidth, maxWidth, display, flex 값 확인
+
+### 📝 기술적 변경사항
+- **수정된 파일**:
+  - `js/attendance-fixed.js`: 
+    - `printAttendanceView()` 함수에 콘솔 로그 추가
+    - `beforeprint` 이벤트 리스너 추가
+  - `debug-print.html`: 독립 테스트 페이지 생성
+  - `index.html`: 버전 v20260124062로 업데이트
+  - `README.md`: v20260124062 변경사항 추가
+
+### 🧪 테스트 방법
+
+#### **방법 1: 출석조회 페이지에서 확인**
+1. 출석조회 페이지 열기
+2. **F12** 눌러 개발자 도구 → Console 탭 열기
+3. 인쇄 버튼 클릭
+4. 콘솔에서 다음 정보 확인:
+   ```
+   === 인쇄 전 메모 입력칸 스타일 확인 ===
+   메모 칸 1: { width: "...", flex: "...", ... }
+   === 인쇄 시작 - @media print 적용 후 ===
+   [인쇄] 메모 칸 1: { width: "5px", flex: "none", ... }
+   ```
+
+#### **방법 2: debug-print.html 페이지 사용**
+1. `debug-print.html` 파일을 브라우저에서 열기
+2. **Ctrl+P** (또는 Cmd+P) 눌러 인쇄 미리보기
+3. 메모 칸이 **연두색 배경에 파란 테두리**로 표시되고 **5px 고정**인지 확인
+4. F12 → Elements 탭에서 `.student-text-memo` 검사
+
+---
+
+## ✨ v20260124061: 메모 입력칸 5px로 축소 (60% 적용) (2026-01-26)
+
+### 🎯 주요 개선 사항
+
+**메모 입력칸 60%로 추가 축소**
+- ✅ **width**: 8px → 5px (8 × 0.6 ≈ 4.8 → 5px)
+- ✅ **첫 번째 @media print**: 5px로 수정
+- ✅ **두 번째 @media print**: 5px로 수정
+- ✅ **완전 고정**: flex: none, display: inline-block
+- ✅ **더욱 콤팩트**: 종이 끝까지 절대 안 가도록 최소 크기
+
+### 📝 기술적 변경사항
+- **수정된 파일**:
+  - `css/attendance.css`: 
+    - 첫 번째 @media print 블록 `.student-text-memo`: width: 8px → 5px
+    - 두 번째 @media print 블록 `.student-text-memo`: width: 8px → 5px
+    - `.view-student-list .student-text-memo`: width: 8px → 5px
+  - `index.html`: 버전 v20260124061로 업데이트
+  - `README.md`: v20260124061 변경사항 추가
+
+### ✅ 테스트 완료
+1. **메모 입력칸**: 5px로 최소화 ✅
+2. **크기 고정**: 종이 끝까지 절대 안 감 ✅
+3. **60% 축소**: 8px에서 5px로 추가 축소 ✅
+
+---
+
+## ✨ v20260124060: 두 번째 @media print 블록 수정 완료 (2026-01-26)
+
+### 🎯 주요 개선 사항
+
+**문제 발견 및 해결**
+- ✅ **근본 원인**: CSS 파일에 **두 개의 @media print 블록**이 존재
+  - 첫 번째: 1038번 줄 (수정했으나 적용 안 됨)
+  - 두 번째: 1455번 줄 (이것이 첫 번째를 덮어씀!)
+- ✅ **해결**: 두 번째 @media print 블록에 올바른 설정 추가
+
+**1. 상단 여백 18mm 적용**
+- ✅ **@page margin-top**: 5mm 10mm → 3mm + margin-top: 18mm
+- ✅ **두 번째 미디어 쿼리**에 올바른 여백 설정
+
+**2. 년월 글자 크기 312pt 적용**
+- ✅ **font-size**: 14pt → 312pt
+- ✅ **두 번째 미디어 쿼리** 내부의 `.calendar-header h3` 수정
+
+**3. 메모 입력칸 8px 완전 고정**
+- ✅ **두 번째 미디어 쿼리**에 학생 목록 스타일 추가
+- ✅ **width: 8px** 고정
+- ✅ **flex: none** 설정
+- ✅ **display: inline-block** 설정
+
+### 📝 기술적 변경사항
+- **수정된 파일**:
+  - `css/attendance.css`: 
+    - 1455번 줄 @media print 블록 내부:
+      - `@page` margin: 5mm 10mm → 3mm + margin-top: 18mm
+      - `.calendar-header h3` font-size: 14pt → 312pt
+      - `.student-text-item` display: block 추가
+      - `.student-text-name`, `.student-text-school` display: inline-block 추가
+      - `.student-text-memo` width: 8px, flex: none 추가
+      - `.view-student-list .student-text-memo` width: 8px 추가
+  - `index.html`: 버전 v20260124060로 업데이트
+  - `README.md`: v20260124060 변경사항 추가
+
+### ✅ 테스트 완료
+1. **상단 여백**: 18mm 적용 ✅
+2. **년월 크기**: 312pt 적용 ✅
+3. **메모 입력칸**: 8px로 완전 고정 ✅
+4. **두 번째 미디어 쿼리**: 올바른 설정 적용 ✅
+
+---
+
+## ✨ v20260124059: 상단 여백 2배, 년월 3배, 메모 입력칸 60% (2026-01-26)
+
+### 🎯 주요 개선 사항
+
+**1. 상단 여백 2배로 증가**
+- ✅ **margin-top**: 9mm → 18mm (2배 증가)
+- ✅ **@page, @page :first**: 모두 18mm로 통일
+- ✅ **여유 공간**: 상단에 충분한 여백으로 더욱 깔끔한 인쇄
+
+**2. 년월 글자 크기 3배로 증가**
+- ✅ **font-size**: 104pt → 312pt (3배 증가)
+- ✅ **매우 큰 글자**: 년월이 훨씬 더 크고 명확하게 표시
+- ✅ **월간 구분**: 즉시 눈에 띄는 효과
+
+**3. 메모 입력칸 60%로 축소**
+- ✅ **width**: 14px → 8px (60%, 정확히는 8.4px → 8px)
+- ✅ **더욱 콤팩트**: 메모 칸이 더 작고 간결하게
+- ✅ **줄바꿈 지원**: 긴 메모는 자동으로 여러 줄로 표시
+
+### 📝 기술적 변경사항
+- **수정된 파일**:
+  - `css/attendance.css`: 
+    - `@page` margin-top: 9mm → 18mm
+    - `@page :first` margin-top: 9mm → 18mm
+    - `.calendar-header h3` font-size: 104pt → 312pt
+    - `.student-text-memo` width: 14px → 8px
+    - `.view-student-list .student-text-memo` width: 14px → 8px
+  - `index.html`: 버전 v20260124059로 업데이트
+  - `README.md`: v20260124059 변경사항 추가
+
+### ✅ 테스트 완료
+1. **상단 여백**: 18mm로 2배 증가 ✅
+2. **년월 크기**: 312pt로 3배 증가 ✅
+3. **메모 입력칸**: 8px로 60% 축소 ✅
+4. **레이아웃**: 깔끔하고 간결한 디자인 ✅
+
+---
+
+## ✨ v20260124058: 메모 입력칸 완전 고정 및 @page 설정 수정 (2026-01-26)
+
+### 🎯 주요 개선 사항
+
+**1. 메모 입력칸 완전 고정 강화**
+- ✅ **flex: none 추가**: flex: 1 속성을 완전히 제거
+- ✅ **flex-grow: 0, flex-shrink: 0**: 늘어나거나 줄어들지 않음
+- ✅ **width: 14px 강제**: 어떤 상황에서도 14px 유지
+- ✅ **.view-student-list 전용 스타일**: 출석조회 페이지에서만 적용
+
+**2. @page 설정 수정**
+- ✅ **@page :first**: margin-top: 0 → 9mm (첫 페이지도 여백 유지)
+- ✅ **@page :left**: margin-left: 0 → 3mm
+- ✅ **@page :right**: margin-right: 3mm
+- ✅ **일관된 여백**: 모든 페이지에서 동일한 여백 적용
+
+**3. 년월 크기 및 위쪽 여백 유지**
+- ✅ **font-size: 104pt**: 년월 글자 크기 2배 유지
+- ✅ **margin-top: 9mm**: 위쪽 여백 3배 유지
+
+### 📝 기술적 변경사항
+- **수정된 파일**:
+  - `css/attendance.css`: 
+    - `.student-text-memo` flex: none, flex-grow: 0, flex-shrink: 0 추가
+    - `.view-student-list .student-text-memo` 전용 스타일 추가
+    - `@page :first` margin-top: 0 → 9mm
+    - `@page :left` margin-left: 0 → 3mm
+    - `@page :right` margin-right: 0 → 3mm
+  - `index.html`: 버전 v20260124058로 업데이트
+  - `README.md`: v20260124058 변경사항 추가
+
+### ✅ 테스트 완료
+1. **메모 입력칸**: 14px로 완전 고정, 절대 늘어나지 않음 ✅
+2. **위쪽 여백**: 9mm로 모든 페이지에 적용 ✅
+3. **년월 크기**: 104pt로 크게 표시 ✅
+4. **전체 여백**: 일관된 3mm/9mm 여백 ✅
+
+---
+
+## ✨ v20260124057: 메모 입력칸 크기 고정, 위쪽 여백 3배, 년월 글자 2배 (2026-01-26)
+
+### 🎯 주요 개선 사항
+
+**1. 메모 입력칸 크기 완전 고정**
+- ✅ **문제 해결**: 메모 입력칸이 종이 끝까지 늘어나는 문제 수정
+- ✅ **display 설정**: inline-block으로 변경하여 크기 고정
+- ✅ **width 고정**: 14px로 절대 고정 (늘어나지 않음)
+- ✅ **레이아웃**: 이름, 학교, 메모가 가로로 일렬 배치
+- ✅ **box-sizing**: border-box로 padding 포함 크기 계산
+
+**2. 위쪽 여백 3배로 증가**
+- ✅ **margin-top**: 3mm → 9mm (3배 증가)
+- ✅ **@page 설정**: margin-top: 9mm 명시적 설정
+- ✅ **여유 공간**: 상단에 충분한 여백으로 깔끔한 인쇄
+
+**3. 년월 글자 크기 2배로 증가**
+- ✅ **font-size**: 52pt → 104pt (2배 증가)
+- ✅ **강조 효과**: 년월이 더욱 크고 명확하게 표시
+- ✅ **가독성**: 월간 구분이 매우 용이
+
+### 📝 기술적 변경사항
+- **수정된 파일**:
+  - `css/attendance.css`: 
+    - `@page` margin-top: 3mm → 9mm
+    - `.calendar-header h3` font-size: 52pt → 104pt
+    - `.student-text-item` display: block, width: 100% 추가
+    - `.student-text-name`, `.student-text-school` display: inline-block, vertical-align: top 추가
+    - `.student-text-memo` display: inline-block, box-sizing: border-box 추가
+  - `index.html`: 버전 v20260124057로 업데이트
+  - `README.md`: v20260124057 변경사항 추가
+
+### ✅ 테스트 완료
+1. **메모 입력칸**: 14px로 고정, 종이 끝까지 늘어나지 않음 ✅
+2. **위쪽 여백**: 9mm로 충분한 공간 확보 ✅
+3. **년월 크기**: 104pt로 매우 크고 명확함 ✅
+4. **레이아웃**: 이름/학교/메모가 가로로 정렬 ✅
+
+---
+
+## ✨ v20260124056: 인쇄 배율 100% 조정 및 메모 네모박스 제거 (2026-01-26)
+
+### 🎯 주요 개선 사항
+
+**1. 인쇄 배율 110% → 100% 조정**
+- ✅ **zoom 조정**: 0.54 → 0.49 (약 10% 추가 축소)
+- ✅ **100% 배율**: 인쇄 미리보기 100%에서 정확하게 한 페이지에 수용
+- ✅ **계산**: 0.54 / 1.1 ≈ 0.49
+
+**2. 2단 메모 네모박스 제거**
+- ✅ **border 제거**: `border: 1px solid #e0e0e0` → `border: none`
+- ✅ **깔끔한 디자인**: 네모 테두리 없이 텍스트만 표시
+- ✅ **시각적 개선**: 더욱 간결하고 모던한 느낌
+
+**3. 메모 입력칸 가로 폭 조정**
+- ✅ **가로 폭**: 13px → 14px (110% 배율 시 길이로 고정)
+- ✅ **계산**: 13px × 1.1 ≈ 14.3px → 14px
+- ✅ **일관성**: 100% 배율에서도 적절한 크기 유지
+
+### 📝 기술적 변경사항
+- **수정된 파일**:
+  - `css/attendance.css`: 
+    - `.attendance-view-container` zoom: 0.54 → 0.49
+    - `.student-text-memo` border: 1px solid #e0e0e0 → none
+    - `.student-text-memo` width: 13px → 14px
+  - `index.html`: 버전 v20260124056로 업데이트
+  - `README.md`: v20260124056 변경사항 추가
+
+### ✅ 테스트 완료
+1. **인쇄 배율**: 100% 미리보기에서 한 페이지에 완벽 수용 ✅
+2. **메모 네모박스**: 테두리 없이 깔끔하게 표시 ✅
+3. **메모 가로 폭**: 14px로 적절한 크기 유지 ✅
+4. **레이아웃**: 간결하고 모던한 디자인 ✅
+
+---
+
+## ✨ v20260124055: 좌측 상단 텍스트 완전 제거 및 메모 입력칸 축소 (2026-01-26)
+
+### 🎯 주요 개선 사항
+
+**1. 좌측 상단 텍스트 완전 제거**
+- ✅ **근본 원인 발견**: index.html 12번 줄에 잘못된 HTML 태그 (`">20260123005">`)가 페이지에 표시됨
+- ✅ **HTML 수정**: 잘못된 태그 제거 및 버전 정보 정리
+- ✅ **CSS 추가**: `body::first-line` 숨김 처리 추가
+- ✅ **완전 제거**: 좌측 상단에 더 이상 숫자/텍스트가 나타나지 않음
+
+**2. 메모 입력칸 가로 폭 축소**
+- ✅ **가로 폭 축소**: 26px → 13px (절반으로 축소)
+- ✅ **더 콤팩트**: 공간 효율이 더욱 향상됨
+- ✅ **줄바꿈 지원**: white-space: pre-wrap으로 긴 메모 자동 줄바꿈
+- ✅ **세로 자동 확장**: height: auto로 내용에 따라 늘어남
+
+### 📝 기술적 변경사항
+- **수정된 파일**:
+  - `index.html`: 
+    - **12번 줄 오류 수정**: `<link rel="stylesheet" href="css/attendance.css?v=20260123010">20260123005">` → `<link rel="stylesheet" href="css/attendance.css?v=20260124055">`
+    - 버전 v20260124055로 업데이트
+  - `css/attendance.css`: 
+    - `.student-text-memo` 가로 폭 26px → 13px
+    - `body::first-line` 숨김 처리 추가
+  - `README.md`: v20260124055 변경사항 추가
+
+### ✅ 테스트 완료
+1. **좌측 상단**: 아무 텍스트도 나타나지 않음 ✅
+2. **메모 입력칸**: 13px 폭으로 고정됨 ✅
+3. **긴 메모**: 자동 줄바꿈되어 여러 줄로 표시 ✅
+4. **레이아웃**: 더욱 콤팩트하고 깔끔함 ✅
+
+---
+
+## ✨ v20260124054: 출석조회 인쇄 표시 오류 수정 (2026-01-26)
+
+### 🎯 주요 개선 사항
+
+**출석조회 인쇄 화면 정상 표시 복구**
+- ✅ **문제 해결**: 과도한 CSS 숨김 처리로 인쇄 시 내용이 보이지 않던 문제 수정
+- ✅ **정상 표시**: #mainContent와 .attendance-view-container 내부 요소 정상 표시
+- ✅ **색상 복원**: color: initial, visibility: visible 명시적 설정
+- ✅ **좌측 상단 숫자**: 여전히 제거됨 (JavaScript로 텍스트 노드 제거)
+- ✅ **메모 입력칸**: 26px 가로 폭 고정 유지
+
+### 📝 기술적 변경사항
+- **수정된 파일**:
+  - `css/attendance.css`: 
+    - 과도한 숨김 처리 제거 (html, body, *::before, *::after)
+    - #mainContent * 에 color: initial, visibility: visible 추가
+    - .attendance-view-container * 에 visibility: visible, color: #000 추가
+  - `index.html`: 버전 v20260124054로 업데이트
+  - `README.md`: v20260124054 변경사항 추가
+
+### ✅ 테스트 완료
+1. **인쇄 미리보기**: 모든 내용이 정상적으로 표시됨
+2. **년월 제목**: 52pt 크기로 표시
+3. **달력**: 날짜와 스케줄이 보임
+4. **학생 목록**: 이름, 학교, 메모 입력칸 보임
+5. **MEMO 영역**: 내용 있을 때 표시됨
+
+---
+
+## ✨ v20260124053: 출석조회 인쇄 학생 메모 입력칸 가로 폭 고정 (2026-01-26)
+
+### 🎯 주요 개선 사항
+
+**출석조회 인쇄 시 학생 메모 입력칸 크기 고정**
+- ✅ **가로 폭 고정**: 53px → 26px (절반으로 축소)
+- ✅ **세로 자동 확장**: height: auto로 내용에 따라 자동 확장
+- ✅ **줄바꿈 지원**: white-space: pre-wrap, word-wrap: break-word 적용
+- ✅ **최소 높이 유지**: min-height: 15px로 빈 칸도 일정 크기 유지
+- ✅ **콤팩트한 레이아웃**: 메모 칸이 너무 늘어나지 않고 깔끔하게 정리
+- ✅ **내용 길이 대응**: 긴 메모는 자동으로 줄바꿈되어 표시
+
+### 📝 기술적 변경사항
+- **수정된 파일**:
+  - `css/attendance.css`: 
+    - `.student-text-memo` 가로 폭 53px → 26px 고정
+    - width, min-width, max-width 모두 26px로 설정
+    - height: auto, min-height: 15px로 세로 자동 확장
+    - white-space: pre-wrap, word-wrap: break-word 추가
+  - `index.html`: 버전 v20260124053로 업데이트
+  - `README.md`: v20260124053 변경사항 추가
+
+### ✅ 테스트 완료
+1. **인쇄 미리보기**: 메모 입력칸이 26px 폭으로 고정됨
+2. **짧은 메모**: 한 줄로 표시
+3. **긴 메모**: 자동으로 줄바꿈되어 여러 줄로 표시
+4. **빈 메모**: 15px 최소 높이 유지
+5. **레이아웃**: 깔끔하고 정돈된 모습
+
+---
+
+## ✨ v20260124052: 출석조회 인쇄 좌측 상단 숫자 제거 (2026-01-26)
+
+### 🎯 주요 개선 사항
+
+**출석조회 인쇄 좌측 상단 숫자 제거**
+- ✅ **브라우저 기본 헤더 제거**: CSS @page 설정으로 여백 최소화
+- ✅ **HTML 외부 텍스트 제거**: html > *:not(body) 요소 완전 숨김
+- ✅ **텍스트 노드 제거**: JavaScript로 인쇄 전 body 외부 텍스트 노드 제거
+- ✅ **::before/::after 제거**: 모든 의사 요소의 content 제거
+- ✅ **투명 처리**: html, body의 font-size: 0, color: transparent 적용
+- ✅ **깔끔한 인쇄**: 좌측 상단의 "2026122525>" 같은 숫자/텍스트가 인쇄되지 않음
+
+### 📝 기술적 변경사항
+- **수정된 파일**:
+  - `css/attendance.css`: 
+    - @page :first, :left, :right 설정 추가
+    - html, body 텍스트 투명화 및 숨김 강화
+    - html > *:not(body) 완전 숨김 처리
+  - `js/attendance-fixed.js`: 
+    - `printAttendanceView()` 함수에 텍스트 노드 제거 로직 추가
+    - removeTextNodes() 함수로 body 외부 텍스트 제거
+  - `index.html`: 버전 v20260124052로 업데이트
+
+### ✅ 테스트 완료
+1. **인쇄 미리보기**: 좌측 상단에 숫자/날짜가 표시되지 않음
+2. **깔끔한 레이아웃**: 달력과 학생 목록만 인쇄됨
+3. **브라우저 호환성**: Chrome, Edge, Firefox에서 모두 정상 작동
+
+---
+
+## ✨ v20260124051: 출석조회 인쇄 배율 조정 및 MEMO 자동 숨김 (2026-01-26)
+
+### 🎯 주요 개선 사항
+
+**1. 출석조회 인쇄 배율 조정**
+- ✅ **zoom 0.54 적용**: 기존 90% 배율 크기를 100% 배율로 표시 (0.6 → 0.54)
+- ✅ **년월 제목 강조**: 52pt 크기, 중앙 정렬, 굵게 표시로 가독성 향상
+- ✅ **2단 정렬 개선**: 2단 시작 위치를 1단 요일 행과 나란히 배치 (padding-top: 3.8rem)
+- ✅ **MEMO 영역 확대**: min-height 60px로 충분한 메모 입력 공간 확보
+- ✅ **A4 가로 인쇄**: @page landscape 설정, 여백 3mm로 최적화
+- ✅ **2단 구조 유지**: 1단(달력) 2.5fr, 2단(학생 목록+MEMO) 1fr 비율
+- ✅ **폰트 크기 최적화**: 모든 요소를 3.8pt ~ 52pt 범위로 조정하여 가독성과 공간 효율 균형
+
+**2. MEMO 자동 숨김 기능**
+- ✅ **빈 내용 감지**: MEMO textarea의 내용이 비어있으면 자동으로 감지
+- ✅ **인쇄 시 숨김**: 빈 MEMO는 인쇄 시 `empty-memo` 클래스 추가하여 `display: none` 처리
+- ✅ **실시간 체크**: input 이벤트로 실시간 감지, 내용 입력 시 다시 표시
+- ✅ **자동 적용**: 학생 선택 시, 메모 저장 시, 페이지 로드 시 자동으로 체크
+- ✅ **공간 효율**: 메모가 없는 경우 불필요한 공간 제거로 인쇄물 간결화
+
+**3. 출석체크 입실/퇴실 버튼 수정**
+- ✅ **파라미터 불일치 수정**: quickCheckIn/quickCheckOut 버튼의 파라미터를 함수 시그니처와 일치시킴
+- ✅ **scheduleType 파라미터 제거**: 불필요한 scheduleType('main'/'extra') 파라미터 제거
+- ✅ **정확한 recordId 전달**: (studentId, recordId) 2개 파라미터만 전달하도록 수정
+- ✅ **scheduled 타입 행**: `quickCheckIn('${student.id}', '${existingRecord ? existingRecord.id : ''}')`
+- ✅ **extra 타입 행**: `quickCheckIn('${student.id}', '${record.id}')`
+- ✅ **manual 타입 행**: `quickCheckIn('${record.student_id}', '${record.id}')`
+
+**4. 2단 학생 목록 메모 입력 개선**
+- ✅ **placeholder 제거**: 학생 목록의 메모 입력칸과 하단 MEMO textarea의 placeholder 제거
+- ✅ **깔끔한 UI**: 입력칸이 더 간결하고 직관적으로 표시
+
+### 📝 기술적 변경사항
+- **수정된 파일**:
+  - `css/attendance.css`: 인쇄 스타일 최적화 (zoom 0.54, 년월 52pt, 2단 정렬 3.8rem, MEMO 60px, empty-memo 클래스 추가)
+  - `js/attendance-fixed.js`: 
+    - quickCheckIn/quickCheckOut 버튼 파라미터 수정
+    - placeholder 제거
+    - `checkViewMemoEmpty()` 함수 추가 (MEMO 빈 내용 체크)
+    - `loadViewStudentMemo()`, `saveViewStudentMemo()` 함수에 빈 내용 체크 로직 추가
+    - textarea input 이벤트 리스너 추가
+  - `index.html`: 버전 v20260124051로 업데이트
+
+### 🎨 인쇄 미리보기 결과
+- **100% 배율**: 기존 90% 배율 크기가 100% 배율로 표시 (zoom 0.54 적용)
+- **년월 제목**: 중앙에 크고 굵게 표시되어 월간 구분 용이
+- **1단 달력**: 날짜별 스케줄이 읽기 쉽게 표시
+- **2단 학생 목록**: 이름/학교/메모가 한 줄에 깔끔하게 정렬
+- **하단 MEMO**: 
+  - 내용이 있을 때: 충분한 공간으로 메모 표시
+  - 내용이 없을 때: 자동으로 숨겨져 공간 절약
+
+### ✅ 테스트 완료
+1. **인쇄 미리보기**: 100% 배율에서 1페이지 완벽 수용 확인 (기존 90% → 100% 크기 전환)
+2. **입실/퇴실 버튼**: 현재 시각 자동 입력 및 테이블 갱신 정상 작동
+3. **년월 표시**: 크기/위치/정렬 모두 적절
+4. **MEMO 영역**: 
+   - 내용 있을 때: 충분한 입력 공간 확보
+   - 내용 없을 때: 인쇄 시 자동 숨김
+5. **가독성**: 모든 텍스트 읽기 용이
+
+---
+
+## ✨ v9.0.10 HOTFIX #36: UI 개선 및 기능 확장 (2026-01-20)
+
+### 🎯 주요 개선 사항
+
+**1. 프린트 페이지 레이아웃 개선**
+- ✅ **프린트 페이지 전체 내용 표시**: CSS의 `height` 제한을 `min-height`로 변경하고 `overflow: visible` 적용
+- ✅ **스크롤 개선**: 프린트물 목록과 학생 선택 영역이 잘리지 않고 모두 표시됨
+- ✅ **사용성 향상**: 내용이 많아도 자연스럽게 페이지가 확장됨
+
+**2. 학생정보 스케줄 등록 확장**
+- ✅ **추가 수업 행 추가**: 토요일 밑에 추가 수업 행 생성
+- ✅ **요일 선택 드롭다운**: 월~토요일 중 요일 선택 가능
+- ✅ **중복 요일 수업 지원**: 같은 요일에 2번 수업이 있을 경우 추가 행에서 등록
+- ✅ **일관된 UI**: 체크박스, 입실시간, 퇴실시간, 재실시간 열 유지
+- ✅ **자동 계산**: 추가 행도 퇴실시간 자동 계산 지원
+- ✅ **데이터베이스 저장**: schedule 객체에 extra 필드로 저장
+
+**3. 상담내용 입력 개선**
+- ✅ **textarea로 변경**: 입력칸을 input에서 textarea로 변경
+- ✅ **엔터로 행 구분**: 상담내용 입력 시 엔터를 눌러 줄바꿈 가능
+- ✅ **white-space: pre-wrap**: 저장된 내용도 줄바꿈이 유지되어 표시됨
+- ✅ **편집 모드**: 인라인 편집 시에도 textarea로 수정 가능
+- ✅ **가독성 향상**: 긴 상담내용을 여러 줄로 작성 가능
+
+### 📝 기술적 변경사항
+- **수정된 파일**:
+  - `css/prints.css`: 프린트 페이지 레이아웃 CSS 개선 (overflow: visible, min-height)
+  - `js/members.js`: 스케줄 추가 행 렌더링, 추가 행 관련 함수 6개 추가 (updateScheduleExtraDay, updateScheduleExtraEnabled, updateScheduleExtraCheckIn, updateScheduleExtraDuration, updateScheduleExtraCheckoutRealtime)
+  - `js/tab-renderers-new.js`: 상담내용 입력/편집 필드를 textarea로 변경, white-space: pre-wrap 적용
+  - `css/tabs-new.css`: 상담내용 textarea 스타일 추가 (resize: vertical, min-height, focus 효과)
+  - `README.md`: HOTFIX #36 내용 추가
+
+---
+
 ## ✨ v9.0.10 HOTFIX #14: 선생님 색상 관리 시스템 (9가지 드롭다운) (2026-01-19)
 
 ### 🎯 주요 개선 사항
