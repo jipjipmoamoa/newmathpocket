@@ -2812,7 +2812,15 @@ async function showAttendanceViewPage() {
                     // Shift+Enter는 저장 없이 줄바꿈
                 }
             });
+            
+            // input 이벤트로 실시간 빈 내용 체크
+            memoTextarea.addEventListener('input', () => {
+                checkViewMemoEmpty();
+            });
         }
+        
+        // 초기 빈 내용 체크
+        checkViewMemoEmpty();
     }, 100);
 
     // 관리자/부관리자인 경우 선생님 목록 로드
@@ -3367,9 +3375,27 @@ async function loadViewStudentMemo(studentId) {
     
     // 항상 빈 상태로 표시
     textarea.value = '';
+    
+    // 빈 내용 체크 (인쇄 시 숨김 처리)
+    checkViewMemoEmpty();
 }
 
 // 학생 MEMO 저장
+// MEMO 내용 확인 및 빈 경우 숨김 처리
+function checkViewMemoEmpty() {
+    const memoSection = document.querySelector('.view-memo-section');
+    const textarea = document.getElementById('viewMemoTextarea');
+    
+    if (memoSection && textarea) {
+        const isEmpty = textarea.value.trim() === '';
+        if (isEmpty) {
+            memoSection.classList.add('empty-memo');
+        } else {
+            memoSection.classList.remove('empty-memo');
+        }
+    }
+}
+
 async function saveViewStudentMemo() {
     if (!selectedViewStudentId) {
         alert('학생을 먼저 선택해주세요.');
@@ -3384,6 +3410,8 @@ async function saveViewStudentMemo() {
     try {
         await API.update('students', selectedViewStudentId, { memo });
         console.log('메모 저장 완료');
+        // 메모 저장 후 빈 내용 체크
+        checkViewMemoEmpty();
     } catch (error) {
         console.error('메모 저장 실패:', error);
         alert('메모 저장에 실패했습니다.');
@@ -3534,6 +3562,36 @@ async function highlightViewStudent(studentName) {
 }
 
 function printAttendanceView() {
+    // body 외부의 모든 텍스트 노드 제거 (브라우저 인쇄 헤더 숫자 제거)
+    const removeTextNodes = (element) => {
+        const childNodes = Array.from(element.childNodes);
+        childNodes.forEach(node => {
+            if (node.nodeType === Node.TEXT_NODE && node.textContent.trim() !== '') {
+                node.textContent = '';
+            }
+        });
+    };
+    
+    // html 요소의 직계 자식 텍스트 노드 제거
+    removeTextNodes(document.documentElement);
+    
+    // 디버그: 메모 입력칸 스타일 확인
+    console.log('=== 인쇄 전 메모 입력칸 스타일 확인 ===');
+    const memoInputs = document.querySelectorAll('.student-text-memo');
+    memoInputs.forEach((input, index) => {
+        const computed = window.getComputedStyle(input);
+        console.log(`메모 칸 ${index + 1}:`, {
+            width: computed.width,
+            minWidth: computed.minWidth,
+            maxWidth: computed.maxWidth,
+            display: computed.display,
+            flex: computed.flex,
+            flexGrow: computed.flexGrow,
+            flexShrink: computed.flexShrink,
+            border: computed.border
+        });
+    });
+    
     // 인쇄 미리보기 바로 실행 (안내 메시지 제거)
     window.print();
     
@@ -3542,6 +3600,22 @@ function printAttendanceView() {
         document.body.classList.remove('hide-stats-print');
     }, 100);
 }
+
+// beforeprint 이벤트로 인쇄 시 스타일 확인
+window.addEventListener('beforeprint', function() {
+    console.log('=== 인쇄 시작 - @media print 적용 후 ===');
+    const memoInputs = document.querySelectorAll('.student-text-memo');
+    memoInputs.forEach((input, index) => {
+        const computed = window.getComputedStyle(input);
+        console.log(`[인쇄] 메모 칸 ${index + 1}:`, {
+            width: computed.width,
+            minWidth: computed.minWidth,
+            maxWidth: computed.maxWidth,
+            display: computed.display,
+            flex: computed.flex
+        });
+    });
+});
 
 function renderViewCalendar(year, month, attendanceRecords) {
     const container = document.getElementById('viewCalendarContainer');
@@ -3767,3 +3841,5 @@ function filterAttendanceViewByTeacher() {
     // 출석조회 데이터 재로드
     loadAttendanceViewData();
 }
+
+                
