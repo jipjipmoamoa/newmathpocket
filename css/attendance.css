@@ -1161,7 +1161,7 @@ input[type="date"] {
     }
     
     .calendar-header h3 {
-        font-size: 5.2rem !important;
+        font-size: 3.38rem !important;
         margin: 0 !important;
         padding: 0 !important;
         font-weight: 700 !important;
@@ -1605,8 +1605,6 @@ input[type="date"] {
         max-width: 100%;
         padding: 0 !important;
         margin: 0 auto !important;
-        transform: scale(0.65) !important;
-        transform-origin: top center !important;
     }
     
     .monthly-calendar-section {
@@ -1622,7 +1620,7 @@ input[type="date"] {
     }
     
     .calendar-header h3 {
-        font-size: 5.2rem !important;
+        font-size: 3.38rem !important;
         margin: 0 !important;
         padding: 0 !important;
         font-weight: 700 !important;
