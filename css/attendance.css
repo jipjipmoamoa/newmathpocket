@@ -912,9 +912,9 @@ input[type="date"] {
 }
 
 .student-text-memo {
-    width: 200px;
-    max-width: 200px;
-    min-width: 200px;
+    width: 158px;
+    max-width: 158px;
+    min-width: 158px;
     flex: none;
     flex-grow: 0;
     flex-shrink: 0;
@@ -1111,7 +1111,7 @@ input[type="date"] {
         margin: 0 !important;
         width: 100% !important;
         max-width: 100% !important;
-        zoom: 0.7 !important;
+        zoom: 1 !important;
     }
     
     /* 2단 레이아웃 인쇄 */
@@ -1201,6 +1201,45 @@ input[type="date"] {
         text-overflow: ellipsis !important;
     }
     
+    /* 상태별 색상 강제 적용 */
+    .schedule-item.attendance {
+        color: #000 !important;
+        background: transparent !important;
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+    }
+    
+    .schedule-item.absent {
+        color: #000 !important;
+        background: transparent !important;
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+    }
+    
+    .schedule-item.makeup {
+        color: #dc3545 !important;
+        background: transparent !important;
+        font-weight: 600 !important;
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+    }
+    
+    .schedule-item.supplement {
+        color: #9C27B0 !important;
+        background: transparent !important;
+        font-weight: 600 !important;
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+    }
+    
+    .schedule-item.external {
+        color: #007bff !important;
+        background: transparent !important;
+        font-weight: 500 !important;
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+    }
+    
     /* 2단 학생 목록 인쇄 */
     .view-student-list {
         max-height: none !important;
@@ -1268,9 +1307,9 @@ input[type="date"] {
         font-size: 0.75rem !important;
         padding: 0.3rem 0.5rem !important;
         border: 1px solid #e0e0e0 !important;
-        width: 200px !important;
-        min-width: 200px !important;
-        max-width: 200px !important;
+        width: 158px !important;
+        min-width: 158px !important;
+        max-width: 158px !important;
         height: auto !important;
         min-height: auto !important;
         white-space: pre-wrap !important;
@@ -1288,9 +1327,9 @@ input[type="date"] {
     }
     
     .view-student-list .student-text-memo {
-        width: 200px !important;
-        min-width: 200px !important;
-        max-width: 200px !important;
+        width: 158px !important;
+        min-width: 158px !important;
+        max-width: 158px !important;
         flex: none !important;
     }
     
