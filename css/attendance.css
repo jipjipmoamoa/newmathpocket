@@ -1727,9 +1727,9 @@ input[type="date"] {
     }
     
     .student-text-memo {
-        width: 162px !important;
-        min-width: 162px !important;
-        max-width: 162px !important;
+        width: 97px !important;
+        min-width: 97px !important;
+        max-width: 97px !important;
         display: inline-block !important;
         vertical-align: top !important;
         flex: none !important;
@@ -1741,9 +1741,9 @@ input[type="date"] {
     }
     
     .view-student-list .student-text-memo {
-        width: 162px !important;
-        min-width: 162px !important;
-        max-width: 162px !important;
+        width: 97px !important;
+        min-width: 97px !important;
+        max-width: 97px !important;
         flex: none !important;
     }
     
