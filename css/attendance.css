@@ -1251,9 +1251,9 @@ input[type="date"] {
         font-size: 3.8pt !important;
         padding: 0.1rem 0.18rem !important;
         border: none !important;
-        width: 48px !important;
-        min-width: 48px !important;
-        max-width: 48px !important;
+        width: 34px !important;
+        min-width: 34px !important;
+        max-width: 34px !important;
         height: auto !important;
         min-height: 15px !important;
         white-space: pre-wrap !important;
@@ -1269,9 +1269,9 @@ input[type="date"] {
     }
     
     .view-student-list .student-text-memo {
-        width: 48px !important;
-        min-width: 48px !important;
-        max-width: 48px !important;
+        width: 34px !important;
+        min-width: 34px !important;
+        max-width: 34px !important;
         flex: none !important;
     }
     
@@ -1729,9 +1729,9 @@ input[type="date"] {
     }
     
     .student-text-memo {
-        width: 97px !important;
-        min-width: 97px !important;
-        max-width: 97px !important;
+        width: 34px !important;
+        min-width: 34px !important;
+        max-width: 34px !important;
         display: inline-block !important;
         vertical-align: top !important;
         flex: none !important;
@@ -1743,9 +1743,9 @@ input[type="date"] {
     }
     
     .view-student-list .student-text-memo {
-        width: 97px !important;
-        min-width: 97px !important;
-        max-width: 97px !important;
+        width: 34px !important;
+        min-width: 34px !important;
+        max-width: 34px !important;
         flex: none !important;
     }
     
