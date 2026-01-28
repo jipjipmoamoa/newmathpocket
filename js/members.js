@@ -367,7 +367,12 @@ async function showStudentDetail(studentId) {
     try {
         const teachersResult = await API.getList('teachers', { limit: 1000 });
         const allTeachers = Array.isArray(teachersResult) ? teachersResult : (teachersResult.data || []);
-        teachers = allTeachers.filter(t => (t.status || '재직') === '재직');
+        teachers = allTeachers.filter(t => {
+            const status = (t.status || '').trim();
+            const isActive = !status || status === '' || status === '재직' || status === '재직중' || status.includes('재직');
+            const isNotRetired = status !== '퇴사' && status !== '퇴직';
+            return isActive && isNotRetired;
+        });
         console.log('[showStudentDetail] 재직중인 선생님 수:', teachers.length);
         console.log('[showStudentDetail] 선생님 목록:', teachers.map(t => t.name));
     } catch (error) {
@@ -448,13 +453,14 @@ async function showStudentForm(studentId = null) {
         const teachersResult = await API.getList('teachers', { limit: 1000 });
         const allTeachers = Array.isArray(teachersResult) ? teachersResult : (teachersResult.data || []);
         
-        // status가 '재직', '재직중', 또는 비어있으면 재직으로 간주
+        // status가 '재직', '재직중', 또는 비어있거나 '퇴사'가 아니면 재직으로 간주
         // role이 'teacher' 또는 '선생님'인 경우만 포함 (관리자/부관리자 제외)
         teachers = allTeachers.filter(t => {
-            const status = t.status || '재직';
-            const isActive = status === '재직' || status === '재직중';
+            const status = (t.status || '').trim();
+            const isActive = !status || status === '' || status === '재직' || status === '재직중' || status.includes('재직');
+            const isNotRetired = status !== '퇴사' && status !== '퇴직';
             const isTeacher = t.role === 'teacher' || t.role === '선생님' || !t.role; // role이 없으면 일반 선생님으로 간주
-            return isActive && isTeacher;
+            return isActive && isNotRetired && isTeacher;
         });
         
         console.log('[showStudentForm] 재직중인 선생님(관리자 제외) 수:', teachers.length);
@@ -1884,13 +1890,14 @@ async function openStudentModal(studentId = null) {
             const teachersResult = await API.getList('teachers', { limit: 1000 });
             const allTeachers = Array.isArray(teachersResult) ? teachersResult : (teachersResult.data || []);
             
-            // status가 '재직', '재직중', 또는 비어있으면 재직으로 간주
+            // status가 '재직', '재직중', 또는 비어있거나 '퇴사'가 아니면 재직으로 간주
             // role이 'teacher' 또는 '선생님'인 경우만 포함 (관리자/부관리자 제외)
             const teachers = allTeachers.filter(t => {
-                const status = t.status || '재직';
-                const isActive = status === '재직' || status === '재직중';
+                const status = (t.status || '').trim();
+                const isActive = !status || status === '' || status === '재직' || status === '재직중' || status.includes('재직');
+                const isNotRetired = status !== '퇴사' && status !== '퇴직';
                 const isTeacher = t.role === 'teacher' || t.role === '선생님' || !t.role; // role이 없으면 일반 선생님으로 간주
-                return isActive && isTeacher;
+                return isActive && isNotRetired && isTeacher;
             });
             
             console.log('[openStudentModal] 재직중인 선생님(관리자 제외) 수:', teachers.length);
