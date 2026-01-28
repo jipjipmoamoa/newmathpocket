@@ -3805,8 +3805,11 @@ async function loadTeachersForAttendanceViewFilter() {
         const result = await API.getList('teachers', { limit: 1000 });
         const teachers = Array.isArray(result) ? result : (result.data || []);
         
-        // 재직중인 선생님만 필터링
-        const activeTeachers = teachers.filter(t => t.status === '재직');
+        // 재직중인 선생님만 필터링 (퇴사/퇴직 제외)
+        const activeTeachers = teachers.filter(t => {
+            const status = (t.status || '').trim();
+            return status !== '퇴사' && status !== '퇴직';
+        });
         
         // 역할별로 그룹화 (한글/영어 모두 지원)
         const admins = activeTeachers.filter(t => t.role === '관리자' || t.role === 'admin');
@@ -3841,5 +3844,3 @@ function filterAttendanceViewByTeacher() {
     // 출석조회 데이터 재로드
     loadAttendanceViewData();
 }
-
-                
