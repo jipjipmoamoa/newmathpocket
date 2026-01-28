@@ -1219,15 +1219,16 @@ input[type="date"] {
         border-bottom: 1px solid #f5f5f5 !important;
         page-break-inside: avoid !important;
         line-height: 1.05 !important;
-        display: block !important;
+        display: flex !important;
         width: 100% !important;
         max-width: 100% !important;
         flex-direction: row !important;
         flex-wrap: nowrap !important;
+        align-items: flex-start !important;
     }
     
     .view-student-list .student-text-item {
-        display: block !important;
+        display: flex !important;
     }
     
     .student-text-item:last-child {
