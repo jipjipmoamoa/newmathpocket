@@ -1715,7 +1715,9 @@ input[type="date"] {
     
     /* 학생 목록 메모 입력칸 크기 고정 */
     .student-text-item {
-        display: block !important;
+        display: flex !important;
+        flex-wrap: nowrap !important;
+        align-items: flex-start !important;
         width: 100% !important;
     }
     
