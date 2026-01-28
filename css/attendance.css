@@ -1117,13 +1117,15 @@ input[type="date"] {
         color-adjust: exact !important;
     }
     
-    /* 출석조회 페이지 가로 인쇄 - transform 제거 */
+    /* 출석조회 페이지 가로 인쇄 - 55% 축소 */
     .attendance-view-container {
         display: block !important;
         padding: 0 !important;
         margin: 0 auto !important;
-        width: 100% !important;
-        max-width: 100% !important;
+        width: 181.82% !important; /* 100% / 0.55 */
+        max-width: 181.82% !important;
+        transform: scale(0.55) !important;
+        transform-origin: top center !important;
     }
     
     /* 2단 레이아웃 인쇄 */
