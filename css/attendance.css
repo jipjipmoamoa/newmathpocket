@@ -907,7 +907,7 @@ input[type="date"] {
 
 .student-text-school {
     font-size: 0.8rem;
-    color: #666;
+    color: #8B4513;
     margin-right: 0.5rem;
 }
 
@@ -1247,8 +1247,11 @@ input[type="date"] {
     
     .student-text-school {
         font-size: 3.8pt !important;
+        color: #8B4513 !important;
         display: inline-block !important;
         vertical-align: top !important;
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
     }
     
     .student-text-memo {
@@ -1730,8 +1733,11 @@ input[type="date"] {
     }
     
     .student-text-school {
+        color: #8B4513 !important;
         display: inline-block !important;
         vertical-align: top !important;
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
     }
     
     .student-text-memo {
