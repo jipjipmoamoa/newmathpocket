@@ -1216,11 +1216,16 @@ async function quickCheckIn(studentId) {
         const existingRecord = todayAttendanceRecords.find(r => r.student_id === student.id);
         
         if (existingRecord) {
+            // 기존 상태가 보강/보충이면 유지, 그렇지 않으면 출석으로 변경
+            const status = (existingRecord.status === '보강' || existingRecord.status === '보충') 
+                ? existingRecord.status 
+                : '출석';
+            
             await API.update('attendance', existingRecord.id, {
                 ...existingRecord,
                 check_in_time: checkInTime,
                 expected_out_time: expectedOutTime,
-                status: '출석'
+                status: status
             });
             alert(`${student.name} 입실 ${checkInTime}`);
         } else {
@@ -3058,8 +3063,11 @@ async function loadTeachersForAttendanceViewFilter() {
         const result = await API.getList('teachers', { limit: 1000 });
         const teachers = Array.isArray(result) ? result : (result.data || []);
         
-        // 재직중인 선생님만 필터링
-        const activeTeachers = teachers.filter(t => t.status === '재직');
+        // 재직중인 선생님만 필터링 (퇴사/퇴직 제외)
+        const activeTeachers = teachers.filter(t => {
+            const status = (t.status || '').trim();
+            return status !== '퇴사' && status !== '퇴직';
+        });
         
         // 역할별로 그룹화 (한글/영어 모두 지원)
         const admins = activeTeachers.filter(t => t.role === '관리자' || t.role === 'admin');
