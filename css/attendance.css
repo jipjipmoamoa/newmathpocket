@@ -1,3099 +1,1568 @@
-// ============================================
-// 출석 관리 모듈
-// ============================================
+/* ============================================
+   출석 관리 페이지 CSS
+   ============================================ */
 
-// 전역 변수
-let todayAttendanceRecords = [];
-let attendanceStudents = [];
-let allMonthAttendance = [];
-// 현재 선택된 담당선생님 필터 (출석관리)
-let currentAttendanceTeacherFilter = 'all';
-// 현재 선택된 담당선생님 필터 (출석조회)
-let currentAttendanceViewTeacherFilter = 'all';
-
-// ============================================
-// 1. 출석 체크 페이지 표시
-// ============================================
-async function showAttendanceCheckPage() {
-    console.log('=== 출석 체크 페이지 로드 시작 ===');
-    
-    const mainContent = document.getElementById('mainContent');
-    if (!mainContent) {
-        console.error('mainContent 요소를 찾을 수 없습니다.');
-        return;
-    }
-
-    // 페이지 HTML 구조
-    mainContent.innerHTML = `
-        <div class="attendance-check-container">
-            <!-- 관리자용 드롭다운 (2단 위 우측 상단) -->
-            ${Auth.isAdmin() || Auth.isSubAdmin() ? `
-            <div style="display: flex; justify-content: flex-end; margin-bottom: 1rem;">
-                <select id="attendanceTeacherFilterSelect" class="form-select" style="width: 200px;" onchange="filterAttendanceByTeacher()">
-                    <option value="all">전체 선생님</option>
-                </select>
-            </div>
-            ` : ''}
-
-            <!-- 2단: 출석 테이블 -->
-            <div class="attendance-table-section">
-                <div class="table-header">
-                    <div style="display: flex; align-items: center; gap: 1rem;">
-                        <h2>출석 현황&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span id="attendanceSummary" style="font-size: 0.9rem; background-color: #fff3cd; padding: 2px 8px; border-radius: 3px;"></span></h2>
-                    </div>
-                    <div class="date-selector">
-                        <button class="date-nav-btn" onclick="changeAttendanceDate(-1)" title="전날">◀</button>
-                        <span class="calendar-icon" onclick="document.getElementById('attendanceDateInput').showPicker()">🗓️</span>
-                        <input type="date" id="attendanceDateInput" class="date-input" onchange="loadAttendanceByDate()" />
-                        <span id="attendanceDateDisplay" class="date-display"></span>
-                        <button class="date-nav-btn" onclick="changeAttendanceDate(1)" title="다음날">▶</button>
-                    </div>
-                </div>
-                <table class="attendance-table">
-                    <thead>
-                        <tr>
-                            <th>이름 (출결번호)</th>
-                            <th>출석시간</th>
-                            <th>퇴실예정시간</th>
-                            <th>퇴실시간</th>
-                            <th>재실시간</th>
-                            <th>상태</th>
-                            <th>등록</th>
-                            <th>관리</th>
-                        </tr>
-                    </thead>
-                    <tbody id="attendanceTableBody">
-                        <tr>
-                            <td colspan="7" style="text-align: center; color: #999;">로딩 중...</td>
-                        </tr>
-                    </tbody>
-                </table>
-            </div>
-
-            <!-- 3단: 월별 출결 현황 -->
-            <div class="monthly-calendar-section">
-                <h2>월별 출결 현황</h2>
-                <div class="calendar-header">
-                    <h3 id="calendarMonthTitle"></h3>
-                </div>
-                <div id="monthlyCalendarContainer"></div>
-                
-                <!-- 학년별 통계 표 -->
-                <div id="attendanceStatsContainer"></div>
-            </div>
-        </div>
-    `;
-
-    // 이벤트 바인딩
-    const checkInInput = document.getElementById('registerCheckInTime');
-    if (checkInInput) {
-        checkInInput.addEventListener('change', calculateExpectedOutTime);
-    }
-
-    // 오늘 날짜 설정
-    const dateInput = document.getElementById('attendanceDateInput');
-    if (dateInput) {
-        dateInput.value = getTodayDateString();
-        updateDateDisplay(getTodayDateString());
-    }
-
-    // 데이터 로드
-    await loadAttendanceData();
-    await renderMonthlyCalendar();
-
-    // 관리자/부관리자인 경우 선생님 목록 로드 (DOM 렌더링 후)
-    if (Auth.isAdmin() || Auth.isSubAdmin()) {
-        console.log('[showAttendanceCheckPage] 선생님 목록 로드 시작');
-        // DOM 렌더링 완료를 위해 짧은 지연 추가
-        setTimeout(async () => {
-            await loadTeachersForAttendanceFilter();
-        }, 100);
-    }
-    
-    console.log('=== 출석 체크 페이지 로드 완료 ===');
+/* 전체 컨테이너 */
+.attendance-check-container {
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 2rem;
 }
 
-// ============================================
-// 2. 출결번호 입력 처리
-// ============================================
-
-// 입실 처리
-async function processCheckIn() {
-    const numberInput = document.getElementById('attendanceNumberInput');
-    const number = numberInput.value.trim();
-    
-    if (!number) {
-        alert('출결번호를 입력해주세요.');
-        return;
-    }
-    
-    if (number.length < 4 || number.length > 5) {
-        alert('출결번호는 4-5자리입니다.');
-        return;
-    }
-    
-    try {
-        if (!Auth.isLoggedIn()) {
-            alert('로그인이 필요합니다.');
-            return;
-        }
-        
-        const student = attendanceStudents.find(s => s.attendance_number === number);
-        
-        if (!student) {
-            alert(`출결번호 ${number}에 해당하는 학생을 찾을 수 없습니다.`);
-            return;
-        }
-        
-        const now = new Date();
-        const checkInTime = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
-        
-        const schedule = getStudentTodaySchedule(student);
-        const expectedOutTime = calculateExpectedTime(checkInTime, schedule ? schedule.duration : 90);
-        
-        const existingRecord = todayAttendanceRecords.find(r => r.student_id === student.id);
-        
-        if (existingRecord) {
-            await API.update('attendance', existingRecord.id, {
-                ...existingRecord,
-                check_in_time: checkInTime,
-                expected_out_time: expectedOutTime,
-                status: '출석'
-            });
-            alert(`${student.name} 입실 ${checkInTime}`);
-        } else {
-            const attendanceData = {
-                student_id: student.id,
-                student_name: student.name,
-                date: getSelectedDateString(),
-                check_in_time: checkInTime,
-                expected_out_time: expectedOutTime,
-                check_out_time: '',
-                status: '출석',
-                absence_reason: '',
-                makeup_date: ''
-            };
-            
-            await API.create('attendance', attendanceData);
-            alert(`${student.name} 입실 ${checkInTime}`);
-        }
-        
-        await loadAttendanceData();
-        await renderMonthlyCalendar();
-        
-        numberInput.value = '';
-        numberInput.focus();
-        
-    } catch (error) {
-        console.error('입실 처리 실패:', error);
-        alert('입실 처리에 실패했습니다.');
-    }
+/* ============================================
+   1단: 출결번호 입력 섹션
+   ============================================ */
+.attendance-input-section {
+    text-align: center;
+    padding: 2rem;
+    background: white;
+    border-radius: 12px;
+    margin-bottom: 2rem;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
-// 퇴실 처리
-async function processCheckOut() {
-    const numberInput = document.getElementById('attendanceNumberInput');
-    const number = numberInput.value.trim();
-    
-    if (!number) {
-        alert('출결번호를 입력해주세요.');
-        return;
-    }
-    
-    if (number.length < 4 || number.length > 5) {
-        alert('출결번호는 4-5자리입니다.');
-        return;
-    }
-    
-    try {
-        if (!Auth.isLoggedIn()) {
-            alert('로그인이 필요합니다.');
-            return;
-        }
-        
-        const student = attendanceStudents.find(s => s.attendance_number === number);
-        
-        if (!student) {
-            alert(`출결번호 ${number}에 해당하는 학생을 찾을 수 없습니다.`);
-            return;
-        }
-        
-        const existingRecord = todayAttendanceRecords.find(r => r.student_id === student.id);
-        
-        if (!existingRecord) {
-            alert(`${student.name} 학생의 입실 기록이 없습니다.`);
-            return;
-        }
-        
-        const now = new Date();
-        const checkOutTime = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
-        
-        await API.update('attendance', existingRecord.id, {
-            ...existingRecord,
-            check_out_time: checkOutTime
-        });
-        
-        alert(`${student.name} 퇴실 ${checkOutTime}`);
-        
-        await loadAttendanceData();
-        await renderMonthlyCalendar();
-        
-        numberInput.value = '';
-        numberInput.focus();
-        
-    } catch (error) {
-        console.error('퇴실 처리 실패:', error);
-        alert('퇴실 처리에 실패했습니다.');
-    }
+.input-group {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 0.8rem;
+    max-width: 900px;
+    margin: 0 auto;
+    flex-wrap: wrap;
 }
 
-// 통합 출석 처리 함수
-async function processStudentAttendance(studentData, studentStatus) {
-    console.log('출석 처리:', studentData.name, studentStatus);
-    
-    // 로그인 확인
-    if (!Auth.isLoggedIn()) {
-        alert('로그인이 필요합니다.');
-        return;
-    }
-
-    // 이미 출석 체크되었는지 확인 (ID가 있는 경우만)
-    if (studentData.id) {
-        const existingRecord = todayAttendanceRecords.find(r => r.student_id === studentData.id);
-        
-        if (existingRecord) {
-            alert(`${studentData.name} 학생은 이미 출석 체크되었습니다.`);
-            return;
-        }
-    } else {
-        // ID가 없는 경우 이름으로 중복 체크
-        const existingRecord = todayAttendanceRecords.find(r => 
-            r.student_name === studentData.name && !r.student_id
-        );
-        
-        if (existingRecord) {
-            alert(`${studentData.name} 학생은 이미 출석 체크되었습니다.`);
-            return;
-        }
-    }
-
-    // 현재 시간
-    const now = new Date();
-    const checkInTime = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
-    
-    // 퇴실 예정 시간 계산
-    const schedule = studentData.id ? getStudentTodaySchedule(studentData) : null;
-    const expectedOutTime = calculateExpectedTime(checkInTime, schedule ? schedule.duration : 90);
-
-    // 출석 데이터 생성
-    const attendanceData = {
-        student_id: studentData.id || null,
-        student_name: studentData.name,
-        date: getSelectedDateString(),
-        check_in_time: checkInTime,
-        expected_out_time: expectedOutTime,
-        check_out_time: '',
-        status: '출석',
-        absence_reason: '',
-        makeup_date: ''
-    };
-
-    try {
-        const result = await API.create('attendance', attendanceData);
-        console.log('출석 체크 성공:', result);
-        
-        // 상태별 메시지
-        let message = `${studentData.name} 학생 출석 체크 완료`;
-        if (studentStatus === 'unknown') {
-            message += ' (정보 없음 - 파란색 표시)';
-        } else if (studentStatus === '휴원' || studentStatus === '퇴원') {
-            message += ` (${studentStatus} 학생)`;
-        }
-        
-        alert(message);
-        
-        // 데이터 새로고침
-        await loadAttendanceData();
-        await renderMonthlyCalendar();
-    } catch (error) {
-        console.error('출석 체크 실패:', error);
-        alert('출석 체크에 실패했습니다.');
-    }
+/* 학생 드롭다운 - 가로폭 30% 축소 */
+.student-dropdown {
+    flex: 1;
+    min-width: 140px;
+    padding: 0.7rem 1.05rem;
+    font-size: 1.2rem;
+    font-weight: 500;
+    border: 2px solid #dee2e6;
+    border-radius: 8px;
+    background: white;
+    cursor: pointer;
 }
 
-// ============================================
-// 3. 데이터 로드
-// ============================================
-async function loadAttendanceData() {
-    console.log('출석 데이터 로드 시작');
-    
-    try {
-        // 학생 목록 로드
-        const studentsResponse = await API.getList('students', { limit: 1000 });
-        // API 응답이 배열이면 그대로, 객체면 data 속성 사용
-        let allStudents = Array.isArray(studentsResponse) ? studentsResponse : (studentsResponse.data || []);
-        
-        // ✅ 선생님인 경우 담당 학생만 필터링 (teacher_id 기반)
-        allStudents = Permissions.filterStudentsByTeacher(allStudents);
-        console.log('[loadAttendanceData] 권한 필터링 후 학생 수:', allStudents.length);
-        
-        // 관리자/부관리자인 경우 선택된 선생님으로 추가 필터링
-        if ((Auth.isAdmin() || Auth.isSubAdmin()) && currentAttendanceTeacherFilter !== 'all') {
-            allStudents = allStudents.filter(s => s.teacher_id === currentAttendanceTeacherFilter);
-            console.log('[loadAttendanceData] 선생님 필터링 후 학생 수:', allStudents.length);
-        }
-        
-        console.log('전체 학생 수:', allStudents.length);
-        console.log('재원생 수:', allStudents.filter(s => s.status === '재원').length);
-        
-        // 선택된 날짜의 요일 확인
-        const selectedDate = getSelectedDateString();
-        console.log('선택된 날짜:', selectedDate);
-        
-        const dateObj = new Date(selectedDate);
-        console.log('날짜 객체:', dateObj);
-        
-        const dayKeys = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
-        const selectedDayKey = dayKeys[dateObj.getDay()];
-        console.log('선택된 요일 키:', selectedDayKey, '(인덱스:', dateObj.getDay(), ')');
-        
-        // ✅ 재원생만 필터링 (스케줄 유무와 관계없이 담당 학생은 모두 표시)
-        attendanceStudents = allStudents.filter(student => {
-            // 재원생만 표시
-            const isActive = student.status === '재원';
-            console.log(`[${student.name}] 상태: ${student.status}, 재원생: ${isActive}`);
-            return isActive;
-        });
-        
-        console.log(`재원생 학생 수:`, attendanceStudents.length);
-        console.log('필터링된 학생:', attendanceStudents.map(s => s.name));
-        console.log('선택된 요일:', selectedDayKey);
-        
-        // 선택된 날짜의 출석 기록 로드
-        const attendanceResponse = await API.getList('attendance', { limit: 1000 });
-        const allAttendance = Array.isArray(attendanceResponse) ? attendanceResponse : (attendanceResponse.data || []);
-        
-        todayAttendanceRecords = allAttendance.filter(record => record.date === selectedDate);
-        
-        console.log('선택 날짜 출석 기록:', todayAttendanceRecords.length);
-        
-        // 화면 렌더링
-        renderStudentSelect();
-        renderAttendanceTable();
-        
-    } catch (error) {
-        console.error('데이터 로드 실패:', error);
-        const tbody = document.getElementById('attendanceTableBody');
-        if (tbody) {
-            tbody.innerHTML = `
-                <tr>
-                    <td colspan="6" style="text-align: center; color: #f44336;">
-                        데이터를 불러오는데 실패했습니다.
-                    </td>
-                </tr>
-            `;
-        }
-    }
+.student-dropdown:focus {
+    outline: none;
+    border-color: #FF6B35;
+    box-shadow: 0 0 0 3px rgba(255, 107, 53, 0.1);
 }
 
-// 학생이 특정 날짜에 활동 중이었는지 확인
-function checkStudentActiveOnDate(student, dateString) {
-    if (student.status === '재원') return true;
-    
-    // 휴원일 또는 퇴원일이 있는지 확인
-    let statusChangeDate = null;
-    
-    if (student.status === '휴원' && student.withdrawal_date) {
-        statusChangeDate = student.withdrawal_date;
-    } else if (student.status === '퇴원' && student.withdrawal_date) {
-        statusChangeDate = student.withdrawal_date;
-    }
-    
-    // 상태 변경 날짜가 없거나, 조회 날짜가 상태 변경 날짜 이전이면 활동 중
-    if (!statusChangeDate) return student.status === '재원';
-    
-    return dateString < statusChangeDate;
+/* 구분자 */
+.input-separator {
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: #6c757d;
+    padding: 0 0.5rem;
 }
 
-// 날짜 변경 시 데이터 다시 로드
-async function loadAttendanceByDate() {
-    const selectedDate = document.getElementById('attendanceDateInput').value;
-    updateDateDisplay(selectedDate);
-    await loadAttendanceData();
-    await renderMonthlyCalendar();
+/* 직접입력 필드 - 가로폭 30% 축소 */
+.manual-name-input {
+    flex: 1;
+    min-width: 140px;
+    padding: 0.7rem 1.05rem;
+    font-size: 1.2rem;
+    font-weight: 500;
+    text-align: center;
+    border: 2px solid #dee2e6;
+    border-radius: 8px;
+    background: white;
 }
 
-// 날짜 변경 (전날/다음날)
-function changeAttendanceDate(days) {
-    const dateInput = document.getElementById('attendanceDateInput');
-    const currentDate = new Date(dateInput.value || new Date());
-    currentDate.setDate(currentDate.getDate() + days);
-    
-    const year = currentDate.getFullYear();
-    const month = String(currentDate.getMonth() + 1).padStart(2, '0');
-    const day = String(currentDate.getDate()).padStart(2, '0');
-    const newDateStr = `${year}-${month}-${day}`;
-    
-    dateInput.value = newDateStr;
-    loadAttendanceByDate();
+.manual-name-input:focus {
+    outline: none;
+    border-color: #28a745;
+    box-shadow: 0 0 0 3px rgba(40, 167, 69, 0.1);
 }
 
-// ============================================
-// 4. 학생 선택 드롭다운 렌더링
-// ============================================
-function renderStudentSelect() {
-    const select = document.getElementById('registerStudentSelect');
-    if (!select) return;
-    
-    select.innerHTML = '<option value="">학생 선택</option>';
-    
-    attendanceStudents.forEach(student => {
-        const option = document.createElement('option');
-        option.value = student.id;
-        option.textContent = `${student.name} (${student.attendance_number || '-'})`;
-        select.appendChild(option);
-    });
+.manual-name-input::placeholder {
+    color: #999;
+    font-weight: 400;
 }
 
-// ============================================
-// 5. 출석 테이블 렌더링 (스케줄 기반)
-// ============================================
-function renderAttendanceTable() {
-    const tbody = document.getElementById('attendanceTableBody');
-    if (!tbody) return;
-    
-    tbody.innerHTML = '';
-    
-    // 2행: 신규 출석 등록 행 추가
-    const registerRow = document.createElement('tr');
-    registerRow.className = 'register-row';
-    registerRow.style.backgroundColor = '#fffbf0';
-    registerRow.innerHTML = `
-        <td style="padding: 0.5rem; background-color: #fffbf0;">
-            <select id="registerStudentSelect" class="form-select" style="width: 100%; margin-bottom: 0.3rem;" onchange="handleRegisterStudentChange()">
-                <option value="">재원생 선택</option>
-            </select>
-            <input type="text" id="registerManualName" class="form-input" placeholder="또는 이름 입력" style="width: 100%;" />
-        </td>
-        <td style="background-color: #fffbf0;"><input type="text" id="registerCheckInTime" class="form-input" placeholder="14:00" 
-            onblur="this.value = formatTimeInput(this.value)" /></td>
-        <td style="background-color: #fffbf0;"><input type="text" id="registerExpectedOutTime" class="form-input" placeholder="15:30" readonly /></td>
-        <td style="background-color: #fffbf0;"><input type="text" id="registerCheckOutTime" class="form-input" placeholder="15:30"
-            onblur="this.value = formatTimeInput(this.value)" /></td>
-        <td style="background-color: #fffbf0;"></td>
-        <td style="background-color: #fffbf0;">
-            <select id="registerStatus" class="form-select" onchange="handleRegisterStatusChange()">
-                <option value="">상태</option>
-                <option value="출석">출석</option>
-                <option value="결석">결석</option>
-                <option value="보강">보강</option>
-            </select>
-            <select id="registerAbsenceReason" class="form-select" style="display: none; margin-top: 5px;">
-                <option value="">사유 선택</option>
-                <option value="병결">병결</option>
-                <option value="학교">학교</option>
-                <option value="여행">여행</option>
-                <option value="기타">기타</option>
-            </select>
-            <div id="registerMakeupDate" style="display: none; margin-top: 5px;">
-                <input type="date" id="registerMakeupDateInput" class="form-input" style="width: 100%;" placeholder="보강 날짜" />
-            </div>
-        </td>
-        <td style="background-color: #fffbf0;">
-            <button class="btn-register" onclick="registerNewAttendance()">등록</button>
-        </td>
-        <td style="background-color: #fffbf0;"></td>
-    `;
-    tbody.appendChild(registerRow);
-    
-    // 등록 행의 학생 선택 드롭다운 채우기
-    renderStudentSelectForRegister();
-    
-    // 3행부터: 모든 출석 기록을 입실시간 빠른 순으로 정렬
-    // 1. 스케줄이 있는 학생들의 출석 정보 수집
-    const allAttendanceRows = [];
-    const selectedDate = getSelectedDateString();
-    const dateObj = new Date(selectedDate);
-    const dayKeys = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
-    const selectedDayKey = dayKeys[dateObj.getDay()];
-    
-    attendanceStudents.forEach(student => {
-        let schedule = student.schedule;
-        if (typeof schedule === 'string' && schedule.trim() !== '') {
-            try { schedule = JSON.parse(schedule); } catch (e) { schedule = {}; }
-        } else {
-            schedule = {};
-        }
-        
-        const daySchedule = schedule[selectedDayKey] || {};
-        const existingRecord = todayAttendanceRecords.find(r => r.student_id === student.id);
-        
-        // ✅ 해당 날짜에 스케줄이 있는 학생만 표시
-        if (daySchedule.enabled) {
-            const checkInTime = existingRecord?.check_in_time || daySchedule.checkIn || '23:59';
-            allAttendanceRows.push({
-                type: 'scheduled',
-                student: student,
-                record: existingRecord,
-                daySchedule: daySchedule,
-                checkInTime: checkInTime
-            });
-        }
-    });
-    
-    // 2. 스케줄이 없지만 수동으로 등록된 출석 기록 추가
-    // ✅ 선생님 필터가 적용된 경우, 해당 선생님 학생의 기록만 표시
-    const studentsWithSchedule = new Set(attendanceStudents.map(s => s.id));
-    const allowedStudentIds = new Set(attendanceStudents.map(s => s.id));
-    
-    todayAttendanceRecords.forEach(record => {
-        // 스케줄에 없고, 필터링된 학생 목록에 포함된 경우만 추가
-        if (!studentsWithSchedule.has(record.student_id) && allowedStudentIds.has(record.student_id)) {
-            allAttendanceRows.push({
-                type: 'manual',
-                record: record,
-                checkInTime: record.check_in_time || '23:59'
-            });
-        }
-    });
-    
-    // 3. 입실시간 순으로 정렬
-    allAttendanceRows.sort((a, b) => a.checkInTime.localeCompare(b.checkInTime));
-    
-    // 4. 정렬된 행 렌더링
-    allAttendanceRows.forEach(item => {
-        if (item.type === 'scheduled') {
-            // 스케줄이 있는 학생
-            const student = item.student;
-            const existingRecord = item.record;
-            const daySchedule = item.daySchedule;
-            
-            // 기본값: 스케줄의 입실/퇴실 시간
-            let checkInTime = daySchedule.checkIn || '';
-            let expectedOutTime = daySchedule.checkOut || '';
-            let checkOutTime = '';
-            let status = '';
-            let actualDuration = '';
-            let scheduledDuration = parseInt(daySchedule.duration) || 90;
-            
-            let absenceReason = '';
-            let makeupDate = '';
-            
-            if (existingRecord) {
-                checkInTime = existingRecord.check_in_time || checkInTime;
-                expectedOutTime = existingRecord.expected_out_time || expectedOutTime;
-                checkOutTime = existingRecord.check_out_time || '';
-                status = existingRecord.status || '';
-                absenceReason = existingRecord.absence_reason || '';
-                makeupDate = existingRecord.makeup_date || '';
-                
-                if (checkInTime && checkOutTime) {
-                    actualDuration = calculateDurationInMinutes(checkInTime, checkOutTime);
-                    // 재실시간이 60분이면 스케줄 기준 시간으로 계산
-                    if (actualDuration === 60 && scheduledDuration) {
-                        actualDuration = scheduledDuration;
-                    }
-                }
-            }
-        
-        const row = document.createElement('tr');
-        row.dataset.studentId = student.id;
-        row.dataset.studentName = student.name;
-        row.dataset.recordId = existingRecord ? existingRecord.id : '';
-        row.dataset.scheduledDuration = scheduledDuration;
-        
-        // 담당 선생님 색상 적용 (관리자/부관리자만)
-        if (Auth.isAdminOrSubAdmin() && student.teacher_id && typeof getTeacherColorClass === 'function') {
-            const teacherColor = getTeacherColorClass(student.teacher_id);
-            if (teacherColor) {
-                row.style.backgroundColor = teacherColor;
-            }
-        }
-        
-            // 재실시간 표시
-            let durationText = '';
-            let durationColor = ''; // 변수 선언 추가
-            if (actualDuration) {
-                durationText = `${actualDuration}분`;
-            } else if (scheduledDuration) {
-                // 실제 재실시간이 없으면 스케줄 기준 시간 표시
-                durationText = `${scheduledDuration}분`;
-                durationColor = 'style="color: #999;"'; // 회색으로 표시
-            }
-            
-            // 재실시간 색상 결정
-            if (actualDuration && actualDuration < scheduledDuration) {
-                durationColor = 'style="color: red; font-weight: bold;"';
-            }
-        
-        // 상태별 색상 및 텍스트
-        let statusColor = '';
-        let statusText = status || '';
-        let statusStyle = '';
-        
-        if (status === '출석') {
-            statusColor = 'style="color: #4CAF50; font-weight: 600;"';
-        } else if (status === '보강') {
-            // 보강 날짜 표시
-            if (makeupDate) {
-                const formattedDate = makeupDate.substring(5).replace('-', '/');
-                statusText = `보강(${formattedDate})`;
-            }
-            statusColor = 'style="color: #f44336; font-weight: 600;"';
-        } else if (status === '결석') {
-            // 결석 사유 표시
-            if (absenceReason) {
-                statusText = `결석(${absenceReason})`;
-            }
-            statusColor = 'style="color: #000; font-weight: 600; text-decoration: line-through;"';
-        } else {
-            // 상태가 비어있으면 검정색
-            statusColor = 'style="color: #000;"';
-        }
-        
-        row.innerHTML = `
-            <td>${student.name} (${student.attendance_number || '-'})</td>
-            <td>
-                <span class="display-mode" id="display-checkin-${student.id}">${checkInTime || '-'}</span>
-                <input type="text" class="form-input edit-mode" id="edit-checkin-${student.id}" value="${checkInTime}" placeholder="14:00" style="display: none;"
-                    oninput="autoUpdateExpectedOutTime('${student.id}', this.value, ${scheduledDuration})"
-                    onblur="this.value = formatTimeInput(this.value)" />
-            </td>
-            <td>
-                <span class="display-mode" id="display-expected-${student.id}">${expectedOutTime || '-'}</span>
-                <input type="text" class="form-input edit-mode" id="edit-expected-${student.id}" value="${expectedOutTime}" placeholder="15:30" readonly style="display: none;" />
-            </td>
-            <td>
-                <span class="display-mode" id="display-checkout-${student.id}">${checkOutTime || '-'}</span>
-                <input type="text" class="form-input edit-mode" id="edit-checkout-${student.id}" value="${checkOutTime}" placeholder="15:30" style="display: none;"
-                    onblur="this.value = formatTimeInput(this.value)" />
-            </td>
-            <td class="duration-display" ${durationColor}>${durationText}</td>
-            <td>
-                <span class="display-mode" id="display-status-${student.id}" ${statusColor}>${statusText || '-'}</span>
-                <div class="edit-mode" id="edit-status-container-${student.id}" style="display: none;">
-                    <select class="form-select" id="status-${student.id}" onchange="handleStatusChange('${student.id}')">
-                        <option value="" ${status === '' ? 'selected' : ''}></option>
-                        <option value="출석" ${status === '출석' ? 'selected' : ''}>출석</option>
-                        <option value="결석" ${status === '결석' ? 'selected' : ''}>결석</option>
-                        <option value="보강" ${status === '보강' ? 'selected' : ''}>보강</option>
-                    </select>
-                    <select class="form-select" id="absence-reason-${student.id}" style="display: ${status === '결석' ? 'block' : 'none'}; margin-top: 5px;">
-                        <option value="">사유 선택</option>
-                        <option value="병결" ${absenceReason === '병결' ? 'selected' : ''}>병결</option>
-                        <option value="학교" ${absenceReason === '학교' ? 'selected' : ''}>학교</option>
-                        <option value="여행" ${absenceReason === '여행' ? 'selected' : ''}>여행</option>
-                        <option value="기타" ${absenceReason === '기타' ? 'selected' : ''}>기타</option>
-                    </select>
-                    <div id="makeup-date-${student.id}" style="display: ${status === '보강' ? 'block' : 'none'}; margin-top: 5px;">
-                        <input type="date" id="makeup-date-input-${student.id}" class="form-input" value="${makeupDate}" style="width: 100%;" placeholder="보강 날짜" />
-                    </div>
-                </div>
-            </td>
-            <td>
-                <button class="btn-quick-checkin" onclick="quickCheckIn('${student.id}')" title="입실">입실</button>
-                <button class="btn-quick-checkout" onclick="quickCheckOut('${student.id}')" title="퇴실">퇴실</button>
-            </td>
-            <td>
-                <button class="btn-icon btn-edit display-mode" id="btn-edit-${student.id}" onclick="enterEditMode('${student.id}')" title="수정"></button>
-                ${existingRecord ? `<button class="btn-icon btn-delete display-mode" id="btn-delete-${student.id}" onclick="deleteAttendance('${student.id}', '${existingRecord.id}')" style="margin-left: 0.5rem;" title="삭제"></button>` : ''}
-                <div class="edit-mode" id="edit-buttons-${student.id}" style="display: none;">
-                    <button class="btn-save" onclick="saveAttendance('${student.id}')">저장</button>
-                    <button class="btn-cancel" onclick="cancelEditMode('${student.id}')">취소</button>
-                </div>
-            </td>
-        `;
-        
-        tbody.appendChild(row);
-        } else if (item.type === 'manual') {
-            // 스케줄이 없는 수동 등록
-            const record = item.record;
-            const checkInTime = record.check_in_time || '';
-            const expectedOutTime = record.expected_out_time || '';
-            const checkOutTime = record.check_out_time || '';
-            const status = record.status || '';
-            const absenceReason = record.absence_reason || '';
-            const makeupDate = record.makeup_date || '';
-            
-            let actualDuration = '';
-            if (checkInTime && checkOutTime) {
-                actualDuration = calculateDurationInMinutes(checkInTime, checkOutTime);
-            }
-            
-            let durationColor = '';
-            if (actualDuration) {
-                const scheduledDuration = 90;
-                if (actualDuration < scheduledDuration) {
-                    durationColor = 'color: red; font-weight: bold;';
-                }
-            }
-            
-            // 상태별 색상 및 텍스트
-            let statusColor = '';
-            let statusText = status || '';
-            if (status === '출석') {
-                statusColor = 'color: #4CAF50; font-weight: 600;';
-            } else if (status === '보강') {
-                // 보강 날짜 표시
-                if (makeupDate) {
-                    const formattedDate = makeupDate.substring(5).replace('-', '/');
-                    statusText = `보강(${formattedDate})`;
-                }
-                statusColor = 'color: #f44336; font-weight: 600;';
-            } else if (status === '결석') {
-                if (absenceReason) {
-                    statusText = `결석(${absenceReason})`;
-                }
-                statusColor = 'color: #000; font-weight: 600; text-decoration: line-through;';
-            }
-            
-            const row = document.createElement('tr');
-            row.dataset.studentId = record.student_id || 'unknown';
-            row.dataset.studentName = record.student_name || '';
-            row.dataset.recordId = record.id;
-            
-            // 담당 선생님 색상 적용 (수동 등록 학생 - 관리자/부관리자만)
-            if (Auth.isAdminOrSubAdmin() && record.student_id) {
-                const student = attendanceStudents.find(s => s.id === record.student_id);
-                if (student && student.teacher_id && typeof getTeacherColorClass === 'function') {
-                    const teacherColor = getTeacherColorClass(student.teacher_id);
-                    if (teacherColor) {
-                        row.style.backgroundColor = teacherColor;
-                    }
-                }
-            }
-            
-            row.innerHTML = `
-                <td style="text-align: center;">${record.student_name || '-'}</td>
-                <td style="text-align: center;">
-                    <div class="display-mode" id="display-checkin-${record.student_id}">${checkInTime || '-'}</div>
-                    <input type="text" class="form-input edit-mode" id="edit-checkin-${record.student_id}" value="${checkInTime}" style="display: none;" 
-                        onblur="this.value = formatTimeInput(this.value)" />
-                </td>
-                <td style="text-align: center;">
-                    <div class="display-mode" id="display-expected-${record.student_id}">${expectedOutTime || '-'}</div>
-                    <input type="text" class="form-input edit-mode" id="edit-expected-${record.student_id}" value="${expectedOutTime}" readonly style="display: none;" />
-                </td>
-                <td style="text-align: center;">
-                    <div class="display-mode" id="display-checkout-${record.student_id}">${checkOutTime || '-'}</div>
-                    <input type="text" class="form-input edit-mode" id="edit-checkout-${record.student_id}" value="${checkOutTime}" style="display: none;" 
-                        onblur="this.value = formatTimeInput(this.value)" />
-                </td>
-                <td class="duration-display" style="${durationColor}">${actualDuration ? `${actualDuration}분` : '-'}</td>
-                <td style="text-align: center;">
-                    <span class="display-mode" id="display-status-${record.student_id}" style="${statusColor}">${statusText || '-'}</span>
-                    <div class="edit-mode" id="edit-status-container-${record.student_id}" style="display: none;">
-                        <select class="form-select" id="status-${record.student_id}" onchange="handleStatusChange('${record.student_id}')">
-                            <option value="" ${status === '' ? 'selected' : ''}></option>
-                            <option value="출석" ${status === '출석' ? 'selected' : ''}>출석</option>
-                            <option value="결석" ${status === '결석' ? 'selected' : ''}>결석</option>
-                            <option value="보강" ${status === '보강' ? 'selected' : ''}>보강</option>
-                        </select>
-                        <select class="form-select" id="absence-reason-${record.student_id}" style="display: ${status === '결석' ? 'block' : 'none'}; margin-top: 5px;">
-                            <option value="">사유 선택</option>
-                            <option value="병결" ${absenceReason === '병결' ? 'selected' : ''}>병결</option>
-                            <option value="학교" ${absenceReason === '학교' ? 'selected' : ''}>학교</option>
-                            <option value="여행" ${absenceReason === '여행' ? 'selected' : ''}>여행</option>
-                            <option value="기타" ${absenceReason === '기타' ? 'selected' : ''}>기타</option>
-                        </select>
-                        <div id="makeup-date-${record.student_id}" style="display: ${status === '보강' ? 'block' : 'none'}; margin-top: 5px;">
-                            <input type="date" id="makeup-date-input-${record.student_id}" class="form-input" value="${makeupDate}" style="width: 100%;" placeholder="보강 날짜" />
-                        </div>
-                    </div>
-                </td>
-                <td style="text-align: center;">
-                    <button class="btn-quick-checkin" onclick="quickCheckIn('${record.student_id}')" title="입실">입실</button>
-                    <button class="btn-quick-checkout" onclick="quickCheckOut('${record.student_id}')" title="퇴실">퇴실</button>
-                </td>
-                <td style="text-align: center;">
-                    <button class="btn-icon btn-edit display-mode" id="btn-edit-${record.student_id}" onclick="enterEditMode('${record.student_id}')" title="수정"></button>
-                    <button class="btn-icon btn-delete display-mode" id="btn-delete-${record.student_id}" onclick="deleteAttendance('${record.student_id}', '${record.id}')" style="margin-left: 0.5rem;" title="삭제"></button>
-                    <div class="edit-mode" id="edit-buttons-${record.student_id}" style="display: none;">
-                        <button class="btn-save" onclick="saveAttendance('${record.student_id}')">저장</button>
-                        <button class="btn-cancel" onclick="cancelEditMode('${record.student_id}')">취소</button>
-                    </div>
-                </td>
-            `;
-            
-            tbody.appendChild(row);
-        }
-    });
-    
-    // 스케줄도 없고 출석 기록도 없는 경우
-    if (allAttendanceRows.length === 0) {
-        const emptyRow = document.createElement('tr');
-        emptyRow.innerHTML = `
-            <td colspan="8" style="text-align: center; color: #999;">
-                해당 날짜에 출석 기록이 없습니다.
-            </td>
-        `;
-        tbody.appendChild(emptyRow);
-    }
-    
-    // 통계 계산 및 표시
-    let attendanceCount = 0;
-    let makeupCount = 0;
-    let absenceCount = 0;
-    
-    allAttendanceRows.forEach(item => {
-        if (item.type === 'scheduled') {
-            const status = item.record?.status || '';
-            if (status === '출석') attendanceCount++;
-            else if (status === '보강') makeupCount++;
-            else if (status === '결석') absenceCount++;
-        } else if (item.type === 'manual') {
-            const status = item.record?.status || '';
-            if (status === '출석') attendanceCount++;
-            else if (status === '보강') makeupCount++;
-            else if (status === '결석') absenceCount++;
-        }
-    });
-    
-    // 통계 표시
-    const summaryElement = document.getElementById('attendanceSummary');
-    if (summaryElement) {
-        summaryElement.textContent = `${attendanceCount}(${makeupCount})명 / ${absenceCount}명`;
-    }
+.attendance-number-input {
+    flex: 1;
+    max-width: 420px;
+    padding: 1.68rem 2.1rem;
+    font-size: 1.68rem;
+    font-weight: 600;
+    text-align: center;
+    border: 2px solid #dee2e6;
+    border-radius: 8px;
+    background: white;
 }
 
-// 재실시간 계산 (분 단위로 반환)
-function calculateDurationInMinutes(startTime, endTime) {
-    if (!startTime || !endTime) return 0;
-    
-    const [startHour, startMin] = startTime.split(':').map(Number);
-    const [endHour, endMin] = endTime.split(':').map(Number);
-    
-    const startMinutes = startHour * 60 + startMin;
-    const endMinutes = endHour * 60 + endMin;
-    
-    const diffMinutes = endMinutes - startMinutes;
-    
-    return diffMinutes > 0 ? diffMinutes : 0;
+.attendance-number-input:focus {
+    outline: none;
+    border-color: #FF6B35;
+    box-shadow: 0 0 0 3px rgba(255, 107, 53, 0.1);
 }
 
-// 입실시간 입력 시 퇴실예정시간 자동 계산
-function autoUpdateExpectedOutTime(studentId, checkInTime, scheduledDuration) {
-    // 시간 형식 자동 변환 (1400 → 14:00)
-    const formattedTime = formatTimeInput(checkInTime);
-    
-    if (!formattedTime || !/^\d{2}:\d{2}$/.test(formattedTime)) {
-        return; // 유효하지 않은 시간 형식이면 중단
-    }
-    
-    // 퇴실예정시간 계산
-    const duration = scheduledDuration || 90; // 기본 90분
-    const expectedOutTime = addMinutesToTime(formattedTime, duration);
-    
-    // 퇴실예정시간 입력란 업데이트
-    const expectedOutInput = document.getElementById(`edit-expected-${studentId}`);
-    if (expectedOutInput) {
-        expectedOutInput.value = expectedOutTime;
-    }
-    
-    // 표시 영역도 업데이트 (편집 모드에서 보이지 않지만 저장 시 사용)
-    const expectedOutDisplay = document.getElementById(`display-expected-${studentId}`);
-    if (expectedOutDisplay) {
-        expectedOutDisplay.textContent = expectedOutTime;
-    }
+.attendance-number-input::placeholder {
+    color: #adb5bd;
+    font-size: 1.4rem;
 }
 
-// 시간에 분을 더하는 함수
-function addMinutesToTime(timeStr, minutes) {
-    if (!timeStr || !/^\d{2}:\d{2}$/.test(timeStr)) return '';
-    
-    const [hours, mins] = timeStr.split(':').map(Number);
-    const totalMinutes = hours * 60 + mins + minutes;
-    
-    const newHours = Math.floor(totalMinutes / 60) % 24;
-    const newMins = totalMinutes % 60;
-    
-    return `${String(newHours).padStart(2, '0')}:${String(newMins).padStart(2, '0')}`;
+.btn-check-in {
+    padding: 1rem 2rem;
+    background-color: #28a745;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-size: 1.1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    white-space: nowrap;
 }
 
-// ============================================
-// 수정/취소 모드 전환
-// ============================================
-
-function enterEditMode(studentId) {
-    // Display 모드 숨기기
-    const displayElements = document.querySelectorAll(`#display-checkin-${studentId}, #display-expected-${studentId}, #display-checkout-${studentId}, #display-status-${studentId}, #btn-edit-${studentId}`);
-    displayElements.forEach(el => {
-        if (el) el.style.display = 'none';
-    });
-    
-    // Edit 모드 표시
-    const editElements = document.querySelectorAll(`#edit-checkin-${studentId}, #edit-expected-${studentId}, #edit-checkout-${studentId}, #edit-status-container-${studentId}, #edit-buttons-${studentId}`);
-    editElements.forEach(el => {
-        if (el) el.style.display = el.id.includes('container') ? 'block' : 'inline-block';
-    });
+.btn-check-in:hover {
+    background-color: #218838;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(40, 167, 69, 0.3);
 }
 
-function cancelEditMode(studentId) {
-    // Edit 모드 숨기기
-    const editElements = document.querySelectorAll(`#edit-checkin-${studentId}, #edit-expected-${studentId}, #edit-checkout-${studentId}, #edit-status-container-${studentId}, #edit-buttons-${studentId}`);
-    editElements.forEach(el => {
-        if (el) el.style.display = 'none';
-    });
-    
-    // Display 모드 표시
-    const displayElements = document.querySelectorAll(`#display-checkin-${studentId}, #display-expected-${studentId}, #display-checkout-${studentId}, #display-status-${studentId}, #btn-edit-${studentId}`);
-    displayElements.forEach(el => {
-        if (el) el.style.display = 'inline-block';
-    });
-    
-    // 데이터 다시 로드하여 원래 값으로 복원
-    loadAttendanceData();
+.btn-check-out {
+    padding: 1rem 2rem;
+    background-color: #dc3545;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-size: 1.1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    white-space: nowrap;
 }
 
-// 시간 형식 변환 함수 (1530 → 15:30)
-function formatTimeInput(value) {
-    if (!value) return '';
-    
-    // 숫자만 추출
-    const digits = value.replace(/\D/g, '');
-    
-    // 4자리 숫자인 경우 HH:MM 형식으로 변환
-    if (digits.length === 4) {
-        const hour = digits.substring(0, 2);
-        const minute = digits.substring(2, 4);
-        
-        // 유효성 검사
-        if (parseInt(hour) < 24 && parseInt(minute) < 60) {
-            return `${hour}:${minute}`;
-        }
-    }
-    
-    // 이미 HH:MM 형식이면 그대로 반환
-    if (/^\d{2}:\d{2}$/.test(value)) {
-        return value;
-    }
-    
-    return value;
+.btn-check-out:hover {
+    background-color: #c82333;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(220, 53, 69, 0.3);
 }
 
-// 출석 필드 업데이트
-async function updateAttendanceField(studentId, field, value) {
-    const row = document.querySelector(`tr[data-student-id="${studentId}"]`);
-    if (!row) return;
-    
-    const recordId = row.dataset.recordId;
-    
-    // 입실시간 변경 시 퇴실예정시간 자동 계산
-    if (field === 'check_in_time' && value) {
-        const student = attendanceStudents.find(s => s.id === studentId);
-        if (student) {
-            let schedule = student.schedule;
-            if (typeof schedule === 'string') {
-                try {
-                    schedule = JSON.parse(schedule);
-                } catch (e) {
-                    return;
-                }
-            }
-            
-            const selectedDate = getSelectedDateString();
-            const dateObj = new Date(selectedDate);
-            const dayKeys = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
-            const selectedDayKey = dayKeys[dateObj.getDay()];
-            
-            const daySchedule = schedule[selectedDayKey];
-            if (daySchedule) {
-                const duration = parseInt(daySchedule.duration) || 90;
-                const expectedOut = addMinutesToTime(value, duration);
-                
-                const expectedOutInput = row.querySelector('td:nth-child(3) input');
-                if (expectedOutInput) {
-                    expectedOutInput.value = expectedOut;
-                }
-            }
-        }
-    }
-    
-    // 퇴실시간 변경 시 재실시간 자동 계산 및 색상 처리
-    if (field === 'check_out_time') {
-        const checkInInput = row.querySelector('td:nth-child(2) input');
-        const durationCell = row.querySelector('.duration-display');
-        const scheduledDuration = parseInt(row.dataset.scheduledDuration) || 90;
-        
-        if (checkInInput && durationCell && value) {
-            const actualDuration = calculateDurationInMinutes(checkInInput.value, value);
-            
-            // 재실시간 표시
-            durationCell.textContent = `${actualDuration}분`;
-            
-            // 색상 처리: 스케줄보다 작으면 빨강, 이상이면 검정
-            if (actualDuration < scheduledDuration) {
-                durationCell.style.color = 'red';
-                durationCell.style.fontWeight = 'bold';
-            } else {
-                durationCell.style.color = '';
-                durationCell.style.fontWeight = '';
-            }
-        }
-    }
-    
-    // 상태를 "출석"으로 변경 시 스케줄 시간으로 자동 설정
-    if (field === 'status' && value === '출석') {
-        const student = attendanceStudents.find(s => s.id === studentId);
-        if (student) {
-            let schedule = student.schedule;
-            if (typeof schedule === 'string') {
-                try {
-                    schedule = JSON.parse(schedule);
-                } catch (e) {
-                    return;
-                }
-            }
-            
-            const selectedDate = getSelectedDateString();
-            const dateObj = new Date(selectedDate);
-            const dayKeys = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
-            const selectedDayKey = dayKeys[dateObj.getDay()];
-            
-            const daySchedule = schedule[selectedDayKey];
-            if (daySchedule) {
-                // 스케줄의 입실/퇴실 시간으로 설정
-                const checkInInput = row.querySelector('td:nth-child(2) input');
-                const checkOutInput = row.querySelector('td:nth-child(4) input');
-                const expectedOutInput = row.querySelector('td:nth-child(3) input');
-                const durationCell = row.querySelector('.duration-display');
-                
-                if (checkInInput && daySchedule.checkIn) {
-                    checkInInput.value = daySchedule.checkIn;
-                }
-                
-                if (expectedOutInput && daySchedule.checkOut) {
-                    expectedOutInput.value = daySchedule.checkOut;
-                }
-                
-                if (checkOutInput && daySchedule.checkOut) {
-                    checkOutInput.value = daySchedule.checkOut;
-                }
-                
-                // 재실시간 자동 계산 및 표시
-                if (durationCell && daySchedule.duration) {
-                    const scheduledDuration = parseInt(daySchedule.duration) || 90;
-                    durationCell.textContent = `${scheduledDuration}분`;
-                    durationCell.style.color = '';
-                    durationCell.style.fontWeight = '';
-                }
-            }
-        }
-    }
+/* ============================================
+   빠른 입실/퇴실 버튼 (테이블 내부)
+   ============================================ */
+.btn-quick-checkin,
+.btn-quick-checkout {
+    padding: 0.4rem 0.8rem;
+    font-size: 0.85rem;
+    font-weight: 600;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.2s;
+    white-space: nowrap;
+    margin: 0 0.2rem;
 }
 
-// 시간에 분 추가 (HH:MM 형식)
-function addMinutesToTime(time, minutes) {
-    if (!time) return '';
-    
-    const [hour, min] = time.split(':').map(Number);
-    const totalMinutes = hour * 60 + min + minutes;
-    
-    const newHour = Math.floor(totalMinutes / 60) % 24;
-    const newMin = totalMinutes % 60;
-    
-    return `${String(newHour).padStart(2, '0')}:${String(newMin).padStart(2, '0')}`;
+.btn-quick-checkin {
+    background-color: #28a745;
+    color: white;
 }
 
-// 출석 저장
-async function saveAttendance(studentId) {
-    const row = document.querySelector(`tr[data-student-id="${studentId}"]`);
-    if (!row) return;
-    
-    const recordId = row.dataset.recordId;
-    const selectedDate = getSelectedDateString();
-    
-    // 입력 필드에서 값 가져오기
-    let checkInTime = document.getElementById(`edit-checkin-${studentId}`)?.value || '';
-    const expectedOutTime = document.getElementById(`edit-expected-${studentId}`)?.value || '';
-    let checkOutTime = document.getElementById(`edit-checkout-${studentId}`)?.value || '';
-    let status = document.getElementById(`status-${studentId}`)?.value || '';
-    const absenceReason = document.getElementById(`absence-reason-${studentId}`)?.value || '';
-    const makeupDate = document.getElementById(`makeup-date-input-${studentId}`)?.value || '';
-    
-    // 학생 이름 가져오기 (row에서 먼저 찾기)
-    let studentName = row.dataset.studentName || '';
-    
-    // 스케줄에서 기본값 가져오기
-    const student = attendanceStudents.find(s => s.id === studentId);
-    if (student) {
-        if (!studentName) {
-            studentName = student.name;
-        }
-        
-        let schedule = student.schedule;
-        if (typeof schedule === 'string' && schedule.trim() !== '') {
-            try {
-                schedule = JSON.parse(schedule);
-            } catch (e) {
-                schedule = {};
-            }
-        }
-        
-        const dateObj = new Date(selectedDate);
-        const dayKeys = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
-        const selectedDayKey = dayKeys[dateObj.getDay()];
-        const daySchedule = schedule[selectedDayKey];
-        
-        // 입력하지 않았으면 스케줄 시간 사용
-        if (!checkInTime && daySchedule) {
-            checkInTime = daySchedule.checkIn || '';
-        }
-        if (!checkOutTime && daySchedule) {
-            checkOutTime = daySchedule.checkOut || '';
-        }
-    }
-    
-    // 입실시간이 없으면 경고
-    if (!checkInTime) {
-        alert('출석시간을 입력하거나 스케줄을 등록해주세요.');
-        return;
-    }
-    
-    // 상태가 비어있으면 기본값 "출석"으로 설정
-    if (!status) {
-        status = '출석';
-    }
-    
-    const attendanceData = {
-        student_id: studentId,
-        student_name: studentName,
-        date: selectedDate,
-        check_in_time: checkInTime,
-        expected_out_time: expectedOutTime,
-        check_out_time: checkOutTime,
-        status: status,
-        absence_reason: absenceReason,
-        makeup_date: makeupDate
-    };
-    
-    try {
-        if (recordId) {
-            // 기존 기록 업데이트
-            await API.update('attendance', recordId, attendanceData);
-            alert('출석이 수정되었습니다.');
-        } else {
-            // 새 기록 생성
-            await API.create('attendance', attendanceData);
-            alert('출석이 저장되었습니다.');
-        }
-        
-        // 데이터 다시 로드
-        await loadAttendanceData();
-        await renderMonthlyCalendar();
-        
-    } catch (error) {
-        console.error('출석 저장 오류:', error);
-        alert('출석 저장에 실패했습니다.');
-    }
+.btn-quick-checkin:hover {
+    background-color: #218838;
+    transform: translateY(-1px);
+    box-shadow: 0 2px 4px rgba(40, 167, 69, 0.3);
 }
 
-// ============================================
-// 빠른 입실/퇴실 버튼 함수
-// ============================================
-
-// 빠른 입실 처리
-async function quickCheckIn(studentId) {
-    try {
-        if (!Auth.isLoggedIn()) {
-            alert('로그인이 필요합니다.');
-            return;
-        }
-        
-        const student = attendanceStudents.find(s => s.id === studentId);
-        
-        if (!student) {
-            alert('학생 정보를 찾을 수 없습니다.');
-            return;
-        }
-        
-        const now = new Date();
-        const checkInTime = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
-        
-        const schedule = getStudentTodaySchedule(student);
-        const expectedOutTime = calculateExpectedTime(checkInTime, schedule ? schedule.duration : 90);
-        
-        const existingRecord = todayAttendanceRecords.find(r => r.student_id === student.id);
-        
-        if (existingRecord) {
-            await API.update('attendance', existingRecord.id, {
-                ...existingRecord,
-                check_in_time: checkInTime,
-                expected_out_time: expectedOutTime,
-                status: '출석'
-            });
-            alert(`${student.name} 입실 ${checkInTime}`);
-        } else {
-            const attendanceData = {
-                student_id: student.id,
-                student_name: student.name,
-                date: getSelectedDateString(),
-                check_in_time: checkInTime,
-                expected_out_time: expectedOutTime,
-                check_out_time: '',
-                status: '출석',
-                absence_reason: '',
-                makeup_date: ''
-            };
-            
-            await API.create('attendance', attendanceData);
-            alert(`${student.name} 입실 ${checkInTime}`);
-        }
-        
-        await loadAttendanceData();
-        await renderMonthlyCalendar();
-        
-    } catch (error) {
-        console.error('입실 처리 실패:', error);
-        alert('입실 처리에 실패했습니다.');
-    }
+.btn-quick-checkout {
+    background-color: #dc3545;
+    color: white;
 }
 
-// 빠른 퇴실 처리
-async function quickCheckOut(studentId) {
-    try {
-        if (!Auth.isLoggedIn()) {
-            alert('로그인이 필요합니다.');
-            return;
-        }
-        
-        const student = attendanceStudents.find(s => s.id === studentId);
-        
-        if (!student) {
-            alert('학생 정보를 찾을 수 없습니다.');
-            return;
-        }
-        
-        const existingRecord = todayAttendanceRecords.find(r => r.student_id === student.id);
-        
-        if (!existingRecord) {
-            alert(`${student.name} 학생의 입실 기록이 없습니다.`);
-            return;
-        }
-        
-        const now = new Date();
-        const checkOutTime = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
-        
-        await API.update('attendance', existingRecord.id, {
-            ...existingRecord,
-            check_out_time: checkOutTime
-        });
-        
-        alert(`${student.name} 퇴실 ${checkOutTime}`);
-        
-        await loadAttendanceData();
-        await renderMonthlyCalendar();
-        
-    } catch (error) {
-        console.error('퇴실 처리 실패:', error);
-        alert('퇴실 처리에 실패했습니다.');
-    }
+.btn-quick-checkout:hover {
+    background-color: #c82333;
+    transform: translateY(-1px);
+    box-shadow: 0 2px 4px rgba(220, 53, 69, 0.3);
 }
 
-// 출석 삭제 (확정된 출석만 삭제 가능)
-async function deleteAttendance(studentId, recordId) {
-    if (!confirm('이 출석 기록을 삭제하시겠습니까?\n\n※ 삭제 후에는 예정 스케줄로 돌아갑니다.')) {
-        return;
-    }
-    
-    try {
-        await API.delete('attendance', recordId);
-        alert('출석 기록이 삭제되었습니다.');
-        
-        // 데이터 다시 로드
-        await loadAttendanceData();
-        await renderMonthlyCalendar();
-        
-    } catch (error) {
-        console.error('출석 삭제 오류:', error);
-        alert('출석 삭제에 실패했습니다.');
-    }
+/* ============================================
+   2단: 출석 테이블 섹션
+   ============================================ */
+.attendance-table-section {
+    background: white;
+    padding: 2rem;
+    border-radius: 12px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
-// ============================================
-// 6. 출석 등록
-// ============================================
-
-// 상태 변경 핸들러 (등록 행)
-function handleRegisterStatusChange() {
-    const statusSelect = document.getElementById('registerStatus');
-    const reasonSelect = document.getElementById('registerAbsenceReason');
-    const makeupDateDiv = document.getElementById('registerMakeupDate');
-    
-    if (!statusSelect) return;
-    
-    const status = statusSelect.value;
-    
-    if (status === '결석') {
-        if (reasonSelect) reasonSelect.style.display = 'block';
-        if (makeupDateDiv) makeupDateDiv.style.display = 'none';
-    } else if (status === '보강') {
-        if (reasonSelect) reasonSelect.style.display = 'none';
-        if (makeupDateDiv) makeupDateDiv.style.display = 'block';
-    } else {
-        if (reasonSelect) reasonSelect.style.display = 'none';
-        if (makeupDateDiv) makeupDateDiv.style.display = 'none';
-    }
+.table-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1.5rem;
 }
 
-// 상태 변경 핸들러 (기존 행)
-function handleStatusChange(studentId) {
-    const statusSelect = document.getElementById(`status-${studentId}`);
-    const reasonSelect = document.getElementById(`absence-reason-${studentId}`);
-    const makeupDateDiv = document.getElementById(`makeup-date-${studentId}`);
-    
-    if (!statusSelect) return;
-    
-    const status = statusSelect.value;
-    
-    // 상태를 updateAttendanceField로 업데이트
-    updateAttendanceField(studentId, 'status', status);
-    
-    if (status === '결석') {
-        if (reasonSelect) reasonSelect.style.display = 'block';
-        if (makeupDateDiv) makeupDateDiv.style.display = 'none';
-    } else if (status === '보강') {
-        if (reasonSelect) reasonSelect.style.display = 'none';
-        if (makeupDateDiv) makeupDateDiv.style.display = 'block';
-    } else {
-        if (reasonSelect) reasonSelect.style.display = 'none';
-        if (makeupDateDiv) makeupDateDiv.style.display = 'none';
-    }
+.table-header h2 {
+    margin: 0;
+    color: #333;
+    font-size: 1.5rem;
 }
 
-async function registerAttendance() {
-    console.log('출석 등록 시작');
-    
-    // 로그인 확인
-    if (!Auth.isLoggedIn()) {
-        alert('로그인이 필요합니다.');
-        return;
+.date-selector {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.date-nav-btn {
+    background: none;
+    border: none;
+    color: #c0c0c0;
+    font-size: 1.2rem;
+    cursor: pointer;
+    padding: 0.3rem 0.6rem;
+    transition: all 0.2s;
+    border-radius: 4px;
+}
+
+.date-nav-btn:hover {
+    background-color: #f0f0f0;
+    color: #808080;
+    transform: scale(1.1);
+}
+
+.calendar-icon {
+    font-size: 1.5rem;
+    color: #FF6B35;
+    cursor: pointer;
+    transition: transform 0.2s;
+}
+
+.calendar-icon:hover {
+    transform: scale(1.2);
+}
+
+.date-input {
+    position: absolute;
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+
+.date-display {
+    font-size: 1rem;
+    font-weight: 600;
+    color: #495057;
+    min-width: 150px;
+    text-align: center;
+}
+
+/* 출석 테이블 */
+.attendance-table {
+    width: 100%;
+    border-collapse: collapse;
+    background: white;
+}
+
+.attendance-table thead {
+    background: #f8f9fa;
+}
+
+.attendance-table th {
+    padding: 1rem;
+    text-align: center;
+    font-weight: 600;
+    color: #495057;
+    border-bottom: 2px solid #dee2e6;
+}
+
+.attendance-table tbody tr {
+    border-bottom: 1px solid #e9ecef;
+    transition: background-color 0.2s;
+    background: white;
+}
+
+.attendance-table tbody tr:hover:not(.register-row) {
+    background-color: #f8f9fa;
+}
+
+/* 1열 (이름) - 가로폭 30% 축소 */
+.attendance-table th:nth-child(1),
+.attendance-table td:nth-child(1) {
+    width: 15.4%;
+    min-width: 112px;
+}
+
+/* 2-4열 (출석시간, 퇴실예정시간, 퇴실시간) - 가로폭 5% 축소 */
+.attendance-table th:nth-child(2),
+.attendance-table td:nth-child(2),
+.attendance-table th:nth-child(3),
+.attendance-table td:nth-child(3),
+.attendance-table th:nth-child(4),
+.attendance-table td:nth-child(4) {
+    width: 9.5%;
+    min-width: 85px;
+}
+
+/* 5열 (재실시간) - 가로폭 5% 축소 */
+.attendance-table th:nth-child(5),
+.attendance-table td:nth-child(5) {
+    width: 7.6%;
+    min-width: 66px;
+}
+
+/* 6열 (상태) - 가로폭 증가 */
+.attendance-table th:nth-child(6),
+.attendance-table td:nth-child(6) {
+    width: 12%;
+    min-width: 110px;
+}
+
+/* 7열 (등록) - 가로폭 축소 */
+.attendance-table th:nth-child(7),
+.attendance-table td:nth-child(7) {
+    width: 15%;
+    min-width: 130px;
+}
+
+/* 8열 (관리) - 가로폭 증가 */
+.attendance-table th:nth-child(8),
+.attendance-table td:nth-child(8) {
+    width: 11%;
+    min-width: 100px;
+}
+
+/* 1열 등록 행의 입력 필드 크기 축소 */
+.register-row td:nth-child(1) .form-select,
+.register-row td:nth-child(1) .form-input {
+    font-size: 0.85rem;
+    padding: 0.4rem;
+}
+
+/* 2-4열 입력 필드 가로폭 축소 */
+.attendance-table td:nth-child(2) .form-input,
+.attendance-table td:nth-child(3) .form-input,
+.attendance-table td:nth-child(4) .form-input {
+    width: 60%;
+    min-width: 60px;
+}
+
+.attendance-table td {
+    padding: 0.5rem;
+    color: #495057;
+    text-align: center;
+    font-family: 'Noto Sans KR', -apple-system, BlinkMacSystemFont, sans-serif;
+}
+
+/* 등록 행 */
+.register-row {
+    background-color: #f8f9fa !important;
+}
+
+.register-row:hover {
+    background-color: #f8f9fa !important;
+}
+
+/* 폼 요소 */
+.form-input,
+.form-select {
+    width: 100%;
+    padding: 0.5rem;
+    border: 1px solid #ced4da;
+    border-radius: 4px;
+    font-size: 0.9rem;
+    font-family: 'Noto Sans KR', -apple-system, BlinkMacSystemFont, sans-serif;
+}
+
+/* 시간 입력 필드에서 오전/오후 텍스트 숨기기 */
+.form-input[type="time"]::-webkit-datetime-edit-ampm-field {
+    display: none;
+}
+
+.form-input[type="time"] {
+    -webkit-appearance: none;
+    -moz-appearance: textfield;
+}
+
+.form-input:focus,
+.form-select:focus {
+    outline: none;
+    border-color: #FF6B35;
+    box-shadow: 0 0 0 2px rgba(255, 107, 53, 0.1);
+}
+
+.form-input[readonly] {
+    background-color: #e9ecef;
+    cursor: not-allowed;
+}
+
+/* 상태 그룹 */
+.status-group {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.reason-select,
+.makeup-date {
+    font-size: 0.85rem;
+}
+
+/* 상태 표시 */
+.status-display {
+    display: inline-block;
+    padding: 0.4rem 1rem;
+    border-radius: 4px;
+    font-size: 0.9rem;
+    font-weight: 600;
+}
+
+.status-display.status-present {
+    color: #4CAF50;
+}
+
+.status-display.status-absent {
+    color: #000;
+}
+
+.status-display.status-makeup {
+    color: #f44336;
+}
+
+/* 상태 배지 */
+.status-badge {
+    display: inline-block;
+    padding: 0.4rem 1rem;
+    border-radius: 20px;
+    font-size: 0.9rem;
+    font-weight: 600;
+}
+
+.status-badge.status-present {
+    background-color: #d4edda;
+    color: #155724;
+}
+
+.status-badge.status-absent {
+    background-color: #f8d7da;
+    color: #721c24;
+}
+
+/* 아이콘 버튼 */
+.btn-icon {
+    padding: 0.2rem;
+    margin: 0 0.3rem;
+    border: none;
+    background: none !important;
+    color: #FF6B35;
+    font-size: 1.4rem;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: inline-block;
+}
+
+.btn-icon:hover {
+    transform: scale(1.15);
+    color: #e55a2b;
+    background: none !important;
+}
+
+/* 수정 버튼 - 펜 이모티콘 */
+.btn-edit.btn-icon {
+    font-style: normal;
+}
+
+.btn-edit.btn-icon::before {
+    content: '✏️';
+}
+
+/* 삭제 버튼 - X 이모티콘 */
+.btn-delete.btn-icon {
+    font-style: normal;
+}
+
+.btn-delete.btn-icon::before {
+    content: '❌';
+}
+
+/* 수정 버튼 - 기본 스타일 유지 (display-mode에서 사용) */
+.btn-edit:not(.btn-icon) {
+    padding: 0.6rem 1.5rem;
+    background-color: #28a745;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    white-space: nowrap;
+    font-size: 0.9rem;
+}
+
+.btn-edit:not(.btn-icon):hover {
+    background-color: #218838;
+    transform: translateY(-1px);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+/* 기본 버튼 */
+.btn-primary {
+    padding: 0.6rem 1.5rem;
+    background-color: #FF6B35;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    white-space: nowrap;
+}
+
+.btn-primary:hover {
+    background-color: #e55a2b;
+    transform: translateY(-1px);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+/* 저장 버튼 (주황색) */
+.btn-save,
+.btn-register {
+    padding: 0.6rem 1.5rem;
+    background-color: #FF6B35;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    white-space: nowrap;
+    font-size: 0.9rem;
+}
+
+.btn-save:hover,
+.btn-register:hover {
+    background-color: #e55a2b;
+    transform: translateY(-1px);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+/* 취소 버튼 (회색) */
+.btn-cancel {
+    padding: 0.6rem 1.5rem;
+    background-color: #6c757d;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    white-space: nowrap;
+    font-size: 0.9rem;
+    margin-left: 0.5rem;
+}
+
+.btn-cancel:hover {
+    background-color: #5a6268;
+    transform: translateY(-1px);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+/* 삭제 버튼 - 기본 스타일 유지 (display-mode에서 사용) */
+.btn-delete:not(.btn-icon) {
+    padding: 0.6rem 1.5rem;
+    background-color: #dc3545;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    white-space: nowrap;
+    font-size: 0.9rem;
+}
+
+.btn-delete:not(.btn-icon):hover {
+    background-color: #c82333;
+    transform: translateY(-1px);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+/* ============================================
+   3단: 월별 출결 현황 달력
+   ============================================ */
+.monthly-calendar-section {
+    background: white;
+    padding: 2rem;
+    border-radius: 12px;
+    margin-top: 2rem;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.monthly-calendar-section > h2 {
+    margin-bottom: 1.5rem;
+    color: #333;
+    font-size: 1.5rem;
+}
+
+.calendar-header {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin-bottom: 1.5rem;
+}
+
+/* 출석조회 페이지용 달력 헤더 - 여백 축소 */
+.view-column-left .calendar-header {
+    margin-bottom: 0.5rem;
+}
+
+.calendar-header h3 {
+    margin: 0;
+    font-size: 1.3rem;
+    color: #495057;
+    text-align: center;
+}
+
+.monthly-calendar {
+    width: 100%;
+    border-collapse: collapse;
+    table-layout: fixed;
+}
+
+.monthly-calendar thead th {
+    background-color: #f8f9fa;
+    padding: 0.35rem;
+    text-align: center;
+    font-weight: 600;
+    color: #495057;
+    border: 1px solid #e9ecef;
+}
+
+.monthly-calendar tbody td {
+    border: 1px solid #e9ecef;
+    padding: 0.5rem;
+    vertical-align: top;
+    height: 120px;
+    background: white;
+}
+
+/* 출석조회 페이지용 달력 - 여백 축소 */
+.view-column-left .monthly-calendar thead th {
+    padding: 0.25rem;
+}
+
+.view-column-left .monthly-calendar tbody td {
+    padding: 0.3rem;
+}
+
+.monthly-calendar .empty-cell {
+    background-color: #f8f9fa;
+}
+
+.calendar-cell {
+    position: relative;
+}
+
+.calendar-cell.today {
+    background-color: #fff3cd;
+}
+
+.date-number {
+    font-weight: 700;
+    color: #000;
+    margin-bottom: 0.5rem;
+    font-size: 1rem;
+}
+
+.schedule-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.1rem;
+}
+
+/* 스케줄 아이템 기본 스타일 */
+.schedule-item {
+    font-size: 0.75rem;
+    padding: 0.1rem 0.2rem;
+    border-radius: 3px;
+    line-height: 1.2;
+    background: transparent;
+}
+
+/* 출석: 검정색 글자, 배경 없음 */
+.schedule-item.attendance {
+    color: #000000;
+    background: transparent;
+}
+
+/* 결석: 검정색 글자, 배경 없음 (취소선은 이름에만 적용됨) */
+.schedule-item.absent {
+    color: #000000;
+    background: transparent;
+}
+
+/* 보강: 빨간색 글자, 배경 없음 */
+.schedule-item.makeup {
+    color: #dc3545;
+    background: transparent;
+    font-weight: 600;
+}
+
+/* 보충: 보라색 글자, 배경 없음 */
+.schedule-item.supplement {
+    color: #9C27B0;
+    background: transparent;
+    font-weight: 600;
+}
+
+/* 정보 없는 학생: 파란색 글자 */
+.schedule-item.external {
+    color: #007bff;
+    background: transparent;
+    font-weight: 500;
+}
+
+.schedule-strikethrough {
+    text-decoration: line-through;
+}
+
+/* 학년별 통계 표 */
+#attendanceStatsContainer {
+    margin-top: 2rem;
+}
+
+#attendanceStatsContainer h3 {
+    margin: 1.5rem 0 1rem 0;
+    color: #333;
+    font-size: 1.2rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 2px solid #FF6B35;
+}
+
+.stats-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 2rem;
+    table-layout: fixed;
+}
+
+.stats-table th {
+    background-color: #f8f9fa;
+    padding: 0.34rem;
+    text-align: center;
+    border: 1px solid #dee2e6;
+    vertical-align: top;
+    width: 9.33%;
+}
+
+.stats-table th:first-child {
+    width: 10%;
+}
+
+.stats-table .student-name {
+    font-weight: 600;
+    font-size: 1rem;
+    color: #333;
+    margin-bottom: 0.05rem;
+}
+
+.stats-table .student-info {
+    font-size: 0.85rem;
+    color: #6c757d;
+}
+
+.stats-table tbody tr {
+    border-bottom: 1px solid #dee2e6;
+}
+
+.stats-table td {
+    padding: 0.28rem;
+    text-align: center;
+    border: 1px solid #dee2e6;
+    width: 9.33%;
+}
+
+.stats-table .row-label {
+    background-color: #f8f9fa;
+    font-weight: 600;
+    color: #495057;
+    text-align: center;
+    padding: 0.28rem;
+    width: 10%;
+    font-size: 0.85rem;
+    white-space: nowrap;
+    word-break: keep-all;
+}
+
+/* 3행 구조 (수업 / 출석(보강) / 보강예정) */
+
+/* 보강예정 행 (3행) - 흰색 배경 */
+.stats-table tbody tr:nth-child(3) {
+    font-weight: 600;
+    background-color: white !important;
+}
+
+.stats-table tbody tr:nth-child(3) td {
+    background-color: white !important;
+    text-align: center !important;
+}
+
+.stats-table tbody tr:nth-child(3) td.row-label {
+    background-color: #f8f9fa !important;
+    text-align: center !important;
+    vertical-align: middle !important;
+}
+
+/* ============================================
+   보강 날짜 입력 필드 (달력 아이콘 제거)
+   ============================================ */
+input[type="date"]::-webkit-calendar-picker-indicator {
+    display: none;
+    -webkit-appearance: none;
+}
+
+input[type="date"]::-webkit-inner-spin-button,
+input[type="date"]::-webkit-outer-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+}
+
+input[type="date"] {
+    -moz-appearance: textfield;
+}
+
+/* ============================================
+   출석 조회 페이지
+   ============================================ */
+.attendance-view-container {
+    max-width: 100%;
+    margin: 0 auto;
+    padding: 2rem;
+}
+
+/* 2단 레이아웃 (2:1 비율) */
+.view-two-column-layout {
+    display: grid;
+    grid-template-columns: 2fr 1fr;
+    gap: 0.45rem;
+    margin-top: 2rem;
+}
+
+.view-column-left,
+.view-column-right {
+    background: white;
+    border-radius: 12px;
+    box-shadow: none;
+    border: none;
+}
+
+.view-column-left {
+    padding: 0.3rem;
+}
+
+.view-column-right {
+    padding: 0.5rem;
+    padding-top: 6.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+}
+
+/* 2단 학생 목록 */
+.view-student-list {
+    flex: 1;
+    overflow-y: visible;
+}
+
+.view-student-list h3 {
+    display: none;
+}
+
+.student-list-items {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+/* 학생 텍스트 아이템 */
+.student-text-item {
+    padding: 0.25rem 0;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    border-bottom: 1px solid #f0f0f0;
+}
+
+.student-text-item:last-child {
+    border-bottom: none;
+}
+
+.student-text-name {
+    font-weight: 700;
+    font-size: 0.9rem;
+    color: #333;
+    cursor: pointer;
+    transition: color 0.2s;
+}
+
+.student-text-name:hover {
+    color: #FF6B35;
+}
+
+.student-text-school {
+    font-size: 0.8rem;
+    color: #8B4513;
+    margin-right: 0.5rem;
+}
+
+.student-text-memo {
+    width: 200px;
+    max-width: 200px;
+    min-width: 200px;
+    flex: none;
+    flex-grow: 0;
+    flex-shrink: 0;
+    padding: 0.3rem 0.5rem;
+    border: 1px solid #e0e0e0;
+    border-radius: 4px;
+    font-size: 0.75rem;
+    font-family: 'Noto Sans KR', sans-serif;
+    background: white;
+}
+
+.student-text-memo:focus {
+    outline: none;
+    border-color: #FF6B35;
+    box-shadow: 0 0 0 2px rgba(255, 107, 53, 0.1);
+}
+
+.student-text-item.active .student-text-name {
+    color: #FF6B35;
+}
+
+/* 2단 MEMO 섹션 */
+.view-memo-section {
+    background: #f8f9fa;
+    padding: 1rem;
+    border-radius: 8px;
+    border: 1px solid #dee2e6;
+}
+
+.view-memo-section h4 {
+    font-size: 1rem;
+    font-weight: 700;
+    color: #333;
+    margin-bottom: 0.75rem;
+}
+
+.view-memo-section textarea {
+    width: 100%;
+    min-height: 120px;
+    padding: 0.75rem;
+    border: 1px solid #ced4da;
+    border-radius: 6px;
+    font-size: 0.9rem;
+    font-family: 'Noto Sans KR', sans-serif;
+    resize: vertical;
+    transition: border-color 0.2s;
+}
+
+.view-memo-section textarea:focus {
+    outline: none;
+    border-color: #FF6B35;
+    box-shadow: 0 0 0 3px rgba(255, 107, 53, 0.1);
+}
+
+
+.view-controls {
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+    margin-bottom: 1rem;
+}
+
+.controls-right {
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+}
+
+.calendar-view-header {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 2rem;
+    margin-bottom: 1.5rem;
+}
+
+.calendar-view-header h2 {
+    margin: 0;
+    font-size: 1.5rem;
+    color: #333;
+    min-width: 200px;
+    text-align: center;
+}
+
+.btn-month-nav {
+    padding: 0.5rem 1rem;
+    background-color: transparent;
+    border: none;
+    cursor: pointer;
+    font-size: 1.2rem;
+    transition: all 0.2s;
+    color: #999;
+}
+
+.btn-month-nav:hover {
+    color: #666;
+    transform: scale(1.1);
+}
+
+.btn-secondary {
+    padding: 0.6rem 1.5rem;
+    background-color: #6c757d;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    white-space: nowrap;
+}
+
+.btn-secondary:hover {
+    background-color: #5a6268;
+    transform: translateY(-1px);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.calendar-view-section {
+    background: white;
+    padding: 2rem;
+    border-radius: 12px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+/* 출석조회 페이지 인쇄 스타일 (가로) */
+@media print {
+    /* 페이지 설정 */
+    @page {
+        margin: 5mm !important;
+        margin-top: 8mm !important;
+        size: A4 landscape !important;
     }
     
-    // 입력값 가져오기
-    const studentId = document.getElementById('registerStudentSelect').value;
-    const checkInTime = document.getElementById('registerCheckInTime').value;
-    const expectedOutTime = document.getElementById('registerExpectedOutTime').value;
-    const checkOutTime = document.getElementById('registerCheckOutTime').value;
-    const status = document.getElementById('registerStatus').value;
-    const absenceReason = document.getElementById('registerAbsenceReason').value;
-    const makeupDate = document.getElementById('registerMakeupDate').value;
-    
-    // 필수값 검증
-    if (!studentId) {
-        alert('학생을 선택해주세요.');
-        return;
+    /* 브라우저 기본 인쇄 헤더/푸터 제거 시도 */
+    @page :first {
+        margin-top: 8mm !important;
     }
     
-    if (!checkInTime) {
-        alert('출석시간을 입력해주세요.');
-        return;
+    @page :left {
+        margin-left: 5mm !important;
     }
     
-    // 학생 정보 찾기
-    const student = attendanceStudents.find(s => s.id === studentId);
-    if (!student) {
-        alert('학생 정보를 찾을 수 없습니다.');
-        return;
+    @page :right {
+        margin-right: 5mm !important;
     }
     
-    // 이미 출석 체크되었는지 확인
-    const existingRecord = todayAttendanceRecords.find(r => r.student_id === studentId);
-    if (existingRecord) {
-        alert(`${student.name} 학생은 이미 출석 체크되었습니다.`);
-        return;
+    /* 인쇄 시 불필요한 요소 숨김 */
+    header,
+    .main-menu,
+    .sub-menu-container,
+    .view-controls,
+    .btn-month-nav,
+    button,
+    .btn-secondary,
+    input[type="checkbox"],
+    label {
+        display: none !important;
     }
     
-    // 출석 데이터 생성
-    const attendanceData = {
-        student_id: studentId,
-        student_name: student.name,
-        date: getSelectedDateString(),
-        check_in_time: checkInTime,
-        expected_out_time: expectedOutTime,
-        check_out_time: checkOutTime,
-        status: status,
-        absence_reason: status === '결석' ? absenceReason : '',
-        makeup_date: status === '보강' ? makeupDate : ''
-    };
+    /* body 외부 텍스트 숨김 */
+    body {
+        margin: 0 auto !important;
+        padding: 0 !important;
+        background: white !important;
+        display: flex !important;
+        justify-content: center !important;
+        align-items: flex-start !important;
+    }
     
-    try {
-        const result = await API.create('attendance', attendanceData);
-        console.log('출석 등록 성공:', result);
-        alert('출석이 등록되었습니다.');
-        
-        // 입력 폼 초기화
-        document.getElementById('registerStudentSelect').value = '';
-        document.getElementById('registerCheckInTime').value = '';
-        document.getElementById('registerExpectedOutTime').value = '';
-        document.getElementById('registerCheckOutTime').value = '';
-        document.getElementById('registerStatus').value = '출석';
-        document.getElementById('registerAbsenceReason').style.display = 'none';
-        document.getElementById('registerMakeupDate').style.display = 'none';
-        
-        // 데이터 새로고침
-        await loadAttendanceData();
-        await renderMonthlyCalendar();
-        
-    } catch (error) {
-        console.error('출석 등록 실패:', error);
-        alert('출석 등록에 실패했습니다.');
+    /* body 직계 자식 텍스트 노드 숨김 (좌측 상단 숫자 제거) */
+    body::first-line {
+        font-size: 0 !important;
+        line-height: 0 !important;
+        color: transparent !important;
+        display: none !important;
+    }
+    
+    /* mainContent 내부만 정상 표시 */
+    #mainContent {
+        margin: 0 auto !important;
+        display: block !important;
+        width: 100% !important;
+    }
+    
+    #mainContent * {
+        font-size: initial !important;
+        visibility: visible !important;
+    }
+    
+    /* 출석조회 컨테이너 정상 표시 */
+    .attendance-view-container,
+    .attendance-view-container * {
+        visibility: visible !important;
+    }
+    
+    /* 전역 색상 강제 적용 */
+    * {
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+        color-adjust: exact !important;
+    }
+    
+    /* 출석조회 페이지 가로 인쇄 */
+    .attendance-view-container {
+        display: block !important;
+        padding: 0.3rem !important;
+        margin: 0 auto !important;
+        width: 100% !important;
+        max-width: 100% !important;
+    }
+    
+    /* 2단 레이아웃 인쇄 */
+    .view-two-column-layout {
+        display: grid !important;
+        grid-template-columns: 75% 25% !important;
+        gap: 0.8rem !important;
+        page-break-inside: avoid !important;
+        margin: 0 !important;
+        width: 100% !important;
+    }
+    
+    .view-column-left,
+    .view-column-right {
+        box-shadow: none !important;
+        border: none !important;
+        page-break-inside: avoid !important;
+        padding: 0.3rem !important;
+        overflow: hidden !important;
+    }
+    
+    .view-column-right {
+        padding-top: 3rem !important;
+    }
+    
+    /* 달력 헤더 */
+    .calendar-header {
+        margin-bottom: 0.3rem !important;
+        display: flex !important;
+        justify-content: center !important;
+        align-items: center !important;
+        padding: 0 !important;
+    }
+    
+    .calendar-header h3 {
+        font-size: 1.2rem !important;
+        margin: 0 !important;
+        padding: 0 0 0.3rem 0 !important;
+        font-weight: 700 !important;
+        color: #000 !important;
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+        color-adjust: exact !important;
+    }
+    
+    /* 달력 테이블 */
+    .monthly-calendar {
+        font-size: 0.5rem !important;
+        width: 100% !important;
+        table-layout: fixed !important;
+    }
+    
+    .monthly-calendar thead th {
+        padding: 0.25rem !important;
+        font-size: 0.6rem !important;
+        border: 1px solid #ddd !important;
+        background-color: #f5f5f5 !important;
+        color: #000 !important;
+        font-weight: 600 !important;
+        text-align: center !important;
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+        color-adjust: exact !important;
+    }
+    
+    .monthly-calendar tbody td {
+        padding: 0.2rem !important;
+        height: 95px !important;
+        min-height: 95px !important;
+        max-height: 95px !important;
+        font-size: 0.5rem !important;
+        border: 1px solid #ddd !important;
+        overflow: hidden !important;
+        vertical-align: top !important;
+    }
+    
+    .date-number {
+        font-size: 0.65rem !important;
+        margin-bottom: 0.15rem !important;
+        line-height: 1.2 !important;
+        font-weight: 700 !important;
+        color: #000 !important;
+        display: block !important;
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+        color-adjust: exact !important;
+    }
+    
+    .schedule-list {
+        gap: 0.1rem !important;
+        display: flex !important;
+        flex-direction: column !important;
+    }
+    
+    .schedule-item {
+        font-size: 0.5rem !important;
+        padding: 0.05rem 0.1rem !important;
+        line-height: 1.3 !important;
+        white-space: nowrap !important;
+        overflow: hidden !important;
+        text-overflow: ellipsis !important;
+        display: block !important;
+    }
+    
+    /* 상태별 색상 강제 적용 */
+    .schedule-item.attendance {
+        color: #000 !important;
+        background: transparent !important;
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+        color-adjust: exact !important;
+    }
+    
+    .schedule-item.absent {
+        color: #000 !important;
+        background: transparent !important;
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+        color-adjust: exact !important;
+    }
+    
+    .schedule-item.makeup {
+        color: #dc3545 !important;
+        background: transparent !important;
+        font-weight: 600 !important;
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+        color-adjust: exact !important;
+    }
+    
+    .schedule-item.supplement {
+        color: #9C27B0 !important;
+        background: transparent !important;
+        font-weight: 600 !important;
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+        color-adjust: exact !important;
+    }
+    
+    .schedule-item.external {
+        color: #007bff !important;
+        background: transparent !important;
+        font-weight: 500 !important;
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+        color-adjust: exact !important;
+    }
+    
+    /* 2단 학생 목록 인쇄 */
+    .view-student-list {
+        max-height: none !important;
+        overflow: visible !important;
+        font-size: 0.6rem !important;
+    }
+    
+    .view-student-list h3 {
+        display: none !important;
+    }
+    
+    /* 학년 헤더 */
+    .student-list-items > div[style*="font-weight: 700"] {
+        font-size: 0.65rem !important;
+        margin-top: 0.5rem !important;
+        margin-bottom: 0.25rem !important;
+        padding-bottom: 0.2rem !important;
+        border-bottom: 1px solid #ccc !important;
+        font-weight: 700 !important;
+        color: #000 !important;
+    }
+    
+    /* 학생 텍스트 아이템 인쇄 */
+    .student-text-item {
+        padding: 0.2rem 0 !important;
+        font-size: 0.6rem !important;
+        border-bottom: 1px solid #f5f5f5 !important;
+        page-break-inside: avoid !important;
+        line-height: 1.3 !important;
+        display: flex !important;
+        width: 100% !important;
+        max-width: 100% !important;
+        flex-direction: row !important;
+        flex-wrap: nowrap !important;
+        align-items: center !important;
+        gap: 0.3rem !important;
+    }
+    
+    .view-student-list .student-text-item {
+        display: flex !important;
+    }
+    
+    .student-text-item:last-child {
+        border-bottom: none !important;
+    }
+    
+    .student-text-name {
+        font-size: 0.6rem !important;
+        font-weight: 700 !important;
+        display: inline-block !important;
+        vertical-align: top !important;
+        color: #000 !important;
+        min-width: 40px !important;
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+        color-adjust: exact !important;
+    }
+    
+    .student-text-school {
+        font-size: 0.55rem !important;
+        color: #888 !important;
+        display: inline-block !important;
+        vertical-align: top !important;
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+        color-adjust: exact !important;
+    }
+    
+    .student-text-memo {
+        font-size: 0.55rem !important;
+        padding: 0.2rem 0.3rem !important;
+        border: 1px solid #ddd !important;
+        width: 100px !important;
+        min-width: 100px !important;
+        max-width: 100px !important;
+        height: auto !important;
+        min-height: 20px !important;
+        white-space: pre-wrap !important;
+        word-wrap: break-word !important;
+        overflow-wrap: break-word !important;
+        line-height: 1.3 !important;
+        display: inline-block !important;
+        vertical-align: top !important;
+        box-sizing: border-box !important;
+        flex: none !important;
+        flex-grow: 0 !important;
+        flex-shrink: 0 !important;
+        background: white !important;
+        border-radius: 3px !important;
+    }
+    
+    .view-student-list .student-text-memo {
+        width: 100px !important;
+        min-width: 100px !important;
+        max-width: 100px !important;
+        flex: none !important;
+    }
+    
+    /* 2단 하단 MEMO 인쇄 */
+    .view-memo-section {
+        page-break-inside: avoid !important;
+        padding: 0.4rem !important;
+        margin-top: 0.6rem !important;
+        border-top: 1px solid #ddd !important;
+        background: #fafafa !important;
+        border-radius: 3px !important;
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+        color-adjust: exact !important;
+    }
+    
+    /* MEMO 내용이 없으면 숨김 */
+    .view-memo-section.empty-memo {
+        display: none !important;
+    }
+    
+    .view-memo-section h4 {
+        font-size: 0.65rem !important;
+        margin-bottom: 0.3rem !important;
+        font-weight: 700 !important;
+        color: #000 !important;
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+        color-adjust: exact !important;
+    }
+    
+    .view-memo-section textarea {
+        min-height: 50px !important;
+        font-size: 0.55rem !important;
+        padding: 0.3rem !important;
+        border: 1px solid #ddd !important;
+        line-height: 1.4 !important;
+        border-radius: 3px !important;
+        background: white !important;
+        color: #000 !important;
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+        color-adjust: exact !important;
+    }
+    }
+    
+    /* 페이지 나누기 방지 */
+    .view-two-column-layout,
+    .view-column-left,
+    .view-column-right,
+    .monthly-calendar,
+    tbody {
+        page-break-inside: avoid !important;
+    }
+    
+    /* 배경색 인쇄 강제 */
+    * {
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
     }
 }
 
-// ============================================
-// 7. 출석 수정
-// ============================================
-async function editAttendance(recordId) {
-    console.log('출석 수정:', recordId);
-    
-    // 로그인 확인
-    if (!Auth.isLoggedIn()) {
-        alert('로그인이 필요합니다.');
-        return;
-    }
-    
-    // 기록 찾기
-    const record = todayAttendanceRecords.find(r => r.id === recordId);
-    if (!record) {
-        alert('출석 기록을 찾을 수 없습니다.');
-        return;
-    }
-    
-    // 수정할 값 입력받기
-    const newCheckIn = prompt('출석시간 (HH:MM)', record.check_in_time || '');
-    if (newCheckIn === null) return; // 취소
-    
-    const newCheckOut = prompt('퇴실시간 (HH:MM)', record.check_out_time || '');
-    if (newCheckOut === null) return; // 취소
-    
-    // 퇴실예정시간 재계산
-    const student = attendanceStudents.find(s => s.id === record.student_id);
-    const schedule = getStudentTodaySchedule(student);
-    const newExpectedOut = calculateExpectedTime(newCheckIn, schedule ? schedule.duration : 90);
-    
-    try {
-        await API.update('attendance', recordId, {
-            ...record,
-            check_in_time: newCheckIn,
-            check_out_time: newCheckOut,
-            expected_out_time: newExpectedOut
-        });
-        
-        console.log('출석 수정 성공');
-        alert('출석 정보가 수정되었습니다.');
-        
-        // 데이터 새로고침
-        await loadAttendanceData();
-        await renderMonthlyCalendar();
-        
-    } catch (error) {
-        console.error('출석 수정 실패:', error);
-        alert('출석 수정에 실패했습니다.');
-    }
+.filter-section {
+    background: white;
+    padding: 1.5rem;
+    border-radius: 8px;
+    margin-bottom: 2rem;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
-// ============================================
-// 8. 출석 삭제
-// ============================================
-
-
-// ============================================
-// 9. 유틸리티 함수
-// ============================================
-
-// 오늘 날짜 문자열 (YYYY-MM-DD)
-function getTodayDateString() {
-    const today = new Date();
-    return `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+.filter-row {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    flex-wrap: wrap;
 }
 
-// 선택된 날짜 문자열 가져오기
-function getSelectedDateString() {
-    const dateInput = document.getElementById('attendanceDateInput');
-    return dateInput ? dateInput.value : getTodayDateString();
+.filter-row label {
+    font-weight: 600;
+    color: #495057;
 }
 
-// 날짜 표시 업데이트 (YYYY-MM-DD (요일))
-function updateDateDisplay(dateString) {
-    const dateDisplay = document.getElementById('attendanceDateDisplay');
-    if (!dateDisplay) return;
-    
-    const date = new Date(dateString);
-    const dayNames = ['일', '월', '화', '수', '목', '금', '토'];
-    const dayName = dayNames[date.getDay()];
-    
-    dateDisplay.textContent = `${dateString} (${dayName})`;
+.table-container {
+    background: white;
+    padding: 1.5rem;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    overflow-x: auto;
 }
 
-// 학생의 선택된 날짜 스케줄 가져오기
-function getStudentTodaySchedule(student) {
-    if (!student || !student.schedule) return null;
-    
-    const selectedDate = getSelectedDateString();
-    const dateObj = new Date(selectedDate);
-    const dayKeys = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
-    const selectedDayKey = dayKeys[dateObj.getDay()];
-    
-    const scheduleForDay = student.schedule[selectedDayKey];
-    if (!scheduleForDay || !scheduleForDay.enabled) return null;
-    
-    return scheduleForDay;
+.data-table {
+    width: 100%;
+    border-collapse: collapse;
 }
 
-// 퇴실 예정 시간 계산
-function calculateExpectedTime(checkInTime, durationMinutes) {
-    if (!checkInTime) return '';
-    
-    const [hours, minutes] = checkInTime.split(':').map(Number);
-    const checkInDate = new Date();
-    checkInDate.setHours(hours, minutes, 0, 0);
-    
-    const expectedOutDate = new Date(checkInDate.getTime() + durationMinutes * 60000);
-    
-    return `${String(expectedOutDate.getHours()).padStart(2, '0')}:${String(expectedOutDate.getMinutes()).padStart(2, '0')}`;
+.data-table thead {
+    background: #f8f9fa;
 }
 
-// 등록 폼의 퇴실 예정 시간 계산
-function calculateExpectedOutTime() {
-    const checkInTime = document.getElementById('registerCheckInTime').value;
-    const studentId = document.getElementById('registerStudentSelect').value;
-    
-    if (!checkInTime || !studentId) {
-        document.getElementById('registerExpectedOutTime').value = '';
-        return;
-    }
-    
-    const student = attendanceStudents.find(s => s.id === studentId);
-    const schedule = getStudentTodaySchedule(student);
-    const duration = schedule ? schedule.duration : 90;
-    
-    const expectedTime = calculateExpectedTime(checkInTime, duration);
-    document.getElementById('registerExpectedOutTime').value = expectedTime;
+.data-table th {
+    padding: 1rem;
+    text-align: left;
+    font-weight: 600;
+    color: #495057;
+    border-bottom: 2px solid #dee2e6;
 }
 
-// ============================================
-// 월별 출결 현황 달력
-// ============================================
-
-// 월별 달력 렌더링
-async function renderMonthlyCalendar() {
-    const container = document.getElementById('monthlyCalendarContainer');
-    const title = document.getElementById('calendarMonthTitle');
-    
-    if (!container || !title) return;
-    
-    // 선택된 날짜의 연/월 사용 (출석현황에서 선택한 날짜 기준)
-    const selectedDate = getSelectedDateString();
-    const selectedDateObj = new Date(selectedDate);
-    const currentYear = selectedDateObj.getFullYear();
-    const currentMonth = selectedDateObj.getMonth();
-    
-    // 오늘 날짜
-    const today = new Date();
-    const todayDate = today.getDate();
-    
-    title.textContent = `${currentYear}년 ${currentMonth + 1}월`;
-    
-    // 해당 월의 출석 기록 로드 (출석체크 페이지)
-    await loadMonthAttendance(currentYear, currentMonth, 'check');
-    
-    // 달력 생성
-    const firstDay = new Date(currentYear, currentMonth, 1);
-    const lastDay = new Date(currentYear, currentMonth + 1, 0);
-    
-    // 월요일부터 시작하도록 조정
-    let startDayOfWeek = firstDay.getDay();
-    if (startDayOfWeek === 0) startDayOfWeek = 7;
-    startDayOfWeek -= 1;
-    
-    // 항상 월~금요일만 표시 (5열)
-    const maxDayOfWeek = 4; // 인덱스 0~4 (월~금)
-    
-    // 달력 테이블 생성
-    let calendarHTML = '<table class="monthly-calendar">';
-    
-    // 요일 헤더
-    calendarHTML += '<thead><tr>';
-    const dayNames = ['월', '화', '수', '목', '금'];
-    for (let i = 0; i <= maxDayOfWeek; i++) {
-        calendarHTML += `<th>${dayNames[i]}</th>`;
-    }
-    calendarHTML += '</tr></thead><tbody>';
-    
-    // 날짜 셀 생성
-    let currentDate = 1;
-    let finished = false;
-    
-    while (!finished) {
-        let rowHTML = '';
-        let hasContent = false; // 이 행에 실제 날짜가 있는지 확인
-        
-        for (let dayOfWeek = 0; dayOfWeek <= maxDayOfWeek; dayOfWeek++) {
-            if (currentDate > lastDay.getDate()) {
-                rowHTML += '<td class="empty-cell"></td>';
-                finished = true;
-                continue;
-            }
-            
-            // 실제 요일 확인 (0=일, 1=월, ..., 6=토)
-            let actualDate = new Date(currentYear, currentMonth, currentDate);
-            let actualDayOfWeek = actualDate.getDay();
-            
-            // 토요일(6) 또는 일요일(0)을 만나면 계속 건너뛰기
-            while ((actualDayOfWeek === 0 || actualDayOfWeek === 6) && currentDate <= lastDay.getDate()) {
-                currentDate++;
-                if (currentDate > lastDay.getDate()) break;
-                actualDate = new Date(currentYear, currentMonth, currentDate);
-                actualDayOfWeek = actualDate.getDay();
-            }
-            
-            if (currentDate > lastDay.getDate()) {
-                rowHTML += '<td class="empty-cell"></td>';
-                finished = true;
-                continue;
-            }
-            
-            if (currentDate === 1 && dayOfWeek < startDayOfWeek) {
-                // 첫 주의 빈 칸
-                rowHTML += '<td class="empty-cell"></td>';
-            } else {
-                hasContent = true; // 실제 날짜가 있음
-                const dateString = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}-${String(currentDate).padStart(2, '0')}`;
-                
-                // 오늘 날짜와 비교
-                const cellDateObj = new Date(currentYear, currentMonth, currentDate);
-                const todayObj = new Date();
-                todayObj.setHours(0, 0, 0, 0);
-                cellDateObj.setHours(0, 0, 0, 0);
-                
-                const isToday = cellDateObj.getTime() === todayObj.getTime();
-                
-                let cellClass = 'calendar-cell';
-                if (isToday) cellClass += ' today';
-                
-                // 상태가 확정된 출석이 있으면 언제든지 표시
-                const schedules = getSchedulesForDate(dateString);
-                
-                // 통계 계산
-                let attendanceCount = 0;
-                let makeupCount = 0;
-                let absenceCount = 0;
-                
-                schedules.forEach(schedule => {
-                    if (schedule.status === '출석') attendanceCount++;
-                    else if (schedule.status === '보강') makeupCount++;
-                    else if (schedule.status === '결석') absenceCount++;
-                });
-                
-                const statsText = schedules.length > 0 
-                    ? ` <span style="background-color: #fff3cd; padding: 1px 4px; border-radius: 2px; font-size: 0.85rem;">${attendanceCount}(${makeupCount})명 / ${absenceCount}명</span>` 
-                    : '';
-                
-                rowHTML += `<td class="${cellClass}">`;
-                rowHTML += `<div class="date-number">${currentDate}${statsText}</div>`;
-                
-                if (schedules.length > 0) {
-                    rowHTML += '<div class="schedule-list">';
-                    schedules.forEach(schedule => {
-                        rowHTML += renderScheduleItem(schedule);
-                    });
-                    rowHTML += '</div>';
-                }
-                
-                rowHTML += '</td>';
-                currentDate++;
-            }
-        }
-        
-        // 실제 날짜가 있는 행만 추가
-        if (hasContent) {
-            calendarHTML += '<tr>' + rowHTML + '</tr>';
-        }
-    }
-    
-    calendarHTML += '</tbody></table>';
-    container.innerHTML = calendarHTML;
-    
-    // 통계 표 렌더링
-    await renderAttendanceStats(currentYear, currentMonth);
+.data-table tbody tr {
+    border-bottom: 1px solid #e9ecef;
+    transition: background-color 0.2s;
 }
 
-// 해당 월의 출석 기록 로드
-async function loadMonthAttendance(year, month, pageType = 'check') {
-    try {
-        const response = await API.getList('attendance', { limit: 1000 });
-        let allAttendance = Array.isArray(response) ? response : (response.data || []);
-        
-        // 학생 목록 로드
-        const studentsResponse = await API.getList('students', { limit: 1000 });
-        let allStudentsData = Array.isArray(studentsResponse) ? studentsResponse : (studentsResponse.data || []);
-        
-        // ✅ 선생님인 경우 담당 학생만 필터링
-        allStudentsData = Permissions.filterStudentsByTeacher(allStudentsData);
-        console.log(`[loadMonthAttendance:${pageType}] 권한 필터링 후 학생 수:`, allStudentsData.length);
-        
-        // ✅ 관리자/부관리자인 경우 선택된 선생님으로 추가 필터링
-        if (Auth.isAdmin() || Auth.isSubAdmin()) {
-            // 페이지 타입에 따라 적절한 필터 변수 사용
-            const teacherFilter = pageType === 'view' ? currentAttendanceViewTeacherFilter : currentAttendanceTeacherFilter;
-            
-            if (teacherFilter !== 'all') {
-                allStudentsData = allStudentsData.filter(s => s.teacher_id === teacherFilter);
-                console.log(`[loadMonthAttendance:${pageType}] 선생님 필터링 후 학생 수:`, allStudentsData.length, '선생님 ID:', teacherFilter);
-            }
-        }
-        
-        const myStudentIds = allStudentsData.map(s => s.id);
-        
-        // 필터링된 학생들의 출석 기록만 표시
-        allAttendance = allAttendance.filter(record => myStudentIds.includes(record.student_id));
-        console.log(`[loadMonthAttendance:${pageType}] 필터링된 학생 출석 기록:`, allAttendance.length);
-        
-        // 해당 월의 데이터만 필터링
-        const monthStart = `${year}-${String(month + 1).padStart(2, '0')}-01`;
-        const monthEnd = `${year}-${String(month + 1).padStart(2, '0')}-31`;
-        
-        allMonthAttendance = allAttendance.filter(record => {
-            return record.date >= monthStart && record.date <= monthEnd;
-        });
-        
-        console.log(`[loadMonthAttendance:${pageType}] ${year}년 ${month + 1}월 출석 기록:`, allMonthAttendance.length);
-        
-    } catch (error) {
-        console.error('월별 출석 기록 로드 실패:', error);
-        allMonthAttendance = [];
-    }
+.data-table tbody tr:hover {
+    background-color: #f8f9fa;
 }
 
-// 특정 날짜의 스케줄 가져오기 (상태가 확정된 출석만, 입실시간 빠른순 정렬, 중복 제거)
-function getSchedulesForDate(dateString) {
-    const filtered = allMonthAttendance.filter(record => {
-        const hasDate = record.date === dateString;
-        const hasStatus = record.status && record.status !== '';
-        
-        // 날짜가 일치하고, 상태가 확정된 경우만 반환
-        return hasDate && hasStatus;
-    });
-    
-    // 중복 제거: 같은 student_id가 있으면 가장 최신(updated_at 또는 created_at 기준) 기록만 유지
-    const uniqueMap = new Map();
-    filtered.forEach(record => {
-        const key = record.student_id || record.student_name; // student_id가 없으면 이름으로 구분
-        const existing = uniqueMap.get(key);
-        
-        if (!existing) {
-            uniqueMap.set(key, record);
-        } else {
-            // 최신 기록 유지 (updated_at 또는 created_at 비교)
-            const existingTime = existing.updated_at || existing.created_at || 0;
-            const recordTime = record.updated_at || record.created_at || 0;
-            
-            if (recordTime > existingTime) {
-                uniqueMap.set(key, record);
-            }
-        }
-    });
-    
-    // Map에서 배열로 변환
-    const uniqueRecords = Array.from(uniqueMap.values());
-    
-    // 입실시간 빠른순 정렬
-    uniqueRecords.sort((a, b) => {
-        const timeA = a.check_in_time || '23:59';
-        const timeB = b.check_in_time || '23:59';
-        return timeA.localeCompare(timeB);
-    });
-    
-    if (uniqueRecords.length > 0) {
-        console.log(`[getSchedulesForDate] ${dateString} 결과: ${uniqueRecords.length}개 (중복 제거, 입실시간 빠른순)`);
-        uniqueRecords.forEach((record, index) => {
-            console.log(`  ${index + 1}. ${record.check_in_time} - ${record.student_name}, 상태: ${record.status}, 퇴실: ${record.check_out_time}`);
-        });
-    }
-    
-    return uniqueRecords;
+.data-table td {
+    padding: 1rem;
+    color: #495057;
 }
 
-// 스케줄 아이템 렌더링
-function renderScheduleItem(schedule) {
-    let itemClass = 'schedule-item';
-    let content = '';
-    
-    // 정보 없는 학생 (is_external) 플래그 확인
-    const isExternal = schedule.is_external === true || schedule.is_external === 1;
-    
-    if (schedule.status === '결석') {
-        // 결석: "이름, 결석(사유)" - 검정색 + 가로선
-        itemClass += ' absent';
-        const reason = schedule.absence_reason ? `(${schedule.absence_reason})` : '';
-        content = `${schedule.student_name} 결석${reason}`;
-    } else if (schedule.status === '보강') {
-        // 보강: "입실시간, 이름, 퇴실시간 (결석날짜)" - 빨간색
-        itemClass += ' makeup';
-        const makeupDateStr = schedule.makeup_date ? ` (${schedule.makeup_date.substring(5).replace('-', '/')})` : '';
-        content = `${schedule.check_in_time || '-'} ${schedule.student_name} ${schedule.check_out_time || '-'}${makeupDateStr}`;
-    } else {
-        // 출석: "입실시간, 이름, 퇴실시간" - 검정색 (또는 파란색)
-        itemClass += isExternal ? ' external' : ' attendance';
-        content = `${schedule.check_in_time || '-'} ${schedule.student_name} ${schedule.check_out_time || '-'}`;
+/* 반응형 디자인 */
+@media (max-width: 768px) {
+    .attendance-check-container {
+        padding: 1rem;
     }
     
-    return `<div class="${itemClass}">${content}</div>`;
-}
-
-// ============================================
-// 학년별 출석 통계 표
-// ============================================
-
-async function renderAttendanceStats(year, month) {
-    const container = document.getElementById('attendanceStatsContainer');
-    if (!container) return;
+    .attendance-input-section {
+        padding: 1.5rem 1rem;
+    }
     
-    try {
-        // 학생 목록 로드
-        const response = await API.getList('students', { limit: 1000 });
-        // API 응답이 배열이면 그대로, 객체면 data 속성 사용
-        let allStudents = Array.isArray(response) ? response : (response.data || []);
-        
-        // ✅ 선생님인 경우 담당 학생만 필터링 (teacher_id 기반)
-        allStudents = Permissions.filterStudentsByTeacher(allStudents);
-        console.log('[renderAttendanceStats] 권한 필터링 후 학생 수:', allStudents.length);
-        
-        // 관리자/부관리자인 경우 선택된 선생님으로 추가 필터링
-        if ((Auth.isAdmin() || Auth.isSubAdmin()) && currentAttendanceTeacherFilter !== 'all') {
-            allStudents = allStudents.filter(s => s.teacher_id === currentAttendanceTeacherFilter);
-            console.log('[renderAttendanceStats] 선생님 필터링 후 학생 수:', allStudents.length);
-        }
-        
-        // 재원생만 필터링 (항상 표시)
-        const activeStudents = allStudents.filter(student => student.status === '재원');
-        
-        // 해당 월의 출석 기록이 있는 학생 확인
-        let nonActiveWithAttendance = [];
-        try {
-            const startDate = new Date(year, month - 1, 1);
-            const endDate = new Date(year, month, 0);
-            const startDateStr = startDate.toISOString().split('T')[0];
-            const endDateStr = endDate.toISOString().split('T')[0];
-            
-            const attendanceRecords = await API.getList('attendance');
-            
-            // 날짜 필터링 (클라이언트 측)
-            const filteredRecords = (attendanceRecords.data || []).filter(record => 
-                record.date >= startDateStr && record.date <= endDateStr
-            );
-            
-            // 출석 기록이 있지만 재원생이 아닌 학생 찾기
-            const attendedStudentIds = new Set(filteredRecords.map(r => r.student_id));
-            nonActiveWithAttendance = allStudents.filter(student => 
-                student.status !== '재원' && attendedStudentIds.has(student.id)
-            );
-        } catch (err) {
-            console.warn('비재원생 출석자 조회 중 오류 (무시하고 계속):', err);
-        }
-        
-        // 학교 유형별로 분류 및 정렬
-        const elementary = activeStudents
-            .filter(s => s.school_type === '초')
-            .sort((a, b) => {
-                // 학년 오름차순
-                const gradeA = parseInt(a.grade) || 0;
-                const gradeB = parseInt(b.grade) || 0;
-                if (gradeA !== gradeB) return gradeA - gradeB;
-                // 학년이 같으면 이름 가나다순
-                return (a.name || '').localeCompare(b.name || '', 'ko');
-            });
-        
-        const middle = activeStudents
-            .filter(s => s.school_type === '중')
-            .sort((a, b) => {
-                const gradeA = parseInt(a.grade) || 0;
-                const gradeB = parseInt(b.grade) || 0;
-                if (gradeA !== gradeB) return gradeA - gradeB;
-                return (a.name || '').localeCompare(b.name || '', 'ko');
-            });
-        
-        let high = activeStudents
-            .filter(s => s.school_type === '고')
-            .sort((a, b) => {
-                const gradeA = parseInt(a.grade) || 0;
-                const gradeB = parseInt(b.grade) || 0;
-                if (gradeA !== gradeB) return gradeA - gradeB;
-                return (a.name || '').localeCompare(b.name || '', 'ko');
-            });
-        
-        // 재원생이 아닌 확정 스케줄 학생을 고등학생 배열 오른쪽에 추가
-        console.log('[renderAttendanceStats] 재원생 고등학생 수:', high.length);
-        console.log('[renderAttendanceStats] 비재원생 출석자 수:', nonActiveWithAttendance.length);
-        if (nonActiveWithAttendance.length > 0) {
-            console.log('[renderAttendanceStats] 비재원생 출석자:', nonActiveWithAttendance.map(s => `${s.name}(${s.status})`));
-        }
-        high = [...high, ...nonActiveWithAttendance];
-        console.log('[renderAttendanceStats] 통합 후 고등학생 수:', high.length);
-        
-        // 하나의 통합 표로 렌더링
-        const statsHTML = renderUnifiedStatsTable(elementary, middle, high, year, month);
-        
-        container.innerHTML = statsHTML;
-        
-    } catch (error) {
-        console.error('통계 표 렌더링 실패:', error);
-        container.innerHTML = '<p style="text-align: center; color: #f44336;">통계를 불러오는데 실패했습니다.</p>';
+    .input-group {
+        flex-direction: column;
+    }
+    
+    .attendance-number-input {
+        font-size: 1.2rem;
+        padding: 0.8rem;
+    }
+    
+    .attendance-table-section {
+        padding: 1rem;
+        overflow-x: auto;
+    }
+    
+    .table-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 1rem;
+    }
+    
+    .filter-row {
+        flex-direction: column;
+        align-items: stretch;
+    }
+    
+    .filter-row label {
+        margin-bottom: 0.5rem;
+    }
+    
+    .monthly-calendar-section {
+        padding: 1rem;
+    }
+    
+    .calendar-header {
+        gap: 1rem;
+    }
+    
+    .monthly-calendar tbody td {
+        height: 80px;
+        font-size: 0.7rem;
+    }
+    
+    .schedule-item {
+        font-size: 0.65rem;
+        padding: 0.1rem 0.2rem;
+    }
+    
+    .stats-table {
+        font-size: 0.85rem;
+    }
+    
+    .stats-table th,
+    .stats-table td {
+        padding: 0.5rem;
+    }
+    
+    .stats-table .student-name {
+        font-size: 0.9rem;
+    }
+    
+    .stats-table .student-info {
+        font-size: 0.75rem;
     }
 }
-
-// 학생이 해당 월에 활동했는지 확인
-function checkStudentActiveInMonth(student, year, month) {
-    if (!student.withdrawal_date) return false;
-    
-    const withdrawalDate = new Date(student.withdrawal_date);
-    const monthStart = new Date(year, month - 1, 1);
-    
-    // 퇴원/휴원 날짜가 해당 월 이후면 활동한 것으로 간주
-    return withdrawalDate >= monthStart;
-}
-
-// 통합 통계표 렌더링 (초등/중등/고등을 세로로 붙임)
-function renderUnifiedStatsTable(elementary, middle, high, year, month) {
-    const MAX_COLUMNS = 9; // 학생 열 개수 (라벨 제외)
-    
-    let html = '<div class="stats-scroll-container"><table class="stats-table">';
-    
-    // ===== 초등학생 섹션 (1-4행) =====
-    // 1행: 헤더 (초등학생 + 학생 이름) - 연노랑색 (더 파스텔)
-    html += '<thead><tr><th style="background-color: #fffef0; font-weight: 700;">초등학생</th>';
-    
-    for (let i = 0; i < MAX_COLUMNS; i++) {
-        if (i < elementary.length) {
-            const student = elementary[i];
-            const schoolName = student.school || '-';
-            const grade = student.grade || '-';
-            html += `<th style="background-color: #fffef0;">
-                <div class="student-name">${student.name}</div>
-                <div class="student-info">${schoolName} ${grade}</div>
-            </th>`;
-        } else {
-            html += '<th style="background-color: #fffef0;"></th>';
-        }
-    }
-    html += '</tr></thead><tbody>';
-    
-    // 초등학생 통계 계산
-    const elementaryStats = elementary.map(student => calculateStudentStats(student, year, month));
-    
-    // 2행: 출석(보강)/수업
-    html += '<tr><td class="row-label">출석(보강)/수업</td>';
-    for (let i = 0; i < MAX_COLUMNS; i++) {
-        if (i < elementaryStats.length) {
-            const attendance = elementaryStats[i].attendance;
-            const makeup = elementaryStats[i].makeup;
-            const expected = elementaryStats[i].expectedClasses;
-            html += `<td>${attendance}(${makeup})/${expected}</td>`;
-        } else {
-            html += '<td></td>';
-        }
-    }
-    html += '</tr>';
-    
-    // 3행: 보강예정
-    html += '<tr><td class="row-label">보강예정</td>';
-    for (let i = 0; i < MAX_COLUMNS; i++) {
-        if (i < elementaryStats.length) {
-            const attendance = elementaryStats[i].attendance;
-            const makeup = elementaryStats[i].makeup;
-            const expected = elementaryStats[i].expectedClasses;
-            const remaining = expected - attendance - makeup;
-            const color = remaining > 0 ? '#f44336' : '#000';
-            html += `<td style="color: ${color}; font-weight: ${remaining > 0 ? '600' : 'normal'};">${remaining}</td>`;
-        } else {
-            html += '<td></td>';
-        }
-    }
-    html += '</tr>';
-    
-    // ===== 중학생 섹션 (5-8행) =====
-    // 5행: 헤더 (중학생 + 학생 이름) - 연두색 (더 파스텔)
-    html += '<tr><th style="background-color: #f0faf4; font-weight: 700;">중학생</th>';
-    
-    for (let i = 0; i < MAX_COLUMNS; i++) {
-        if (i < middle.length) {
-            const student = middle[i];
-            const schoolName = student.school || '-';
-            const grade = student.grade || '-';
-            html += `<th style="background-color: #f0faf4;">
-                <div class="student-name">${student.name}</div>
-                <div class="student-info">${schoolName} ${grade}</div>
-            </th>`;
-        } else {
-            html += '<th style="background-color: #f0faf4;"></th>';
-        }
-    }
-    html += '</tr>';
-    
-    // 중학생 통계 계산
-    const middleStats = middle.map(student => calculateStudentStats(student, year, month));
-    
-    // 6행: 출석(보강)/수업
-    html += '<tr><td class="row-label">출석(보강)/수업</td>';
-    for (let i = 0; i < MAX_COLUMNS; i++) {
-        if (i < middleStats.length) {
-            const attendance = middleStats[i].attendance;
-            const makeup = middleStats[i].makeup;
-            const expected = middleStats[i].expectedClasses;
-            html += `<td>${attendance}(${makeup})/${expected}</td>`;
-        } else {
-            html += '<td></td>';
-        }
-    }
-    html += '</tr>';
-    
-    // 7행: 보강예정
-    html += '<tr><td class="row-label">보강예정</td>';
-    for (let i = 0; i < MAX_COLUMNS; i++) {
-        if (i < middleStats.length) {
-            const attendance = middleStats[i].attendance;
-            const makeup = middleStats[i].makeup;
-            const expected = middleStats[i].expectedClasses;
-            const remaining = expected - attendance - makeup;
-            const color = remaining > 0 ? '#f44336' : '#000';
-            html += `<td style="color: ${color}; font-weight: ${remaining > 0 ? '600' : 'normal'};">${remaining}</td>`;
-        } else {
-            html += '<td></td>';
-        }
-    }
-    html += '</tr>';
-    
-    // ===== 고등학생 섹션 (9-11행) =====
-    // 9행: 헤더 (고등학생 + 학생 이름) - 연하늘색 (더 파스텔)
-    html += '<tr><th style="background-color: #f0f8ff; font-weight: 700;">고등학생</th>';
-    
-    for (let i = 0; i < MAX_COLUMNS; i++) {
-        if (i < high.length) {
-            const student = high[i];
-            const schoolName = student.school || '-';
-            const grade = student.grade || '-';
-            html += `<th style="background-color: #f0f8ff;">
-                <div class="student-name">${student.name}</div>
-                <div class="student-info">${schoolName} ${grade}</div>
-            </th>`;
-        } else {
-            html += '<th style="background-color: #f0f8ff;"></th>';
-        }
-    }
-    html += '</tr>';
-    
-    // 고등학생 통계 계산
-    const highStats = high.map(student => calculateStudentStats(student, year, month));
-    
-    // 10행: 출석(보강)/수업
-    html += '<tr><td class="row-label">출석(보강)/수업</td>';
-    for (let i = 0; i < MAX_COLUMNS; i++) {
-        if (i < highStats.length) {
-            const attendance = highStats[i].attendance;
-            const makeup = highStats[i].makeup;
-            const expected = highStats[i].expectedClasses;
-            html += `<td>${attendance}(${makeup})/${expected}</td>`;
-        } else {
-            html += '<td></td>';
-        }
-    }
-    html += '</tr>';
-    
-    // 11행: 보강예정
-    html += '<tr><td class="row-label">보강예정</td>';
-    for (let i = 0; i < MAX_COLUMNS; i++) {
-        if (i < highStats.length) {
-            const attendance = highStats[i].attendance;
-            const makeup = highStats[i].makeup;
-            const expected = highStats[i].expectedClasses;
-            const remaining = expected - attendance - makeup;
-            const color = remaining > 0 ? '#f44336' : '#000';
-            html += `<td style="color: ${color}; font-weight: ${remaining > 0 ? '600' : 'normal'};">${remaining}</td>`;
-        } else {
-            html += '<td></td>';
-        }
-    }
-    html += '</tr>';
-    
-    html += '</tbody></table></div>'; // 스크롤 컨테이너 닫기
-    return html;
-}
-
-// 기존 renderStatsTable 함수 (출결조회 페이지용으로 유지)
-
-function renderStatsTable(students, year, month, gradeLabel = '') {
-    const MAX_COLUMNS = 9; // 학생 열 개수 (라벨 제외)
-    let html = '<div class="stats-scroll-container"><table class="stats-table">';
-    
-    // 1행: 학년 구분 + 학생 이름 + 학교/학년
-    html += '<thead><tr><th>' + gradeLabel + '</th>';
-    
-    for (let i = 0; i < MAX_COLUMNS; i++) {
-        if (i < students.length) {
-            const student = students[i];
-            const schoolName = student.school || '-';
-            const grade = student.grade || '-';
-            html += `<th>
-                <div class="student-name">${student.name}</div>
-                <div class="student-info">${schoolName} ${grade}</div>
-            </th>`;
-        } else {
-            html += '<th></th>';
-        }
-    }
-    html += '</tr></thead><tbody>';
-    
-    // 각 학생의 통계 계산
-    const stats = students.map(student => calculateStudentStats(student, year, month));
-    
-    // 2행: 수업 횟수 (주당 스케줄 * 4주)
-    html += '<tr><td class="row-label" style="text-align: center;">수업</td>';
-    for (let i = 0; i < MAX_COLUMNS; i++) {
-        if (i < stats.length) {
-            html += `<td style="text-align: center;">${stats[i].expectedClasses}</td>`;
-        } else {
-            html += '<td></td>';
-        }
-    }
-    html += '</tr>';
-    
-    // 3행: 출석(보강) 횟수
-    html += '<tr><td class="row-label" style="text-align: center;">출석(보강)</td>';
-    for (let i = 0; i < MAX_COLUMNS; i++) {
-        if (i < stats.length) {
-            const total = stats[i].attendance + stats[i].makeup;
-            html += `<td style="text-align: center;">${total}</td>`;
-        } else {
-            html += '<td></td>';
-        }
-    }
-    html += '</tr>';
-    
-    // 4행: 보강예정 (수업 - 출석(보강))
-    html += '<tr><td class="row-label" style="background-color: #f8f9fa !important; text-align: center;">보강예정</td>';
-    for (let i = 0; i < MAX_COLUMNS; i++) {
-        if (i < stats.length) {
-            const total = stats[i].attendance + stats[i].makeup;
-            const remaining = stats[i].expectedClasses - total;
-            const color = remaining > 0 ? '#f44336' : '#000';
-            const style = `background-color: white !important; text-align: center; color: ${color}; font-weight: ${remaining > 0 ? '600' : 'normal'};`;
-            html += `<td style="${style}">${remaining}</td>`;
-        } else {
-            html += '<td style="background-color: white !important;"></td>';
-        }
-    }
-    html += '</tr>';
-    
-    html += '</tbody></table></div>'; // 스크롤 컨테이너 닫기
-    return html;
-}
-
-function calculateStudentStats(student, year, month) {
-    // 해당 학생의 이번 달 출석 기록
-    const studentRecords = allMonthAttendance.filter(record => record.student_id === student.id);
-    
-    // 출석 횟수
-    const attendanceCount = studentRecords.filter(r => r.status === '출석').length;
-    
-    // 보강 횟수
-    const makeupCount = studentRecords.filter(r => r.status === '보강').length;
-    
-    // 수업 예정 횟수 계산 (주간 스케줄 기준)
-    const weeklyScheduleCount = countWeeklySchedule(student.schedule);
-    const weeksInMonth = 4; // 기본 4주
-    const expectedClasses = weeklyScheduleCount * weeksInMonth;
-    
-    return {
-        attendance: attendanceCount,
-        makeup: makeupCount,
-        expectedClasses: expectedClasses
-    };
-}
-
-function countWeeklySchedule(schedule) {
-    if (!schedule) return 0;
-    
-    // schedule이 문자열이면 파싱
-    let parsedSchedule = schedule;
-    if (typeof schedule === 'string' && schedule.trim() !== '') {
-        try {
-            parsedSchedule = JSON.parse(schedule);
-        } catch (e) {
-            console.error('스케줄 파싱 오류:', e);
-            return 0;
-        }
-    }
-    
-    if (!parsedSchedule || typeof parsedSchedule !== 'object') return 0;
-    
-    const dayKeys = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
-    let count = 0;
-    
-    dayKeys.forEach(key => {
-        if (parsedSchedule[key] && parsedSchedule[key].enabled === true) {
-            count++;
-        }
-    });
-    
-    return count;
-}
-
-// ============================================
-// 2행 등록 관련 함수
-// ============================================
-
-// 등록 행의 학생 선택 드롭다운 채우기
-async function renderStudentSelectForRegister() {
-    const select = document.getElementById('registerStudentSelect');
-    if (!select) return;
-    
-    try {
-        const result = await API.getList('students', { limit: 1000 });
-        const allStudents = result.data || result;
-        
-        // 재원생만 필터링
-        const activeStudents = allStudents.filter(s => s.status === '재원');
-        
-        // 이름순 정렬
-        activeStudents.sort((a, b) => (a.name || '').localeCompare(b.name || '', 'ko-KR'));
-        
-        // 옵션 추가
-        select.innerHTML = '<option value="">재원생 선택</option>';
-        
-        activeStudents.forEach(student => {
-            const option = document.createElement('option');
-            option.value = student.id;
-            option.textContent = `${student.name}${student.attendance_number ? ' (' + student.attendance_number + ')' : ''}`;
-            option.dataset.studentData = JSON.stringify(student);
-            select.appendChild(option);
-        });
-    } catch (error) {
-        console.error('재원생 로드 실패:', error);
-    }
-}
-
-// 등록 행 드롭다운 변경 핸들러
-function handleRegisterStudentChange() {
-    const select = document.getElementById('registerStudentSelect');
-    const manualInput = document.getElementById('registerManualName');
-    
-    if (select.value) {
-        // 드롭다운에서 선택하면 수동 입력 초기화
-        if (manualInput) manualInput.value = '';
-    }
-}
-
-// 신규 출석 등록
-async function registerNewAttendance() {
-    const studentSelect = document.getElementById('registerStudentSelect');
-    const manualInput = document.getElementById('registerManualName');
-    const checkInTime = document.getElementById('registerCheckInTime').value;
-    const checkOutTime = document.getElementById('registerCheckOutTime').value;
-    const status = document.getElementById('registerStatus').value;
-    const absenceReason = document.getElementById('registerAbsenceReason').value;
-    const makeupDate = document.getElementById('registerMakeupDateInput').value;
-    
-    let studentData = null;
-    
-    // 1. 드롭다운 확인
-    if (studentSelect.value) {
-        const selectedOption = studentSelect.options[studentSelect.selectedIndex];
-        studentData = JSON.parse(selectedOption.dataset.studentData);
-    } 
-    // 2. 수동 입력 확인
-    else if (manualInput && manualInput.value.trim()) {
-        const name = manualInput.value.trim();
-        
-        try {
-            const result = await API.getList('students', { limit: 1000 });
-            const allStudents = result.data || result;
-            const foundStudent = allStudents.find(s => s.name === name);
-            
-            if (foundStudent) {
-                studentData = foundStudent;
-                console.log(`[수동입력] ${foundStudent.name} (상태: ${foundStudent.status})`);
-            } else {
-                // 정보 없는 학생
-                studentData = {
-                    id: null,
-                    name: name,
-                    status: 'unknown'
-                };
-                console.log(`[수동입력] 정보 없는 학생: ${name}`);
-            }
-        } catch (error) {
-            console.error('학생 검색 실패:', error);
-            alert('학생 정보를 검색하는데 실패했습니다.');
-            return;
-        }
-    } else {
-        alert('학생을 선택하거나 이름을 입력해주세요.');
-        return;
-    }
-    
-    if (!checkInTime) {
-        alert('출석시간을 입력해주세요.');
-        return;
-    }
-    
-    // 출석 데이터 생성
-    const attendanceData = {
-        student_id: studentData.id,
-        student_name: studentData.name,
-        date: getSelectedDateString(),
-        check_in_time: checkInTime,
-        check_out_time: checkOutTime,
-        status: status || '출석',
-        absence_reason: absenceReason,
-        makeup_date: makeupDate
-    };
-    
-    // 퇴실 예정시간 자동 계산 (스케줄 기반)
-    if (studentData.id && studentData.schedule) {
-        let schedule = studentData.schedule;
-        if (typeof schedule === 'string' && schedule.trim() !== '') {
-            try {
-                schedule = JSON.parse(schedule);
-            } catch (e) {
-                schedule = {};
-            }
-        }
-        
-        const selectedDate = getSelectedDateString();
-        const dateObj = new Date(selectedDate);
-        const dayKeys = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
-        const selectedDayKey = dayKeys[dateObj.getDay()];
-        const daySchedule = schedule[selectedDayKey];
-        
-        if (daySchedule && daySchedule.duration) {
-            const duration = parseInt(daySchedule.duration) || 90;
-            const [hour, min] = checkInTime.split(':').map(Number);
-            const totalMinutes = hour * 60 + min + duration;
-            const outHour = Math.floor(totalMinutes / 60);
-            const outMin = totalMinutes % 60;
-            attendanceData.expected_out_time = `${String(outHour).padStart(2, '0')}:${String(outMin).padStart(2, '0')}`;
-        }
-    } else {
-        // 스케줄 없으면 기본 90분
-        const [hour, min] = checkInTime.split(':').map(Number);
-        const totalMinutes = hour * 60 + min + 90;
-        const outHour = Math.floor(totalMinutes / 60);
-        const outMin = totalMinutes % 60;
-        attendanceData.expected_out_time = `${String(outHour).padStart(2, '0')}:${String(outMin).padStart(2, '0')}`;
-    }
-    
-    try {
-        await API.create('attendance', attendanceData);
-        alert(`${studentData.name} 출석이 등록되었습니다.`);
-        
-        // 입력 필드 초기화
-        document.getElementById('registerStudentSelect').value = '';
-        if (manualInput) manualInput.value = '';
-        document.getElementById('registerCheckInTime').value = '';
-        document.getElementById('registerExpectedOutTime').value = '';
-        document.getElementById('registerCheckOutTime').value = '';
-        document.getElementById('registerStatus').value = '';
-        document.getElementById('registerAbsenceReason').value = '';
-        document.getElementById('registerMakeupDateInput').value = '';
-        
-        // 결석/보강 필드 숨기기
-        document.getElementById('registerAbsenceReason').style.display = 'none';
-        document.getElementById('registerMakeupDate').style.display = 'none';
-        
-        // 데이터 다시 로드
-        await loadAttendanceData();
-        await renderMonthlyCalendar();
-        
-    } catch (error) {
-        console.error('출석 등록 오류:', error);
-        alert('출석 등록에 실패했습니다.');
-    }
-}
-
-// ============================================
-// 출석 조회 페이지
-// ============================================
-let currentViewYear = new Date().getFullYear();
-let currentViewMonth = new Date().getMonth() + 1;
-
-async function showAttendanceViewPage() {
-    const mainContent = document.getElementById('mainContent');
-    if (!mainContent) return;
-
-    const today = new Date();
-    currentViewYear = today.getFullYear();
-    currentViewMonth = today.getMonth() + 1;
-
-    mainContent.innerHTML = `
-        <div class="attendance-view-container">
-            <div class="view-controls">
-                <div class="controls-right">
-                    ${Auth.isAdmin() || Auth.isSubAdmin() ? `
-                    <select id="attendanceViewTeacherFilterSelect" class="form-select" style="width: 200px; margin-right: 0.5rem;" onchange="filterAttendanceViewByTeacher()">
-                        <option value="all">전체 선생님</option>
-                    </select>
-                    ` : ''}
-                    <select id="viewMonthSelect" class="form-select" onchange="loadAttendanceViewData()">
-                        ${generateMonthDropdownOptions()}
-                    </select>
-                    
-                    <button onclick="loadAttendanceViewData()" class="btn-primary">조회</button>
-                    
-                    <div style="display: flex; flex-direction: column; align-items: flex-end; gap: 0.3rem; margin-left: 0.5rem;">
-                        <label style="display: flex; align-items: center; gap: 0.3rem; cursor: pointer; font-size: 0.85rem;">
-                            <input type="checkbox" id="printStatsCheckbox" checked style="cursor: pointer;" />
-                            <span>통계포함</span>
-                        </label>
-                        <button onclick="printAttendanceView()" class="btn-secondary">인쇄</button>
-                    </div>
-                </div>
-            </div>
-            
-            <!-- 월별 출결 현황 달력 -->
-            <div class="monthly-calendar-section">
-                <div class="calendar-header">
-                    <button onclick="changeViewMonthCalendar(-1)" class="btn-month-nav">◀</button>
-                    <h3 id="viewCalendarMonthTitle"></h3>
-                    <button onclick="changeViewMonthCalendar(1)" class="btn-month-nav">▶</button>
-                </div>
-                <div id="viewMonthlyCalendarContainer"></div>
-                
-                <!-- 학년별 통계 표 -->
-                <div id="viewAttendanceStatsContainer"></div>
-            </div>
-        </div>
-    `;
-
-    // 관리자/부관리자인 경우 선생님 목록 로드
-    if (Auth.isAdmin() || Auth.isSubAdmin()) {
-        await loadTeachersForAttendanceViewFilter();
-    }
-
-    // 초기 조회
-    await loadAttendanceViewData();
-}
-
-function generateMonthDropdownOptions() {
-    const today = new Date();
-    const currentYear = today.getFullYear();
-    const currentMonth = today.getMonth() + 1;
-    
-    let options = '';
-    
-    // 현재 월부터 과거 24개월까지
-    for (let i = 0; i < 24; i++) {
-        let year = currentYear;
-        let month = currentMonth - i;
-        
-        while (month <= 0) {
-            month += 12;
-            year--;
-        }
-        
-        const value = `${year}-${month}`;
-        const display = `${year}년 ${month}월`;
-        const selected = (year === currentYear && month === currentMonth) ? 'selected' : '';
-        
-        options += `<option value="${value}" ${selected}>${display}</option>`;
-    }
-    
-    return options;
-}
-
-function changeViewMonth(direction) {
-    currentViewMonth += direction;
-    
-    if (currentViewMonth < 1) {
-        currentViewMonth = 12;
-        currentViewYear--;
-    } else if (currentViewMonth > 12) {
-        currentViewMonth = 1;
-        currentViewYear++;
-    }
-    
-    // 드롭다운 업데이트
-    const select = document.getElementById('viewMonthSelect');
-    const value = `${currentViewYear}-${currentViewMonth}`;
-    select.value = value;
-    
-    loadAttendanceViewCalendar();
-}
-
-// 출결조회 페이지의 달력 월 변경
-function changeViewMonthCalendar(direction) {
-    currentViewMonth += direction;
-    
-    if (currentViewMonth < 1) {
-        currentViewMonth = 12;
-        currentViewYear--;
-    } else if (currentViewMonth > 12) {
-        currentViewMonth = 1;
-        currentViewYear++;
-    }
-    
-    // 드롭다운 업데이트
-    const select = document.getElementById('viewMonthSelect');
-    const value = `${currentViewYear}-${currentViewMonth}`;
-    select.value = value;
-    
-    loadAttendanceViewData();
-}
-
-// 출결조회 페이지 데이터 로드
-async function loadAttendanceViewData() {
-    const select = document.getElementById('viewMonthSelect');
-    const selectedValue = select.value;
-    const [year, month] = selectedValue.split('-').map(Number);
-    
-    currentViewYear = year;
-    currentViewMonth = month;
-    
-    const titleElement = document.getElementById('viewCalendarMonthTitle');
-    const calendarContainer = document.getElementById('viewMonthlyCalendarContainer');
-    const statsContainer = document.getElementById('viewAttendanceStatsContainer');
-    
-    if (!titleElement || !calendarContainer || !statsContainer) {
-        console.error('출결조회 컨테이너를 찾을 수 없습니다.');
-        return;
-    }
-    
-    titleElement.textContent = `${year}년 ${month}월`;
-    calendarContainer.innerHTML = '<p style="text-align: center;">로딩 중...</p>';
-    statsContainer.innerHTML = '';
-    
-    try {
-        // 해당 월의 출석 기록 로드 (출석조회 페이지)
-        await loadMonthAttendance(year, month - 1, 'view'); // month는 0-based
-        
-        // 달력 렌더링
-        renderViewMonthlyCalendar(year, month - 1);
-        
-        // 통계 렌더링
-        await renderViewAttendanceStats(year, month - 1);
-        
-    } catch (error) {
-        console.error('출결조회 로드 실패:', error);
-        calendarContainer.innerHTML = '<p style="text-align: center; color: red;">데이터 로드에 실패했습니다.</p>';
-    }
-}
-
-// 출결조회 페이지의 월별 달력 렌더링
-function renderViewMonthlyCalendar(year, month) {
-    const container = document.getElementById('viewMonthlyCalendarContainer');
-    if (!container) return;
-    
-    // 오늘 날짜
-    const today = new Date();
-    
-    // 달력 생성
-    const firstDay = new Date(year, month, 1);
-    const lastDay = new Date(year, month + 1, 0);
-    
-    // 월요일부터 시작하도록 조정
-    let startDayOfWeek = firstDay.getDay();
-    if (startDayOfWeek === 0) startDayOfWeek = 7;
-    startDayOfWeek -= 1;
-    
-    // 항상 월~금요일만 표시 (5열)
-    const maxDayOfWeek = 4; // 인덱스 0~4 (월~금)
-    
-    // 달력 테이블 생성
-    let calendarHTML = '<table class="monthly-calendar">';
-    
-    // 요일 헤더
-    calendarHTML += '<thead><tr>';
-    const dayNames = ['월', '화', '수', '목', '금'];
-    for (let i = 0; i <= maxDayOfWeek; i++) {
-        calendarHTML += `<th>${dayNames[i]}</th>`;
-    }
-    calendarHTML += '</tr></thead><tbody>';
-    
-    // 날짜 셀 생성
-    let currentDate = 1;
-    let finished = false;
-    
-    while (!finished) {
-        let rowHTML = '';
-        let hasContent = false; // 이 행에 실제 날짜가 있는지 확인
-        
-        for (let dayOfWeek = 0; dayOfWeek <= maxDayOfWeek; dayOfWeek++) {
-            if (currentDate > lastDay.getDate()) {
-                rowHTML += '<td class="empty-cell"></td>';
-                finished = true;
-                continue;
-            }
-            
-            // 실제 요일 확인 (0=일, 1=월, ..., 6=토)
-            let actualDate = new Date(year, month, currentDate);
-            let actualDayOfWeek = actualDate.getDay();
-            
-            // 토요일(6) 또는 일요일(0)을 만나면 계속 건너뛰기
-            while ((actualDayOfWeek === 0 || actualDayOfWeek === 6) && currentDate <= lastDay.getDate()) {
-                currentDate++;
-                if (currentDate > lastDay.getDate()) break;
-                actualDate = new Date(year, month, currentDate);
-                actualDayOfWeek = actualDate.getDay();
-            }
-            
-            if (currentDate > lastDay.getDate()) {
-                rowHTML += '<td class="empty-cell"></td>';
-                finished = true;
-                continue;
-            }
-            
-            if (currentDate === 1 && dayOfWeek < startDayOfWeek) {
-                // 첫 주의 빈 칸
-                rowHTML += '<td class="empty-cell"></td>';
-            } else {
-                hasContent = true; // 실제 날짜가 있음
-                const dateString = `${year}-${String(month + 1).padStart(2, '0')}-${String(currentDate).padStart(2, '0')}`;
-                
-                // 오늘 날짜와 비교
-                const cellDateObj = new Date(year, month, currentDate);
-                const todayObj = new Date();
-                todayObj.setHours(0, 0, 0, 0);
-                cellDateObj.setHours(0, 0, 0, 0);
-                
-                const isToday = cellDateObj.getTime() === todayObj.getTime();
-                
-                let cellClass = 'calendar-cell';
-                if (isToday) cellClass += ' today';
-                
-                rowHTML += `<td class="${cellClass}">`;
-                rowHTML += `<div class="date-number">${currentDate}</div>`;
-                
-                // 상태가 확정된 출석이 있으면 언제든지 표시
-                const schedules = getSchedulesForDate(dateString);
-                if (schedules.length > 0) {
-                    rowHTML += '<div class="schedule-list">';
-                    schedules.forEach(schedule => {
-                        rowHTML += renderScheduleItem(schedule);
-                    });
-                    rowHTML += '</div>';
-                }
-                
-                rowHTML += '</td>';
-                currentDate++;
-            }
-        }
-        
-        // 실제 날짜가 있는 행만 추가
-        if (hasContent) {
-            calendarHTML += '<tr>' + rowHTML + '</tr>';
-        }
-    }
-    
-    calendarHTML += '</tbody></table>';
-    container.innerHTML = calendarHTML;
-}
-
-// 출결조회 페이지의 통계 렌더링
-async function renderViewAttendanceStats(year, month) {
-    const container = document.getElementById('viewAttendanceStatsContainer');
-    if (!container) return;
-    
-    try {
-        // 학생 목록 로드
-        const response = await API.getList('students', { limit: 1000 });
-        // API 응답이 배열이면 그대로, 객체면 data 속성 사용
-        let allStudents = Array.isArray(response) ? response : (response.data || []);
-        
-        // ✅ 선생님인 경우 담당 학생만 필터링 (teacher_id 기반)
-        allStudents = Permissions.filterStudentsByTeacher(allStudents);
-        console.log('[renderViewAttendanceStats] 권한 필터링 후 학생 수:', allStudents.length);
-        
-        // 관리자/부관리자인 경우 선택된 선생님으로 추가 필터링
-        if ((Auth.isAdmin() || Auth.isSubAdmin()) && currentAttendanceViewTeacherFilter !== 'all') {
-            allStudents = allStudents.filter(s => s.teacher_id === currentAttendanceViewTeacherFilter);
-            console.log('[renderViewAttendanceStats] 선생님 필터링 후 학생 수:', allStudents.length);
-        }
-        
-        // 재원생만 필터링
-        const activeStudents = allStudents.filter(student => student.status === '재원');
-        
-        // 해당 월의 출석 기록이 있는 학생 확인
-        let nonActiveWithAttendance = [];
-        try {
-            const startDate = new Date(year, month, 1);
-            const endDate = new Date(year, month + 1, 0);
-            const startDateStr = startDate.toISOString().split('T')[0];
-            const endDateStr = endDate.toISOString().split('T')[0];
-            
-            const attendanceRecords = await API.getList('attendance');
-            
-            // 날짜 필터링 (클라이언트 측)
-            const filteredRecords = (attendanceRecords.data || []).filter(record => 
-                record.date >= startDateStr && record.date <= endDateStr
-            );
-            
-            // 출석 기록이 있지만 재원생이 아닌 학생 찾기
-            const attendedStudentIds = new Set(filteredRecords.map(r => r.student_id));
-            nonActiveWithAttendance = allStudents.filter(student => 
-                student.status !== '재원' && attendedStudentIds.has(student.id)
-            );
-        } catch (err) {
-            console.warn('비재원생 출석자 조회 중 오류 (무시하고 계속):', err);
-        }
-        
-        // 학교 유형별로 분류 및 정렬
-        const elementary = activeStudents
-            .filter(s => s.school_type === '초')
-            .sort((a, b) => {
-                const gradeA = parseInt(a.grade) || 0;
-                const gradeB = parseInt(b.grade) || 0;
-                if (gradeA !== gradeB) return gradeA - gradeB;
-                return (a.name || '').localeCompare(b.name || '', 'ko');
-            });
-        
-        const middle = activeStudents
-            .filter(s => s.school_type === '중')
-            .sort((a, b) => {
-                const gradeA = parseInt(a.grade) || 0;
-                const gradeB = parseInt(b.grade) || 0;
-                if (gradeA !== gradeB) return gradeA - gradeB;
-                return (a.name || '').localeCompare(b.name || '', 'ko');
-            });
-        
-        let high = activeStudents
-            .filter(s => s.school_type === '고')
-            .sort((a, b) => {
-                const gradeA = parseInt(a.grade) || 0;
-                const gradeB = parseInt(b.grade) || 0;
-                if (gradeA !== gradeB) return gradeA - gradeB;
-                return (a.name || '').localeCompare(b.name || '', 'ko');
-            });
-        
-        // 재원생이 아닌 확정 스케줄 학생을 고등학생 배열 오른쪽에 추가
-        console.log('[renderAttendanceStats] 재원생 고등학생 수:', high.length);
-        console.log('[renderAttendanceStats] 비재원생 출석자 수:', nonActiveWithAttendance.length);
-        if (nonActiveWithAttendance.length > 0) {
-            console.log('[renderAttendanceStats] 비재원생 출석자:', nonActiveWithAttendance.map(s => `${s.name}(${s.status})`));
-        }
-        high = [...high, ...nonActiveWithAttendance];
-        console.log('[renderAttendanceStats] 통합 후 고등학생 수:', high.length);
-        
-        // 하나의 통합 표로 렌더링
-        const statsHTML = renderUnifiedStatsTable(elementary, middle, high, year, month + 1);
-        
-        container.innerHTML = statsHTML;
-        
-    } catch (error) {
-        console.error('통계 렌더링 실패:', error);
-        container.innerHTML = '<p style="color: red;">통계 로드에 실패했습니다.</p>';
-    }
-}
-
-async function loadAttendanceViewCalendar() {
-    const select = document.getElementById('viewMonthSelect');
-    const selectedValue = select.value;
-    const [year, month] = selectedValue.split('-').map(Number);
-    
-    currentViewYear = year;
-    currentViewMonth = month;
-    
-    const studentId = document.getElementById('viewStudentFilter').value;
-    
-    const container = document.getElementById('viewCalendarContainer');
-    const title = document.getElementById('viewCalendarTitle');
-    
-    container.innerHTML = '<p style="text-align: center;">로딩 중...</p>';
-    title.textContent = `${year}년 ${month}월`;
-    
-    try {
-        // 해당 월의 출석 기록 로드
-        const response = await API.getList('attendance', { limit: 1000 });
-        let allAttendance = Array.isArray(response) ? response : (response.data || []);
-        
-        // 해당 월 필터링
-        const monthStart = `${year}-${String(month).padStart(2, '0')}-01`;
-        const lastDay = new Date(year, month, 0).getDate();
-        const monthEnd = `${year}-${String(month).padStart(2, '0')}-${lastDay}`;
-        
-        let filteredAttendance = allAttendance.filter(record => {
-            return record.date >= monthStart && record.date <= monthEnd;
-        });
-        
-        // 학생 필터링
-        if (studentId) {
-            filteredAttendance = filteredAttendance.filter(record => record.student_id === studentId);
-        }
-        
-        // 달력 렌더링 (출석 기록이 없어도 표시)
-        renderViewCalendar(year, month, filteredAttendance);
-        
-    } catch (error) {
-        console.error('출석 조회 실패:', error);
-        // 오류가 발생해도 빈 달력은 표시
-        renderViewCalendar(year, month, []);
-    }
-}
-
-function printAttendanceView() {
-    // 체크박스 상태 확인
-    const printStatsCheckbox = document.getElementById('printStatsCheckbox');
-    const includeStats = printStatsCheckbox ? printStatsCheckbox.checked : true;
-    
-    // 통계표 숨김 클래스 추가/제거
-    if (!includeStats) {
-        document.body.classList.add('hide-stats-print');
-    } else {
-        document.body.classList.remove('hide-stats-print');
-    }
-    
-    // 색상 인쇄 설정 안내 (한 번만 표시)
-    const hasSeenPrintGuide = localStorage.getItem('printColorGuideShown');
-    if (!hasSeenPrintGuide) {
-        const userConfirm = confirm(
-            '📌 색상 인쇄 설정 안내\n\n' +
-            '화면에 보이는 색상을 인쇄하려면 브라우저 설정이 필요합니다:\n\n' +
-            '✅ Chrome/Edge:\n' +
-            '   인쇄 미리보기 → "기타 설정" → "배경 그래픽" 체크\n\n' +
-            '✅ Safari:\n' +
-            '   인쇄 미리보기 → 하단 "Safari" → "배경 프린트" 체크\n\n' +
-            '✅ Firefox:\n' +
-            '   인쇄 미리보기 → "기타 설정" → "배경 인쇄" 체크\n\n' +
-            '이 메시지를 다시 보지 않으시겠습니까?\n(확인 = 다시 보지 않음 / 취소 = 다음에도 표시)'
-        );
-        
-        if (userConfirm) {
-            localStorage.setItem('printColorGuideShown', 'true');
-        }
-    }
-    
-    // 인쇄 실행
-    window.print();
-    
-    // 인쇄 후 클래스 제거
-    setTimeout(() => {
-        document.body.classList.remove('hide-stats-print');
-    }, 100);
-}
-
-function renderViewCalendar(year, month, attendanceRecords) {
-    const container = document.getElementById('viewCalendarContainer');
-    
-    const firstDay = new Date(year, month - 1, 1);
-    const lastDay = new Date(year, month, 0);
-    
-    // 월요일부터 시작하도록 조정
-    let startDayOfWeek = firstDay.getDay();
-    if (startDayOfWeek === 0) startDayOfWeek = 7;
-    startDayOfWeek -= 1;
-    
-    // 토요일 출석이 있는지 확인
-    const hasSaturday = attendanceRecords.some(record => {
-        const recordDate = new Date(record.date);
-        return recordDate.getDay() === 6;
-    });
-    
-    const maxDayOfWeek = hasSaturday ? 6 : 5;
-    
-    let html = `
-        <div class="calendar-view-section">
-            <table class="monthly-calendar">
-                <thead><tr>
-    `;
-    
-    const dayNames = ['월', '화', '수', '목', '금', '토'];
-    for (let i = 0; i <= maxDayOfWeek; i++) {
-        html += `<th>${dayNames[i]}</th>`;
-    }
-    html += '</tr></thead><tbody>';
-    
-    let currentDate = 1;
-    let finished = false;
-    
-    while (!finished) {
-        html += '<tr>';
-        
-        for (let dayOfWeek = 0; dayOfWeek <= maxDayOfWeek; dayOfWeek++) {
-            if ((currentDate === 1 && dayOfWeek < startDayOfWeek) || currentDate > lastDay.getDate()) {
-                html += '<td class="empty-cell"></td>';
-                if (currentDate > lastDay.getDate()) finished = true;
-            } else {
-                const dateString = `${year}-${String(month).padStart(2, '0')}-${String(currentDate).padStart(2, '0')}`;
-                const schedules = attendanceRecords.filter(r => r.date === dateString);
-                
-                html += `<td class="calendar-cell">`;
-                html += `<div class="date-number">${currentDate}</div>`;
-                
-                if (schedules.length > 0) {
-                    html += '<div class="schedule-list">';
-                    schedules.forEach(schedule => {
-                        html += renderScheduleItem(schedule);
-                    });
-                    html += '</div>';
-                }
-                
-                html += '</td>';
-                currentDate++;
-            }
-        }
-        
-        html += '</tr>';
-    }
-    
-    html += '</tbody></table></div>';
-    container.innerHTML = html;
-}
-
-// ========================================
-// 담당선생님 필터링 함수들 (출석관리/출석조회)
-// ========================================
-
-// 출석관리 페이지: 선생님 목록 로드 및 드롭다운 구성
-async function loadTeachersForAttendanceFilter() {
-    try {
-        console.log('[loadTeachersForAttendanceFilter] 선생님 목록 로드 시작');
-        
-        const result = await API.getList('teachers', { limit: 1000 });
-        const teachers = Array.isArray(result) ? result : (result.data || []);
-        
-        console.log('[loadTeachersForAttendanceFilter] 전체 선생님:', teachers.length, '명');
-        
-        // 선생님 데이터 상세 출력
-        if (teachers.length > 0) {
-            console.log('[loadTeachersForAttendanceFilter] 첫 번째 선생님 샘플:', teachers[0]);
-            console.log('[loadTeachersForAttendanceFilter] 모든 선생님 정보:');
-            teachers.forEach(t => {
-                console.log(`  - ${t.name}: role=${t.role}, status=${t.status}`);
-            });
-        } else {
-            console.warn('[loadTeachersForAttendanceFilter] ⚠️ teachers 데이터가 비어있습니다!');
-        }
-        
-        // 선생님 필터링: role이 있으면서 퇴사하지 않은 모든 선생님 포함
-        const activeTeachers = teachers.filter(t => {
-            // role이 있는 선생님만 포함 (한글: 관리자/부관리자/선생님, 영어: admin/sub-admin/teacher)
-            const hasRole = t.role && (
-                t.role === '관리자' || t.role === 'admin' || 
-                t.role === '부관리자' || t.role === 'sub-admin' || 
-                t.role === '선생님' || t.role === 'teacher'
-            );
-            // status가 '퇴사'가 아닌 경우 (status가 없거나, '재직', '활동중', '근무중' 등)
-            const notResigned = !t.status || (t.status !== '퇴사' && t.status !== '퇴직');
-            return hasRole && notResigned;
-        });
-        
-        console.log('[loadTeachersForAttendanceFilter] 필터링된 선생님:', activeTeachers.length, '명');
-        
-        // 재직 중인 선생님 목록 출력
-        if (activeTeachers.length > 0) {
-            console.log('[loadTeachersForAttendanceFilter] 재직 중인 선생님 목록:');
-            activeTeachers.forEach(t => {
-                console.log(`  ✓ ${t.name} (role: ${t.role}, status: ${t.status || '없음'})`);
-            });
-        } else {
-            console.error('[loadTeachersForAttendanceFilter] ⚠️ 필터링 후 선생님이 0명입니다!');
-            console.error('[loadTeachersForAttendanceFilter] 필터 조건: role이 있고, status가 퇴사/퇴직이 아닌 선생님');
-        }
-        
-        // 역할별로 그룹화 (한글/영어 모두 지원)
-        const admins = activeTeachers.filter(t => t.role === '관리자' || t.role === 'admin');
-        const subAdmins = activeTeachers.filter(t => t.role === '부관리자' || t.role === 'sub-admin');
-        const regularTeachers = activeTeachers.filter(t => t.role === '선생님' || t.role === 'teacher');
-        
-        console.log('[loadTeachersForAttendanceFilter] 관리자:', admins.length, '명, 부관리자:', subAdmins.length, '명, 선생님:', regularTeachers.length, '명');
-        
-        // 드롭다운 구성
-        let select = document.getElementById('attendanceTeacherFilterSelect');
-        
-        // 드롭다운이 없으면 최대 3초 동안 재시도
-        if (!select) {
-            console.log('[loadTeachersForAttendanceFilter] 드롭다운 대기 중...');
-            for (let i = 0; i < 30; i++) {
-                await new Promise(resolve => setTimeout(resolve, 100));
-                select = document.getElementById('attendanceTeacherFilterSelect');
-                if (select) {
-                    console.log(`[loadTeachersForAttendanceFilter] ✓ 드롭다운 발견 (${i * 100}ms 후)`);
-                    break;
-                }
-            }
-        }
-        
-        if (!select) {
-            console.error('[loadTeachersForAttendanceFilter] ❌ 드롭다운을 찾을 수 없습니다! (3초 대기 후)');
-            console.error('[loadTeachersForAttendanceFilter] attendance-check-container 존재:', !!document.querySelector('.attendance-check-container'));
-            console.error('[loadTeachersForAttendanceFilter] 관리자 여부:', Auth.isAdmin(), '부관리자 여부:', Auth.isSubAdmin());
-            return;
-        }
-        
-        console.log('[loadTeachersForAttendanceFilter] ✓ 드롭다운 요소 발견');
-        
-        let options = '<option value="all">전체 선생님</option>';
-        
-        // 모든 선생님을 그룹 없이 나열 (관리자, 부관리자, 선생님 순서)
-        [...admins, ...subAdmins, ...regularTeachers].forEach(t => {
-            options += `<option value="${t.id}">${t.name}</option>`;
-        });
-        
-        select.innerHTML = options;
-        console.log('[loadTeachersForAttendanceFilter] ✓ 드롭다운 구성 완료');
-        console.log('[loadTeachersForAttendanceFilter] 추가된 옵션 수:', select.options.length, '개');
-    } catch (error) {
-        console.error('[loadTeachersForAttendanceFilter] 선생님 목록 로드 실패:', error);
-    }
-}
-
-// 출석관리 페이지: 선생님 필터 변경 핸들러 (전역 노출)
-window.filterAttendanceByTeacher = function() {
-    const select = document.getElementById('attendanceTeacherFilterSelect');
-    if (!select) {
-        console.error('[filterAttendanceByTeacher] 드롭다운을 찾을 수 없습니다.');
-        return;
-    }
-    
-    currentAttendanceTeacherFilter = select.value;
-    console.log('[filterAttendanceByTeacher] 선택된 선생님 ID:', currentAttendanceTeacherFilter);
-    
-    // 출석 데이터 재로드
-    loadAttendanceData();
-    renderMonthlyCalendar();
-}
-
-// 출석조회 페이지: 선생님 목록 로드 및 드롭다운 구성
-async function loadTeachersForAttendanceViewFilter() {
-    try {
-        const result = await API.getList('teachers', { limit: 1000 });
-        const teachers = Array.isArray(result) ? result : (result.data || []);
-        
-        // 재직중인 선생님만 필터링 (퇴사/퇴직 제외)
-        const activeTeachers = teachers.filter(t => {
-            const status = (t.status || '').trim();
-            return status !== '퇴사' && status !== '퇴직';
-        });
-        
-        // 역할별로 그룹화 (한글/영어 모두 지원)
-        const admins = activeTeachers.filter(t => t.role === '관리자' || t.role === 'admin');
-        const subAdmins = activeTeachers.filter(t => t.role === '부관리자' || t.role === 'sub-admin');
-        const regularTeachers = activeTeachers.filter(t => t.role === '선생님' || t.role === 'teacher');
-        
-        // 드롭다운 구성
-        const select = document.getElementById('attendanceViewTeacherFilterSelect');
-        if (!select) return;
-        
-        let options = '<option value="all">전체 선생님</option>';
-        
-        // 모든 선생님을 그룹 없이 나열 (관리자, 부관리자, 선생님 순서)
-        [...admins, ...subAdmins, ...regularTeachers].forEach(t => {
-            options += `<option value="${t.id}">${t.name}</option>`;
-        });
-        
-        select.innerHTML = options;
-    } catch (error) {
-        console.error('[loadTeachersForAttendanceViewFilter] 선생님 목록 로드 실패:', error);
-    }
-}
-
-// 출석조회 페이지: 선생님 필터 변경 핸들러
-function filterAttendanceViewByTeacher() {
-    const select = document.getElementById('attendanceViewTeacherFilterSelect');
-    if (!select) return;
-    
-    currentAttendanceViewTeacherFilter = select.value;
-    console.log('[filterAttendanceViewByTeacher] 선택된 선생님 ID:', currentAttendanceViewTeacherFilter);
-    
-    // 출석조회 데이터 재로드
-    loadAttendanceViewData();
-}
+/* ============================================
+   두 번째 @media print 블록 삭제됨
+   첫 번째 블록(55% 배율)만 사용
+   ============================================ */
