@@ -1109,14 +1109,15 @@ input[type="date"] {
         page-break-inside: avoid;
         max-height: none;
         overflow: visible;
+        width: 100% !important;
     }
     
     .view-column-left {
-        flex: 0 0 75%;
+        flex: 0 0 77%;
     }
     
     .view-column-right {
-        flex: 0 0 23%;
+        flex: 0 0 21%;
         padding-top: 1.8rem;
     }
     
