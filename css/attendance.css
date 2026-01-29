@@ -1208,10 +1208,12 @@ input[type="date"] {
     /* 학년 구분자 크기 조정 */
     .grade-header-text,
     .grade-header-row td,
-    .grade-header-row td div {
-        font-size: 0.44rem !important;
-        font-weight: 700 !important;
+    .grade-header-row td div,
+    tr.grade-header-row td div.grade-header-text {
+        font-size: 0.48rem !important;
+        font-weight: 600 !important;
         color: #8B4513 !important;
+        line-height: 1.2 !important;
     }
     
     .student-text-item {
