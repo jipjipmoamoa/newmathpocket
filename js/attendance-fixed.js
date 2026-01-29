@@ -14,6 +14,9 @@ let currentAttendanceViewTeacherFilter = 'all';
 let highlightedStudentName = null;
 // 출석조회 페이지에서 클릭한 학생 (형광펜 표시용)
 let highlightedViewStudentName = null;
+// 출석체크 페이지 달력의 현재 연월
+let currentCheckPageYear = new Date().getFullYear();
+let currentCheckPageMonth = new Date().getMonth();
 
 // ============================================
 // 헬퍼 함수: 시간을 분 단위로 변환
@@ -125,7 +128,9 @@ async function showAttendanceCheckPage() {
             <div class="monthly-calendar-section">
                 <h2>월별 출결 현황</h2>
                 <div class="calendar-header">
+                    <button onclick="changeCheckPageMonth(-1)" class="btn-month-nav">◀</button>
                     <h3 id="calendarMonthTitle"></h3>
+                    <button onclick="changeCheckPageMonth(1)" class="btn-month-nav">▶</button>
                 </div>
                 <div id="monthlyCalendarContainer"></div>
                 
@@ -147,6 +152,11 @@ async function showAttendanceCheckPage() {
         dateInput.value = getTodayDateString();
         updateDateDisplay(getTodayDateString());
     }
+
+    // 출석체크 페이지 달력의 초기 연월 설정 (오늘 날짜 기준)
+    const today = new Date();
+    currentCheckPageYear = today.getFullYear();
+    currentCheckPageMonth = today.getMonth();
 
     // 데이터 로드
     await loadAttendanceData();
@@ -1869,11 +1879,9 @@ async function renderMonthlyCalendar() {
     
     if (!container || !title) return;
     
-    // 선택된 날짜의 연/월 사용 (출석현황에서 선택한 날짜 기준)
-    const selectedDate = getSelectedDateString();
-    const selectedDateObj = new Date(selectedDate);
-    const currentYear = selectedDateObj.getFullYear();
-    const currentMonth = selectedDateObj.getMonth();
+    // 현재 달력의 연/월 사용 (전역 변수 기준)
+    const currentYear = currentCheckPageYear;
+    const currentMonth = currentCheckPageMonth;
     
     // 오늘 날짜
     const today = new Date();
@@ -2043,6 +2051,22 @@ async function loadMonthAttendance(year, month, pageType = 'check') {
         console.error('월별 출석 기록 로드 실패:', error);
         allMonthAttendance = [];
     }
+}
+
+// 출석체크 페이지 달력 월 변경 함수
+async function changeCheckPageMonth(direction) {
+    currentCheckPageMonth += direction;
+    
+    if (currentCheckPageMonth < 0) {
+        currentCheckPageMonth = 11;
+        currentCheckPageYear--;
+    } else if (currentCheckPageMonth > 11) {
+        currentCheckPageMonth = 0;
+        currentCheckPageYear++;
+    }
+    
+    // 달력 다시 렌더링
+    await renderMonthlyCalendar();
 }
 
 // 특정 날짜의 스케줄 가져오기 (상태가 확정된 출석만, 입실시간 빠른순 정렬, 모든 기록 표시)
@@ -3781,3 +3805,8 @@ function filterAttendanceViewByTeacher() {
     // 출석조회 데이터 재로드
     loadAttendanceViewData();
 }
+
+// ========================================
+// 전역 함수 노출
+// ========================================
+window.changeCheckPageMonth = changeCheckPageMonth;
