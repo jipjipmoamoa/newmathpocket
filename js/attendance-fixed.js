@@ -3247,6 +3247,8 @@ async function renderViewStudentList() {
             students.forEach(student => {
                 const schoolName = student.school || '-';
                 const shortSchoolName = schoolName.length > 1 ? schoolName.slice(0, -1) : schoolName;
+                const memoValue = student.memo || '';
+                const escapedMemo = memoValue.replace(/"/g, '&quot;').replace(/'/g, '&#39;');
                 
                 html += `
                     <div class="student-text-item" data-student-id="${student.id}">
@@ -3256,7 +3258,7 @@ async function renderViewStudentList() {
                             type="text"
                             class="student-text-memo"
                             placeholder="" 
-                            value=""
+                            value="${escapedMemo}"
                             data-student-id="${student.id}"
                             oninput="saveStudentItemMemo('${student.id}', this.value)"
                             onblur="saveStudentItemMemo('${student.id}', this.value)"
@@ -3292,9 +3294,19 @@ async function saveStudentItemMemo(studentId, memoValue) {
     memoSaveTimers[studentId] = setTimeout(async () => {
         try {
             await API.update('students', studentId, { memo: memoValue });
-            console.log(`메모 저장 완료: 학생 ID ${studentId}`);
+            console.log(`✅ 메모 저장 완료: 학생 ID ${studentId}, 메모: "${memoValue}"`);
+            
+            // 입력 필드에 시각적 피드백 (선택사항)
+            const inputElement = document.querySelector(`.student-text-memo[data-student-id="${studentId}"]`);
+            if (inputElement) {
+                inputElement.style.borderColor = '#28a745';
+                setTimeout(() => {
+                    inputElement.style.borderColor = '';
+                }, 300);
+            }
         } catch (error) {
-            console.error('메모 저장 실패:', error);
+            console.error('❌ 메모 저장 실패:', error);
+            alert(`메모 저장에 실패했습니다: ${error.message}`);
         }
     }, 500);
 }
