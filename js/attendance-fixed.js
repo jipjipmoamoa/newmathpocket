@@ -1973,25 +1973,8 @@ async function renderMonthlyCalendar() {
                 // 상태가 확정된 출석이 있으면 언제든지 표시
                 const schedules = getSchedulesForDate(dateString);
                 
-                // 통계 계산
-                let attendanceCount = 0;
-                let makeupCount = 0;
-                let supplementCount = 0;
-                let absenceCount = 0;
-                
-                schedules.forEach(schedule => {
-                    if (schedule.status === '출석') attendanceCount++;
-                    else if (schedule.status === '보강') makeupCount++;
-                    else if (schedule.status === '보충') supplementCount++;
-                    else if (schedule.status === '결석') absenceCount++;
-                });
-                
-                const statsText = schedules.length > 0 
-                    ? ` <span style="background-color: #fff3cd; padding: 1px 4px; border-radius: 2px; font-size: 0.85rem;">${attendanceCount}(${makeupCount})명 / ${absenceCount}명</span>` 
-                    : '';
-                
                 rowHTML += `<td class="${cellClass}">`;
-                rowHTML += `<div class="date-number">${currentDate}${statsText}</div>`;
+                rowHTML += `<div class="date-number">${currentDate}</div>`;
                 
                 if (schedules.length > 0) {
                     rowHTML += '<div class="schedule-list">';
@@ -3032,26 +3015,8 @@ function renderViewMonthlyCalendar(year, month) {
                 // 상태가 확정된 출석이 있으면 언제든지 표시
                 const schedules = getSchedulesForDate(dateString);
                 
-                // 통계 계산 (출석체크와 동일)
-                let attendanceCount = 0;
-                let makeupCount = 0;
-                let supplementCount = 0;
-                let absenceCount = 0;
-                
-                schedules.forEach(schedule => {
-                    if (schedule.status === '출석') attendanceCount++;
-                    else if (schedule.status === '보강') makeupCount++;
-                    else if (schedule.status === '보충') supplementCount++;
-                    else if (schedule.status === '결석') absenceCount++;
-                });
-                
-                // 통계 배지 표시 (출석체크와 동일)
-                const statsText = schedules.length > 0 
-                    ? ` <span style="background-color: #fff3cd; padding: 1px 4px; border-radius: 2px; font-size: 0.85rem;">${attendanceCount}(${makeupCount})명 / ${absenceCount}명</span>` 
-                    : '';
-                
                 rowHTML += `<td class="${cellClass}">`;
-                rowHTML += `<div class="date-number">${currentDate}${statsText}</div>`;
+                rowHTML += `<div class="date-number">${currentDate}</div>`;
                 
                 if (schedules.length > 0) {
                     rowHTML += '<div class="schedule-list">';
