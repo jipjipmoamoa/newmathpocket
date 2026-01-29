@@ -1128,18 +1128,19 @@ input[type="date"] {
         transform-origin: top left !important;
     }
     
-    /* 2단 레이아웃 인쇄 */
+    /* 2단 레이아웃 인쇄 - 1단과 2단을 나란히 배치 */
     .view-two-column-layout {
-        display: grid !important;
-        grid-template-columns: 70% 30% !important;
+        display: flex !important;
+        flex-direction: row !important;
         gap: 1rem !important;
         page-break-inside: avoid !important;
         margin: 0 !important;
         width: 100% !important;
+        align-items: flex-start !important;
     }
     
-    .view-column-left,
-    .view-column-right {
+    .view-column-left {
+        flex: 0 0 70% !important;
         box-shadow: none !important;
         border: none !important;
         page-break-inside: avoid !important;
@@ -1148,7 +1149,13 @@ input[type="date"] {
     }
     
     .view-column-right {
-        padding-top: 5.5rem !important;
+        flex: 0 0 28% !important;
+        box-shadow: none !important;
+        border: none !important;
+        page-break-inside: avoid !important;
+        padding: 0.3rem !important;
+        overflow: hidden !important;
+        padding-top: 6.2rem !important;
     }
     
     /* 달력 헤더 */
