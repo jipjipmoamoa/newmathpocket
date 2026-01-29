@@ -617,12 +617,21 @@
     font-size: 2.6rem;
     color: #495057;
     text-align: center;
+    border-bottom: none;
+    padding-bottom: 0;
+}
+
+/* 달력 범례 */
+.calendar-legend {
+    border-top: none !important;
+    border-bottom: none !important;
 }
 
 .monthly-calendar {
     width: 100%;
     border-collapse: collapse;
     table-layout: fixed;
+    border-top: none !important;
 }
 
 .monthly-calendar thead th {
@@ -666,14 +675,15 @@
 .date-number {
     font-weight: 700;
     color: #000;
-    margin-bottom: 0.5rem;
-    font-size: 1rem;
+    font-size: 0.85rem;
+    display: inline-block;
+    margin-right: 0.5rem;
+    vertical-align: top;
 }
 
 .schedule-list {
-    display: flex;
-    flex-direction: column;
-    gap: 0.1rem;
+    display: inline-block;
+    vertical-align: top;
 }
 
 /* 스케줄 아이템 기본 스타일 */
@@ -683,6 +693,8 @@
     border-radius: 3px;
     line-height: 1.2;
     background: transparent;
+    display: block;
+    margin-bottom: 0.1rem;
 }
 
 /* 출석: 검정색 글자, 배경 없음 */
@@ -847,6 +859,8 @@ input[type="date"] {
     padding: 2rem;
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
     border: none;
+    width: 100%;
+    max-width: none;
 }
 
 .view-column-left,
@@ -865,7 +879,7 @@ input[type="date"] {
 .view-column-right {
     flex: 0 0 25%;
     padding: 0;
-    padding-top: 3.1rem;
+    padding-top: 3.65rem;
     display: flex;
     flex-direction: column;
     gap: 1.5rem;
@@ -893,7 +907,7 @@ input[type="date"] {
     display: flex;
     align-items: center;
     gap: 0.3rem;
-    border-bottom: 1px solid #f0f0f0;
+    border-bottom: none;
 }
 
 .student-text-item:last-child {
@@ -1153,20 +1167,23 @@ input[type="date"] {
     .date-number {
         font-size: 0.65rem;
         font-weight: 700;
-        margin-bottom: 0.1rem;
         color: #000;
+        display: inline-block;
+        margin-right: 0.3rem;
+        vertical-align: top;
     }
     
     .schedule-list {
-        display: flex;
-        flex-direction: column;
-        gap: 0.05rem;
+        display: inline-block;
+        vertical-align: top;
     }
     
     .schedule-item {
         font-size: 0.5rem;
         padding: 0.05rem;
         line-height: 1.2;
+        display: block;
+        margin-bottom: 0.05rem;
     }
     
     /* 학생 목록 */
