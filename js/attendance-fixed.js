@@ -1898,20 +1898,16 @@ async function renderMonthlyCalendar() {
     const maxDayOfWeek = 4; // 인덱스 0~4 (월~금)
     
     // 달력 테이블 생성
-    let calendarHTML = '<table class="monthly-calendar">';
-    
-    // 범례 행 (금요일 행 바로 위, 오른쪽 정렬)
-    calendarHTML += '<thead>';
-    calendarHTML += '<tr>';
-    calendarHTML += '<th colspan="5" style="text-align: right; padding: 0.5rem; font-size: 0.9rem; font-weight: normal; border-bottom: none;">';
+    let calendarHTML = '<div class="calendar-legend" style="text-align: right; margin-bottom: 0.5rem; font-size: 0.9rem;">';
     calendarHTML += '<span style="color: #000;">출석</span>';
     calendarHTML += '<span style="color: #000; text-decoration: line-through; margin-left: 15px;">결석</span>';
     calendarHTML += '<span style="color: #f44336; margin-left: 15px;">보강</span>';
     calendarHTML += '<span style="color: #9C27B0; margin-left: 15px;">보충</span>';
-    calendarHTML += '</th>';
-    calendarHTML += '</tr>';
+    calendarHTML += '</div>';
+    calendarHTML += '<table class="monthly-calendar">';
     
     // 요일 헤더
+    calendarHTML += '<thead>';
     calendarHTML += '<tr>';
     const dayNames = ['월', '화', '수', '목', '금'];
     for (let i = 0; i <= maxDayOfWeek; i++) {
@@ -2940,20 +2936,16 @@ function renderViewMonthlyCalendar(year, month) {
     const maxDayOfWeek = 4; // 인덱스 0~4 (월~금)
     
     // 달력 테이블 생성
-    let calendarHTML = '<table class="monthly-calendar">';
-    
-    // 범례 행 (금요일 행 바로 위, 오른쪽 정렬) - 출석체크와 동일
-    calendarHTML += '<thead>';
-    calendarHTML += '<tr>';
-    calendarHTML += '<th colspan="5" style="text-align: right; padding: 0.5rem; font-size: 0.9rem; font-weight: normal; border-bottom: none;">';
+    let calendarHTML = '<div class="calendar-legend" style="text-align: right; margin-bottom: 0.5rem; font-size: 0.9rem;">';
     calendarHTML += '<span style="color: #000;">출석</span>';
     calendarHTML += '<span style="color: #000; text-decoration: line-through; margin-left: 15px;">결석</span>';
     calendarHTML += '<span style="color: #f44336; margin-left: 15px;">보강</span>';
     calendarHTML += '<span style="color: #9C27B0; margin-left: 15px;">보충</span>';
-    calendarHTML += '</th>';
-    calendarHTML += '</tr>';
+    calendarHTML += '</div>';
+    calendarHTML += '<table class="monthly-calendar">';
     
     // 요일 헤더
+    calendarHTML += '<thead>';
     calendarHTML += '<tr>';
     const dayNames = ['월', '화', '수', '목', '금'];
     for (let i = 0; i <= maxDayOfWeek; i++) {
