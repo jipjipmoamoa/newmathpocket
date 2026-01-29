@@ -753,10 +753,20 @@ function renderAttendanceTable() {
             }
             statusColor = 'style="color: #000; font-weight: 600; text-decoration: line-through;"';
         } else {
-            // 상태가 비어있을 때: 입실만 있으면 초록색 체크, 입실도 없으면 검정색
+            // 상태가 비어있을 때: 입실만 있으면 체크 이모티콘 표시
             if (checkInTime && !checkOutTime) {
                 statusText = '✓';
-                statusColor = 'style="color: #4CAF50; font-weight: 600; font-size: 1.2rem;"';
+                // 보강/보충 여부에 따라 색상 변경
+                if (makeupDate) {
+                    // 보강: 빨간색 체크
+                    statusColor = 'style="color: #f44336; font-weight: 600; font-size: 1.2rem;"';
+                } else if (item.scheduleType === 'extra') {
+                    // 보충: 보라색 체크
+                    statusColor = 'style="color: #9C27B0; font-weight: 600; font-size: 1.2rem;"';
+                } else {
+                    // 일반: 초록색 체크
+                    statusColor = 'style="color: #4CAF50; font-weight: 600; font-size: 1.2rem;"';
+                }
             } else {
                 statusColor = 'style="color: #000;"';
             }
@@ -850,11 +860,28 @@ function renderAttendanceTable() {
                     statusText = `보강(${formattedDate})`;
                 }
                 statusColor = 'color: #f44336; font-weight: 600;';
+            } else if (status === '보충') {
+                statusColor = 'color: #9C27B0; font-weight: 600;';
             } else if (status === '결석') {
                 if (absenceReason) {
                     statusText = `결석(${absenceReason})`;
                 }
                 statusColor = 'color: #000; font-weight: 600; text-decoration: line-through;';
+            } else {
+                // 상태가 비어있을 때: 입실만 있으면 체크 이모티콘 표시
+                if (checkInTime && !checkOutTime) {
+                    statusText = '✓';
+                    // 보강/보충 여부에 따라 색상 변경
+                    if (makeupDate) {
+                        // 보강: 빨간색 체크
+                        statusColor = 'color: #f44336; font-weight: 600; font-size: 1.2rem;';
+                    } else {
+                        // 일반: 초록색 체크
+                        statusColor = 'color: #4CAF50; font-weight: 600; font-size: 1.2rem;';
+                    }
+                } else {
+                    statusColor = 'color: #000;';
+                }
             }
             
             const row = document.createElement('tr');
@@ -966,10 +993,11 @@ function renderAttendanceTable() {
                 }
                 statusColor = 'style="color: #000; font-weight: 600; text-decoration: line-through;"';
             } else {
-                // 상태가 비어있을 때: 입실만 있으면 초록색 체크, 입실도 없으면 검정색
+                // 상태가 비어있을 때: 입실만 있으면 체크 이모티콘 표시
                 if (checkInTime && !checkOutTime) {
                     statusText = '✓';
-                    statusColor = 'style="color: #4CAF50; font-weight: 600; font-size: 1.2rem;"';
+                    // extra 타입은 항상 보충이므로 보라색 체크
+                    statusColor = 'style="color: #9C27B0; font-weight: 600; font-size: 1.2rem;"';
                 } else {
                     statusColor = 'style="color: #000;"';
                 }
@@ -1486,11 +1514,24 @@ async function quickCheckIn(studentId, recordId = null) {
         if (recordId) {
             const existingRecord = todayAttendanceRecords.find(r => r.id === recordId);
             if (existingRecord) {
+                // 퇴실시간이 있으면 상태 결정, 없으면 빈 문자열 (체크 이모티콘 표시용)
+                let newStatus = '';
+                if (existingRecord.check_out_time) {
+                    // 보강 날짜가 있으면 '보강', 보충 스케줄이면 '보충', 아니면 '출석'
+                    if (existingRecord.makeup_date) {
+                        newStatus = '보강';
+                    } else if (existingRecord.schedule_type === 'extra') {
+                        newStatus = '보충';
+                    } else {
+                        newStatus = '출석';
+                    }
+                }
+                
                 await API.update('attendance', existingRecord.id, {
                     ...existingRecord,
                     check_in_time: checkInTime,
                     expected_out_time: expectedOutTime,
-                    status: existingRecord.check_out_time ? '출석' : ''
+                    status: newStatus
                 });
                 alert(`${student.name} 입실 ${checkInTime}`);
             }
@@ -1499,11 +1540,24 @@ async function quickCheckIn(studentId, recordId = null) {
             const existingRecord = todayAttendanceRecords.find(r => r.student_id === student.id);
             
             if (existingRecord) {
+                // 퇴실시간이 있으면 상태 결정, 없으면 빈 문자열 (체크 이모티콘 표시용)
+                let newStatus = '';
+                if (existingRecord.check_out_time) {
+                    // 보강 날짜가 있으면 '보강', 보충 스케줄이면 '보충', 아니면 '출석'
+                    if (existingRecord.makeup_date) {
+                        newStatus = '보강';
+                    } else if (existingRecord.schedule_type === 'extra') {
+                        newStatus = '보충';
+                    } else {
+                        newStatus = '출석';
+                    }
+                }
+                
                 await API.update('attendance', existingRecord.id, {
                     ...existingRecord,
                     check_in_time: checkInTime,
                     expected_out_time: expectedOutTime,
-                    status: existingRecord.check_out_time ? '출석' : ''
+                    status: newStatus
                 });
                 alert(`${student.name} 입실 ${checkInTime}`);
             } else {
@@ -1565,10 +1619,22 @@ async function quickCheckOut(studentId, recordId = null) {
         const now = new Date();
         const checkOutTime = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
         
+        // 입실시간이 있으면 상태 결정: 보강 날짜가 있으면 '보강', 보충 스케줄이면 '보충', 아니면 '출석'
+        let newStatus = existingRecord.status;
+        if (existingRecord.check_in_time) {
+            if (existingRecord.makeup_date) {
+                newStatus = '보강';
+            } else if (existingRecord.schedule_type === 'extra') {
+                newStatus = '보충';
+            } else {
+                newStatus = '출석';
+            }
+        }
+        
         await API.update('attendance', existingRecord.id, {
             ...existingRecord,
             check_out_time: checkOutTime,
-            status: existingRecord.check_in_time ? '출석' : existingRecord.status
+            status: newStatus
         });
         
         alert(`${student.name} 퇴실 ${checkOutTime}`);
