@@ -1164,7 +1164,7 @@ input[type="date"] {
         border: none !important;
         border-top: none !important;
         border-bottom: none !important;
-        font-size: 0.44rem !important;
+        font-size: 0.528rem !important;
     }
     
     /* 달력 테이블 */
@@ -1213,7 +1213,7 @@ input[type="date"] {
     }
     
     .schedule-item {
-        font-size: 0.572rem;
+        font-size: 0.686rem;
         padding: 0.02rem;
         line-height: 1.08;
         display: block;
