@@ -859,7 +859,7 @@ input[type="date"] {
     padding: 2rem;
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
     border: none;
-    width: 100%;
+    width: 110%;
     max-width: none;
 }
 
@@ -872,14 +872,14 @@ input[type="date"] {
 }
 
 .view-column-left {
-    flex: 0 0 72%;
+    flex: 0 0 79%;
     padding: 0;
 }
 
 .view-column-right {
-    flex: 0 0 25%;
+    flex: 0 0 18%;
     padding: 0;
-    padding-top: 3.65rem;
+    padding-top: 4.1rem;
     display: flex;
     flex-direction: column;
     gap: 1.5rem;
@@ -927,9 +927,7 @@ input[type="date"] {
 }
 
 .student-text-school {
-    font-size: 0.8rem;
-    color: #8B4513;
-    margin-right: 0.5rem;
+    display: none;
 }
 
 .student-text-memo {
@@ -1215,10 +1213,7 @@ input[type="date"] {
     }
     
     .student-text-school {
-        font-size: 0.55rem;
-        color: #666;
-        white-space: nowrap;
-        flex-shrink: 0;
+        display: none;
     }
     
     .student-text-memo {
