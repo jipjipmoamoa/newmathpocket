@@ -1135,11 +1135,12 @@ input[type="date"] {
         border-bottom: none !important;
     }
     
-    /* 달력 범례 - 경계선 완전 제거 */
+    /* 달력 범례 - 경계선 완전 제거 및 글자 크기 조정 */
     .calendar-legend {
         border: none !important;
         border-top: none !important;
         border-bottom: none !important;
+        font-size: 0.44rem !important;
     }
     
     /* 달력 테이블 */
@@ -1208,7 +1209,7 @@ input[type="date"] {
     .grade-header-text,
     .grade-header-row td,
     .grade-header-row td div {
-        font-size: 0.54rem !important;
+        font-size: 0.44rem !important;
         font-weight: 700 !important;
         color: #8B4513 !important;
     }
