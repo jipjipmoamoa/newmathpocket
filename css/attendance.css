@@ -843,9 +843,10 @@ input[type="date"] {
     gap: 2rem;
     margin-top: 2rem;
     background: white;
-    border-radius: 12px;
+    border-radius: 0;
     padding: 2rem;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    box-shadow: none;
+    border: none;
 }
 
 .view-column-left,
@@ -857,12 +858,12 @@ input[type="date"] {
 }
 
 .view-column-left {
-    flex: 0 0 65%;
+    flex: 0 0 72%;
     padding: 0;
 }
 
 .view-column-right {
-    flex: 0 0 32%;
+    flex: 0 0 25%;
     padding: 0;
     padding-top: 8.5rem;
     display: flex;
@@ -918,9 +919,9 @@ input[type="date"] {
 }
 
 .student-text-memo {
-    width: 260px;
-    max-width: 260px;
-    min-width: 260px;
+    width: 182px;
+    max-width: 182px;
+    min-width: 182px;
     flex: none;
     flex-grow: 0;
     flex-shrink: 0;
@@ -1039,10 +1040,10 @@ input[type="date"] {
 }
 
 .calendar-view-section {
-    background: white;
-    padding: 2rem;
-    border-radius: 12px;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    background: transparent;
+    padding: 0;
+    border-radius: 0;
+    box-shadow: none;
 }
 
 /* 출석조회 페이지 인쇄 스타일 */
