@@ -1229,15 +1229,20 @@ input[type="date"] {
         display: none;
     }
     
-    /* 학년 구분자 크기 조정 - 학생 이름보다 작게 */
+    /* 학년 구분자 크기 조정 - 학생 이름과 동일하게 */
     .grade-header-text,
     .grade-header-row td,
     .grade-header-row td div,
-    tr.grade-header-row td div.grade-header-text {
-        font-size: 0.44rem !important;
-        font-weight: 600 !important;
+    tr.grade-header-row td div.grade-header-text,
+    .view-student-list .grade-header-text,
+    .view-student-list .grade-header-row td,
+    .view-student-list tr.grade-header-row td div {
+        font-size: 0.54rem !important;
+        font-weight: 700 !important;
         color: #8B4513 !important;
         line-height: 1.2 !important;
+        margin: 0 !important;
+        padding: 0.07rem 0 !important;
     }
     
     .student-text-item {
