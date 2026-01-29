@@ -3258,6 +3258,7 @@ async function renderViewStudentList() {
                             placeholder="" 
                             value=""
                             data-student-id="${student.id}"
+                            oninput="saveStudentItemMemo('${student.id}', this.value)"
                             onblur="saveStudentItemMemo('${student.id}', this.value)"
                             onclick="event.stopPropagation()"
                         />
@@ -3276,6 +3277,27 @@ async function renderViewStudentList() {
 
 // 학생 선택
 let selectedViewStudentId = null;
+
+// 디바운스 타이머
+let memoSaveTimers = {};
+
+// 학생 아이템 메모 저장 (실시간 저장용)
+async function saveStudentItemMemo(studentId, memoValue) {
+    // 기존 타이머 취소
+    if (memoSaveTimers[studentId]) {
+        clearTimeout(memoSaveTimers[studentId]);
+    }
+    
+    // 500ms 후 저장 (디바운싱)
+    memoSaveTimers[studentId] = setTimeout(async () => {
+        try {
+            await API.update('students', studentId, { memo: memoValue });
+            console.log(`메모 저장 완료: 학생 ID ${studentId}`);
+        } catch (error) {
+            console.error('메모 저장 실패:', error);
+        }
+    }, 500);
+}
 
 function selectViewStudent(studentId, studentName, event) {
     if (event) {
