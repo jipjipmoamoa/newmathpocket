@@ -1146,7 +1146,7 @@ input[type="date"] {
     .monthly-calendar {
         width: 100%;
         border-collapse: collapse;
-        border-top: none !important;
+        border: 1px solid #d0d0d0;
     }
     
     .monthly-calendar thead th {
@@ -1157,7 +1157,6 @@ input[type="date"] {
         text-align: center;
         color: #000;
         font-size: 0.57rem;
-        border-top: none !important;
     }
     
     .monthly-calendar tbody td {
@@ -1206,10 +1205,12 @@ input[type="date"] {
     }
     
     /* 학년 구분자 크기 조정 */
-    .grade-header-text {
+    .grade-header-text,
+    .grade-header-row td,
+    .grade-header-row td div {
         font-size: 0.54rem !important;
-        font-weight: 700;
-        color: #8B4513;
+        font-weight: 700 !important;
+        color: #8B4513 !important;
     }
     
     .student-text-item {
