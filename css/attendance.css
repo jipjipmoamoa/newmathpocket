@@ -1117,7 +1117,7 @@ input[type="date"] {
         color-adjust: exact !important;
     }
     
-    /* 출석조회 페이지 가로 인쇄 */
+    /* 출석조회 페이지 가로 인쇄 - 50% 배율 적용 */
     .attendance-view-container {
         display: block !important;
         padding: 0.3rem !important;
@@ -1148,7 +1148,7 @@ input[type="date"] {
     }
     
     .view-column-right {
-        padding-top: 17.5rem !important;
+        padding-top: 5.5rem !important;
     }
     
     /* 달력 헤더 */
@@ -1161,7 +1161,7 @@ input[type="date"] {
     }
     
     .calendar-header h3 {
-        font-size: 16.2rem !important;
+        font-size: 5.4rem !important;
         margin: 0 !important;
         padding: 0 0 0.5rem 0 !important;
         font-weight: 700 !important;
