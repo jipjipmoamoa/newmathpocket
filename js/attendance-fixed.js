@@ -3562,60 +3562,9 @@ async function highlightViewStudent(studentName) {
 }
 
 function printAttendanceView() {
-    // body 외부의 모든 텍스트 노드 제거 (브라우저 인쇄 헤더 숫자 제거)
-    const removeTextNodes = (element) => {
-        const childNodes = Array.from(element.childNodes);
-        childNodes.forEach(node => {
-            if (node.nodeType === Node.TEXT_NODE && node.textContent.trim() !== '') {
-                node.textContent = '';
-            }
-        });
-    };
-    
-    // html 요소의 직계 자식 텍스트 노드 제거
-    removeTextNodes(document.documentElement);
-    
-    // 디버그: 메모 입력칸 스타일 확인
-    console.log('=== 인쇄 전 메모 입력칸 스타일 확인 ===');
-    const memoInputs = document.querySelectorAll('.student-text-memo');
-    memoInputs.forEach((input, index) => {
-        const computed = window.getComputedStyle(input);
-        console.log(`메모 칸 ${index + 1}:`, {
-            width: computed.width,
-            minWidth: computed.minWidth,
-            maxWidth: computed.maxWidth,
-            display: computed.display,
-            flex: computed.flex,
-            flexGrow: computed.flexGrow,
-            flexShrink: computed.flexShrink,
-            border: computed.border
-        });
-    });
-    
-    // 인쇄 미리보기 바로 실행 (안내 메시지 제거)
+    // 기본 브라우저 인쇄
     window.print();
-    
-    // 인쇄 후 클래스 제거
-    setTimeout(() => {
-        document.body.classList.remove('hide-stats-print');
-    }, 100);
 }
-
-// beforeprint 이벤트로 인쇄 시 스타일 확인
-window.addEventListener('beforeprint', function() {
-    console.log('=== 인쇄 시작 - @media print 적용 후 ===');
-    const memoInputs = document.querySelectorAll('.student-text-memo');
-    memoInputs.forEach((input, index) => {
-        const computed = window.getComputedStyle(input);
-        console.log(`[인쇄] 메모 칸 ${index + 1}:`, {
-            width: computed.width,
-            minWidth: computed.minWidth,
-            maxWidth: computed.maxWidth,
-            display: computed.display,
-            flex: computed.flex
-        });
-    });
-});
 
 function renderViewCalendar(year, month, attendanceRecords) {
     const container = document.getElementById('viewCalendarContainer');
