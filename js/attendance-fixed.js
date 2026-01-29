@@ -3452,7 +3452,7 @@ async function renderViewStudentInfoTable() {
             
             // 학년 헤더 (테이블 칸이 아닌 텍스트로)
             html += '<tr class="grade-header-row">';
-            html += `<td colspan="2"><div class="grade-header-text">${groupKey}</div></td>`;
+            html += `<td colspan="2"><div class="grade-header-text" style="font-size: 0.9rem; font-weight: 700; color: #8B4513;">${groupKey}</div></td>`;
             html += '</tr>';
             
             // 학생 행
