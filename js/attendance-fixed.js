@@ -3287,7 +3287,7 @@ async function renderViewStudentList() {
             const students = groupedStudents[groupKey];
             
             // 학년 헤더
-            html += `<div style="font-weight: 700; color: #8B4513; font-size: 0.95rem; margin-top: 1rem; margin-bottom: 0.5rem; padding-bottom: 0.3rem; border-bottom: 2px solid #d0d0d0;">${groupKey}</div>`;
+            html += `<div style="font-weight: 700; color: #8B4513; font-size: 0.9rem; margin-top: 0.5rem; margin-bottom: 0.3rem; padding-bottom: 0.2rem; border-bottom: 2px solid #d0d0d0;">${groupKey}</div>`;
             
             // 학생 아이템 (텍스트 형식)
             students.forEach(student => {
