@@ -1132,7 +1132,7 @@ input[type="date"] {
     
     .view-column-right {
         flex: 0 0 21%;
-        padding-top: 1.3rem !important;
+        padding-top: 2.1rem !important;
     }
     
     /* 달력 헤더 */
@@ -1152,7 +1152,7 @@ input[type="date"] {
     }
     
     .calendar-header h3 {
-        font-size: 0.805rem;
+        font-size: 1.61rem;
         margin: 0;
         color: #000;
         font-weight: 700;
@@ -1213,7 +1213,7 @@ input[type="date"] {
     }
     
     .schedule-item {
-        font-size: 0.44rem;
+        font-size: 0.572rem;
         padding: 0.02rem;
         line-height: 1.08;
         display: block;
