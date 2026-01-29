@@ -2731,22 +2731,6 @@ async function showAttendanceViewPage() {
 
     mainContent.innerHTML = `
         <div class="attendance-view-container">
-            <div class="view-controls">
-                <div class="controls-right">
-                    ${Auth.isAdmin() || Auth.isSubAdmin() ? `
-                    <select id="attendanceViewTeacherFilterSelect" class="form-select" style="width: 200px; margin-right: 0.5rem;" onchange="filterAttendanceViewByTeacher()">
-                        <option value="all">전체 선생님</option>
-                    </select>
-                    ` : ''}
-                    <select id="viewMonthSelect" class="form-select" onchange="loadAttendanceViewData()">
-                        ${generateMonthDropdownOptions()}
-                    </select>
-                    
-                    <button onclick="loadAttendanceViewData()" class="btn-primary">조회</button>
-                    <button onclick="printAttendanceView()" class="btn-secondary">인쇄</button>
-                </div>
-            </div>
-            
             <!-- 2단 레이아웃 -->
             <div class="view-two-column-layout">
                 <!-- 1단: 월별 출결 현황 달력 -->
@@ -2761,8 +2745,21 @@ async function showAttendanceViewPage() {
                     </div>
                 </div>
                 
-                <!-- 2단: 학생 목록 + MEMO -->
+                <!-- 2단: 컨트롤 + 학생 목록 + MEMO -->
                 <div class="view-column-right">
+                    <!-- 조회 컨트롤 박스 -->
+                    <div class="view-controls-box">
+                        ${Auth.isAdmin() || Auth.isSubAdmin() ? `
+                        <select id="attendanceViewTeacherFilterSelect" class="form-select" style="width: 100%; margin-bottom: 0.5rem;" onchange="filterAttendanceViewByTeacher()">
+                            <option value="all">전체 선생님</option>
+                        </select>
+                        ` : ''}
+                        <select id="viewMonthSelect" class="form-select" style="width: 100%; margin-bottom: 0.5rem;" onchange="loadAttendanceViewData()">
+                            ${generateMonthDropdownOptions()}
+                        </select>
+                        <button onclick="printAttendanceView()" class="btn-secondary" style="width: 100%;">인쇄</button>
+                    </div>
+                    
                     <!-- 학생 목록 -->
                     <div class="view-student-list">
                         <h3>학생 목록</h3>
