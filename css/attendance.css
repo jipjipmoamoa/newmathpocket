@@ -936,6 +936,13 @@ input[type="date"] {
     color: #FF6B35;
 }
 
+.student-text-count {
+    font-size: 0.8rem;
+    color: #999;
+    margin-left: 0.3rem;
+    font-weight: 400;
+}
+
 .student-text-school {
     display: none;
 }
@@ -1265,6 +1272,14 @@ input[type="date"] {
         font-weight: 700;
         min-width: 24px;
         color: #000;
+        white-space: nowrap;
+        flex-shrink: 0;
+    }
+    
+    .student-text-count {
+        font-size: 0.59rem;
+        color: #999;
+        margin-left: 0.1rem;
         white-space: nowrap;
         flex-shrink: 0;
     }
