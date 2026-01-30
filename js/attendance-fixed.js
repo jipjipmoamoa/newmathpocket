@@ -3382,12 +3382,12 @@ async function renderViewStudentList() {
                 // 출석/보강 횟수 가져오기
                 const counts = attendanceCountMap[student.id] || { attendance: 0, makeup: 0 };
                 const totalCount = counts.attendance + counts.makeup;
-                const countText = totalCount > 0 ? ` (${counts.attendance + counts.makeup})` : '';
+                const countText = totalCount > 0 ? `(${totalCount})` : '';
                 
                 html += `
                     <div class="student-text-item" data-student-id="${student.id}">
                         <span class="student-text-name" onclick="selectViewStudent('${student.id}', '${student.name}', event)">${student.name}</span>
-                        <span class="student-text-count" style="color: #999; font-size: 0.85em; margin-left: 0.2rem;">${countText}</span>
+                        ${countText ? `<span class="student-text-count">${countText}</span>` : ''}
                         <span class="student-text-school">(${shortSchoolName})</span>
                         <input 
                             type="text"
