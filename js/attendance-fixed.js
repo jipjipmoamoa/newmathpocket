@@ -17,6 +17,9 @@ let highlightedViewStudentName = null;
 // 출석체크 페이지 달력의 현재 연월
 let currentCheckPageYear = new Date().getFullYear();
 let currentCheckPageMonth = new Date().getMonth();
+// 출석조회 페이지 달력의 현재 연월
+let displayedYear = new Date().getFullYear();
+let displayedMonth = new Date().getMonth();
 
 // ============================================
 // 헬퍼 함수: 시간을 분 단위로 변환
@@ -2972,6 +2975,10 @@ async function loadAttendanceViewData() {
     
     currentViewYear = year;
     currentViewMonth = month;
+    
+    // displayedYear와 displayedMonth 업데이트 (renderViewStudentList에서 사용)
+    displayedYear = year;
+    displayedMonth = month - 1; // 0-based로 변환
     
     const titleElement = document.getElementById('viewCalendarMonthTitle');
     const calendarContainer = document.getElementById('viewMonthlyCalendarContainer');
