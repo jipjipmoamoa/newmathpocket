@@ -930,6 +930,8 @@ input[type="date"] {
     color: #333;
     cursor: pointer;
     transition: color 0.2s;
+    min-width: 50px;
+    white-space: nowrap;
 }
 
 .student-text-name:hover {
@@ -948,9 +950,9 @@ input[type="date"] {
 }
 
 .student-text-memo {
-    width: 182px;
-    max-width: 182px;
-    min-width: 182px;
+    width: 140px;
+    max-width: 140px;
+    min-width: 140px;
     flex: none;
     flex-grow: 0;
     flex-shrink: 0;
@@ -1295,7 +1297,7 @@ input[type="date"] {
         max-width: none;
         padding: 0.09rem 0.19rem;
         border: none;
-        font-size: 0.702rem;
+        font-size: 0.59rem;
         background: transparent;
     }
     
