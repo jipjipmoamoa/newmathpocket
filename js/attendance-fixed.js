@@ -3282,6 +3282,45 @@ async function renderViewStudentList() {
         // 재원생만 필터링
         const activeStudents = allStudents.filter(s => s.status === '재원');
         
+        // 📊 해당 월의 출석 데이터 로드 및 각 학생별 출석/보강 횟수 계산
+        let attendanceCountMap = {}; // { studentId: { attendance: 0, makeup: 0 } }
+        try {
+            const year = displayedYear || currentYear;
+            const month = displayedMonth !== undefined ? displayedMonth : currentMonth;
+            const startDate = new Date(year, month, 1);
+            const endDate = new Date(year, month + 1, 0);
+            const startDateStr = startDate.toISOString().split('T')[0];
+            const endDateStr = endDate.toISOString().split('T')[0];
+            
+            const attendanceRecords = await API.getList('attendance', { limit: 10000 });
+            const records = Array.isArray(attendanceRecords) ? attendanceRecords : (attendanceRecords.data || []);
+            
+            // 해당 월의 출석 데이터 필터링
+            const monthRecords = records.filter(record => 
+                record.date >= startDateStr && record.date <= endDateStr && record.check_out_time
+            );
+            
+            // 각 학생별 출석/보강 횟수 집계
+            monthRecords.forEach(record => {
+                if (!record.student_id) return;
+                
+                if (!attendanceCountMap[record.student_id]) {
+                    attendanceCountMap[record.student_id] = { attendance: 0, makeup: 0 };
+                }
+                
+                // status가 '출석'이면 출석 횟수 증가, '보강'이면 보강 횟수 증가
+                if (record.status === '출석') {
+                    attendanceCountMap[record.student_id].attendance++;
+                } else if (record.status === '보강') {
+                    attendanceCountMap[record.student_id].makeup++;
+                }
+            });
+            
+            console.log('[renderViewStudentList] 출석/보강 횟수 집계 완료:', attendanceCountMap);
+        } catch (error) {
+            console.error('[renderViewStudentList] 출석 데이터 로드 실패:', error);
+        }
+        
         if (activeStudents.length === 0) {
             container.innerHTML = '<p style="text-align: center; color: #999; padding: 2rem;">조회된 학생이 없습니다.</p>';
             return;
@@ -3340,9 +3379,15 @@ async function renderViewStudentList() {
                 const memoValue = student.memo || '';
                 const escapedMemo = memoValue.replace(/"/g, '&quot;').replace(/'/g, '&#39;');
                 
+                // 출석/보강 횟수 가져오기
+                const counts = attendanceCountMap[student.id] || { attendance: 0, makeup: 0 };
+                const totalCount = counts.attendance + counts.makeup;
+                const countText = totalCount > 0 ? ` (${counts.attendance + counts.makeup})` : '';
+                
                 html += `
                     <div class="student-text-item" data-student-id="${student.id}">
                         <span class="student-text-name" onclick="selectViewStudent('${student.id}', '${student.name}', event)">${student.name}</span>
+                        <span class="student-text-count" style="color: #999; font-size: 0.85em; margin-left: 0.2rem;">${countText}</span>
                         <span class="student-text-school">(${shortSchoolName})</span>
                         <input 
                             type="text"
