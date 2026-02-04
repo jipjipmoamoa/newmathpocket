@@ -3971,7 +3971,6 @@ function filterAttendanceViewByTeacher() {
 // ========================================
 
 let selectedHolidayDates = [];
-let selectedHolidayStudents = [];
 
 // 휴일 등록 모달 열기
 function openHolidayModal() {
@@ -3991,7 +3990,7 @@ function openHolidayModal() {
     `;
     
     modal.innerHTML = `
-        <div style="background: white; border-radius: 12px; padding: 2rem; width: 90%; max-width: 800px; max-height: 90vh; overflow-y: auto;">
+        <div style="background: white; border-radius: 12px; padding: 2rem; width: 90%; max-width: 600px; max-height: 90vh; overflow-y: auto;">
             <h2 style="margin: 0 0 1.5rem 0; color: #333;">휴일 등록</h2>
             
             <!-- 제목 입력 -->
@@ -4008,13 +4007,11 @@ function openHolidayModal() {
                 <div id="selectedDatesDisplay" style="margin-top: 0.5rem; font-size: 0.9rem; color: #666;"></div>
             </div>
             
-            <!-- 학생 선택 -->
-            <div style="margin-bottom: 1.5rem;">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
-                    <label style="font-weight: 600; color: #495057;">학생 선택</label>
-                    <button onclick="toggleAllStudentsForHoliday()" class="btn-secondary" style="padding: 0.4rem 0.8rem; font-size: 0.85rem;">전체 선택/해제</button>
-                </div>
-                <div id="holidayStudentList" style="border: 1px solid #dee2e6; border-radius: 8px; padding: 1rem; background: white; max-height: 300px; overflow-y: auto;"></div>
+            <!-- 안내 메시지 -->
+            <div style="margin-bottom: 1.5rem; padding: 1rem; background: #e3f2fd; border-left: 4px solid #2196F3; border-radius: 4px;">
+                <p style="margin: 0; font-size: 0.9rem; color: #1976D2;">
+                    💡 선택한 날짜에 <strong>스케줄이 있는 모든 학생</strong>이 자동으로 결석 처리됩니다.
+                </p>
             </div>
             
             <!-- 버튼 -->
@@ -4029,9 +4026,6 @@ function openHolidayModal() {
     
     // 날짜 선택기 렌더링
     renderHolidayDatePicker();
-    
-    // 학생 목록 로드
-    loadStudentsForHoliday();
 }
 
 // 휴일 등록 모달 닫기
@@ -4041,7 +4035,6 @@ function closeHolidayModal() {
         modal.remove();
     }
     selectedHolidayDates = [];
-    selectedHolidayStudents = [];
 }
 
 // 휴일 달력 상태 변수
@@ -4314,19 +4307,13 @@ async function registerHoliday() {
         return;
     }
     
-    if (selectedHolidayStudents.length === 0) {
-        alert('학생을 선택해주세요.');
-        return;
-    }
-    
-    if (!confirm(`${selectedHolidayDates.length}일, ${selectedHolidayStudents.length}명의 학생에 대해 "${title}" 사유로 결석 처리하시겠습니까?`)) {
+    if (!confirm(`${selectedHolidayDates.length}일에 대해 "${title}" 사유로 스케줄이 있는 모든 학생을 결석 처리하시겠습니까?`)) {
         return;
     }
     
     try {
         let successCount = 0;
         let failCount = 0;
-        let skippedCount = 0;
         
         // 전체 출석 레코드 한번만 로드
         const attendanceResponse = await API.getList('attendance', { limit: 10000 });
@@ -4334,7 +4321,15 @@ async function registerHoliday() {
         
         // 학생 정보 로드
         const studentsResponse = await API.getList('students', { limit: 1000 });
-        const allStudents = Array.isArray(studentsResponse) ? studentsResponse : (studentsResponse.data || []);
+        let allStudents = Array.isArray(studentsResponse) ? studentsResponse : (studentsResponse.data || []);
+        
+        // 권한 필터링 (선생님인 경우 담당 학생만)
+        allStudents = Permissions.filterStudentsByTeacher(allStudents);
+        
+        // 재원생만 필터링
+        const activeStudents = allStudents.filter(s => s.status === '재원');
+        
+        console.log(`[registerHoliday] 처리 대상 학생 수: ${activeStudents.length}명`);
         
         // 각 날짜별로 처리
         for (const dateString of selectedHolidayDates) {
@@ -4345,15 +4340,11 @@ async function registerHoliday() {
             const dayKeys = ['일', '월', '화', '수', '목', '금', '토'];
             const dayKey = dayKeys[dayOfWeek];
             
-            for (const studentId of selectedHolidayStudents) {
+            console.log(`[registerHoliday] 날짜: ${dateString} (${dayKey}요일)`);
+            
+            // 모든 재원생 학생에 대해 처리
+            for (const student of activeStudents) {
                 try {
-                    // 학생 정보 가져오기
-                    const student = allStudents.find(s => s.id === studentId);
-                    if (!student) {
-                        skippedCount++;
-                        continue;
-                    }
-                    
                     // 학생의 스케줄 확인
                     let schedule = student.schedule;
                     if (typeof schedule === 'string') {
@@ -4369,8 +4360,13 @@ async function registerHoliday() {
                                        schedule[dayKey].checkIn && 
                                        schedule[dayKey].checkOut;
                     
+                    if (!hasSchedule) {
+                        // 스케줄이 없으면 건너뜀
+                        continue;
+                    }
+                    
                     // 해당 날짜에 이미 출석 레코드가 있는지 확인
-                    const existingRecords = allAttendance.filter(r => r.student_id === studentId && r.date === dateString);
+                    const existingRecords = allAttendance.filter(r => r.student_id === student.id && r.date === dateString);
                     
                     if (existingRecords.length > 0) {
                         // 기존 레코드가 있으면 모두 결석으로 업데이트 (출석, 보강, 보충 모두 포함)
@@ -4381,11 +4377,12 @@ async function registerHoliday() {
                                 absence_reason: title
                             });
                             successCount++;
+                            console.log(`  ✅ 업데이트: ${student.name} (기존 레코드)`);
                         }
-                    } else if (hasSchedule) {
+                    } else {
                         // 스케줄이 있지만 레코드가 없으면 결석 레코드 생성
                         await API.create('attendance', {
-                            student_id: studentId,
+                            student_id: student.id,
                             student_name: student.name,
                             date: dateString,
                             check_in_time: '',
@@ -4396,19 +4393,17 @@ async function registerHoliday() {
                             makeup_date: ''
                         });
                         successCount++;
-                    } else {
-                        // 스케줄도 없고 레코드도 없으면 건너뜀
-                        skippedCount++;
+                        console.log(`  ✅ 생성: ${student.name} (새 레코드)`);
                     }
                     
                 } catch (error) {
-                    console.error(`등록 실패 - 날짜: ${dateString}, 학생 ID: ${studentId}`, error);
+                    console.error(`  ❌ 등록 실패 - 날짜: ${dateString}, 학생: ${student.name}`, error);
                     failCount++;
                 }
             }
         }
         
-        const message = `휴일 등록 완료\n성공: ${successCount}건${skippedCount > 0 ? `\n건너뜀: ${skippedCount}건 (스케줄 없음)` : ''}${failCount > 0 ? `\n실패: ${failCount}건` : ''}`;
+        const message = `휴일 등록 완료\n성공: ${successCount}건${failCount > 0 ? `\n실패: ${failCount}건` : ''}`;
         alert(message);
         
         // 모달 닫기
@@ -4432,6 +4427,4 @@ window.openHolidayModal = openHolidayModal;
 window.closeHolidayModal = closeHolidayModal;
 window.changeHolidayCalendarMonth = changeHolidayCalendarMonth;
 window.toggleHolidayDate = toggleHolidayDate;
-window.toggleHolidayStudent = toggleHolidayStudent;
-window.toggleAllStudentsForHoliday = toggleAllStudentsForHoliday;
 window.registerHoliday = registerHoliday;
