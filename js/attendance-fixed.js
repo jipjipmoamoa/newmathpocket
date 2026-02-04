@@ -597,20 +597,28 @@ function renderAttendanceTable() {
         if (daySchedule.enabled) {
             // 기본 스케줄의 checkIn 시간과 가장 가까운 출석 기록 찾기
             let mainRecord = null;
-            if (daySchedule.checkIn && studentRecords.length > 0) {
-                // 시간 차이가 가장 작은 기록 찾기
-                mainRecord = studentRecords.reduce((closest, record) => {
-                    if (!record.check_in_time) return closest;
-                    const recordTime = record.check_in_time;
-                    const scheduleTime = daySchedule.checkIn;
-                    
-                    if (!closest) return record;
-                    
-                    const closestDiff = Math.abs(timeToMinutes(closest.check_in_time || '00:00') - timeToMinutes(scheduleTime));
-                    const recordDiff = Math.abs(timeToMinutes(recordTime) - timeToMinutes(scheduleTime));
-                    
-                    return recordDiff < closestDiff ? record : closest;
-                }, null);
+            if (studentRecords.length > 0) {
+                // ✅ 우선순위 1: 결석 레코드가 있으면 그것을 메인 레코드로 사용 (휴일 등록 등)
+                mainRecord = studentRecords.find(r => r.status === '결석');
+                
+                // ✅ 우선순위 2: 결석이 없으면 입실 시간이 스케줄과 가장 가까운 레코드
+                if (!mainRecord && daySchedule.checkIn) {
+                    mainRecord = studentRecords.reduce((closest, record) => {
+                        if (!record.check_in_time) return closest;
+                        const recordTime = record.check_in_time;
+                        const scheduleTime = daySchedule.checkIn;
+                        
+                        if (!closest) return record;
+                        
+                        const closestDiff = Math.abs(timeToMinutes(closest.check_in_time || '00:00') - timeToMinutes(scheduleTime));
+                        const recordDiff = Math.abs(timeToMinutes(recordTime) - timeToMinutes(scheduleTime));
+                        
+                        return recordDiff < closestDiff ? record : closest;
+                    }, null);
+                } else if (!mainRecord) {
+                    // 입실 시간도 없으면 첫 번째 레코드 사용
+                    mainRecord = studentRecords[0];
+                }
                 
                 if (mainRecord) usedRecordIds.add(mainRecord.id); // 사용된 기록 마킹
             }
