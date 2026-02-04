@@ -4337,10 +4337,15 @@ async function registerHoliday() {
             const [year, month, day] = dateString.split('-');
             const dateObj = new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
             const dayOfWeek = dateObj.getDay(); // 0=일요일, 1=월요일, ..., 6=토요일
-            const dayKeys = ['일', '월', '화', '수', '목', '금', '토'];
+            
+            // ✅ 영어 요일 키 사용 (학생 스케줄의 키 형식과 일치)
+            const dayKeys = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
             const dayKey = dayKeys[dayOfWeek];
             
-            console.log(`[registerHoliday] 날짜: ${dateString} (${dayKey}요일)`);
+            const koreanDayKeys = ['일', '월', '화', '수', '목', '금', '토'];
+            const koreanDayKey = koreanDayKeys[dayOfWeek];
+            
+            console.log(`[registerHoliday] 날짜: ${dateString} (${koreanDayKey}요일, 키: ${dayKey})`);
             
             // 모든 재원생 학생에 대해 처리
             for (const student of activeStudents) {
@@ -4356,9 +4361,12 @@ async function registerHoliday() {
                     }
                     
                     // 해당 요일에 스케줄이 있는지 확인
-                    const hasSchedule = schedule && schedule[dayKey] && 
-                                       schedule[dayKey].checkIn && 
-                                       schedule[dayKey].checkOut;
+                    const daySchedule = schedule && schedule[dayKey];
+                    const hasSchedule = daySchedule && 
+                                       daySchedule.checkIn && 
+                                       daySchedule.checkOut;
+                    
+                    console.log(`  [${student.name}] 스케줄 확인: ${dayKey}요일 스케줄 ${hasSchedule ? '있음' : '없음'}${hasSchedule ? ` (입실: ${daySchedule.checkIn}, 퇴실: ${daySchedule.checkOut})` : ''}`);
                     
                     if (!hasSchedule) {
                         // 스케줄이 없으면 건너뜀
