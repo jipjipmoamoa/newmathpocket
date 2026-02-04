@@ -99,6 +99,7 @@ async function showAttendanceCheckPage() {
                         <h2>출석 현황&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span id="attendanceSummary" style="font-size: 0.9rem; background-color: #fff3cd; padding: 2px 8px; border-radius: 3px;"></span></h2>
                     </div>
                     <div class="date-selector">
+                        <button class="btn-secondary" onclick="openHolidayModal()" style="margin-right: 1rem; padding: 0.5rem 1rem; font-size: 0.9rem;">휴일 등록</button>
                         <button class="date-nav-btn" onclick="changeAttendanceDate(-1)" title="전날">◀</button>
                         <span class="calendar-icon" onclick="document.getElementById('attendanceDateInput').showPicker()">🗓️</span>
                         <input type="date" id="attendanceDateInput" class="date-input" onchange="loadAttendanceByDate()" />
@@ -666,8 +667,8 @@ function renderAttendanceTable() {
             const existingRecord = item.record;
             const daySchedule = item.daySchedule;
             
-            // 기본값: 스케줄의 입실/퇴실 시간
-            let checkInTime = daySchedule.checkIn || '';
+            // 기본값: 스케줄의 입실/퇴실 시간 (표시용)
+            let checkInTime = '';
             let expectedOutTime = daySchedule.checkOut || '';
             let checkOutTime = '';
             let status = '';
@@ -677,8 +678,11 @@ function renderAttendanceTable() {
             let absenceReason = '';
             let makeupDate = '';
             
+            // 스케줄 시간은 표시만 하고 실제 등록은 버튼 클릭 시
+            const scheduleCheckIn = daySchedule.checkIn || '';
+            
             if (existingRecord) {
-                checkInTime = existingRecord.check_in_time || checkInTime;
+                checkInTime = existingRecord.check_in_time || '';
                 expectedOutTime = existingRecord.expected_out_time || expectedOutTime;
                 checkOutTime = existingRecord.check_out_time || '';
                 status = existingRecord.status || '';
@@ -778,13 +782,13 @@ function renderAttendanceTable() {
         row.innerHTML = `
             <td>${student.name} (${student.attendance_number || '-'})</td>
             <td>
-                <span class="display-mode" id="display-checkin-${rowId}">${checkInTime || '-'}</span>
-                <input type="text" class="form-input edit-mode" id="edit-checkin-${rowId}" value="${checkInTime}" placeholder="14:00" style="display: none;"
+                <span class="display-mode" id="display-checkin-${rowId}">${checkInTime || (existingRecord ? scheduleCheckIn : '') || '-'}</span>
+                <input type="text" class="form-input edit-mode" id="edit-checkin-${rowId}" value="${checkInTime || scheduleCheckIn}" placeholder="14:00" style="display: none;"
                     oninput="autoUpdateExpectedOutTime('${rowId}', this.value, ${scheduledDuration})"
                     onblur="this.value = formatTimeInput(this.value)" />
             </td>
             <td>
-                <span class="display-mode" id="display-expected-${rowId}">${expectedOutTime || '-'}</span>
+                <span class="display-mode" id="display-expected-${rowId}">${(existingRecord || checkInTime) ? expectedOutTime || '-' : '-'}</span>
                 <input type="text" class="form-input edit-mode" id="edit-expected-${rowId}" value="${expectedOutTime}" placeholder="15:30" readonly style="display: none;" />
             </td>
             <td>
@@ -794,7 +798,7 @@ function renderAttendanceTable() {
             </td>
             <td class="duration-display" ${durationColor}>${durationText}</td>
             <td>
-                <span class="display-mode" id="display-status-${rowId}" ${statusColor}>${statusText || '-'}</span>
+                <span class="display-mode" id="display-status-${rowId}" ${statusColor}>${statusText || (existingRecord ? '-' : '')}</span>
                 <div class="edit-mode" id="edit-status-container-${rowId}" style="display: none;">
                     <select class="form-select status-select" id="status-${rowId}" onchange="handleStatusChange('${rowId}')">
                         <option value="" ${status === '' ? 'selected' : ''}></option>
@@ -1443,11 +1447,25 @@ async function saveAttendance(rowId, recordId) {
     //     return;
     // }
     
-    // 상태가 비어있으면 자동 결정: 입실+퇴실 있으면 "출석", 입실만 있으면 빈 상태
+    // 상태가 비어있으면 자동 결정
     if (!status) {
         if (checkInTime && checkOutTime) {
-            status = '출석';
+            // 보강 날짜가 있으면 '보강', 보충인지 확인 (recordId로 판단)
+            if (makeupDate) {
+                status = '보강';
+            } else if (recordId) {
+                // 기존 레코드의 schedule_type 확인
+                const existingRecord = todayAttendanceRecords.find(r => r.id === recordId);
+                if (existingRecord && existingRecord.schedule_type === 'extra') {
+                    status = '보충';
+                } else {
+                    status = '출석';
+                }
+            } else {
+                status = '출석';
+            }
         } else {
+            // 입실만 있으면 빈 상태 (체크 표시)
             status = '';
         }
     }
@@ -2050,11 +2068,23 @@ async function renderMonthlyCalendar() {
                 rowHTML += `<div class="date-number">${currentDate}</div>`;
                 
                 if (schedules.length > 0) {
-                    rowHTML += '<div class="schedule-list">';
-                    schedules.forEach(schedule => {
-                        rowHTML += renderScheduleItem(schedule, 'check');
-                    });
-                    rowHTML += '</div>';
+                    // ✅ 특수 케이스: 해당 날짜의 모든 기록이 결석이고 사유가 모두 같으면 사유만 표시
+                    const allAbsent = schedules.every(s => s.status === '결석');
+                    const allSameReason = allAbsent && schedules.every(s => s.absence_reason === schedules[0].absence_reason);
+                    
+                    if (allAbsent && allSameReason && schedules[0].absence_reason) {
+                        // 사유만 표시 (취소선 없이)
+                        rowHTML += '<div class="schedule-list">';
+                        rowHTML += `<div class="schedule-item holiday-reason" style="color: #666; font-weight: 600; text-align: center;">${schedules[0].absence_reason}</div>`;
+                        rowHTML += '</div>';
+                    } else {
+                        // 일반 표시 (모든 출석 기록)
+                        rowHTML += '<div class="schedule-list">';
+                        schedules.forEach(schedule => {
+                            rowHTML += renderScheduleItem(schedule, 'check');
+                        });
+                        rowHTML += '</div>';
+                    }
                 }
                 
                 rowHTML += '</td>';
@@ -3105,11 +3135,23 @@ function renderViewMonthlyCalendar(year, month) {
                 rowHTML += `<div class="date-number">${currentDate}</div>`;
                 
                 if (schedules.length > 0) {
-                    rowHTML += '<div class="schedule-list">';
-                    schedules.forEach(schedule => {
-                        rowHTML += renderScheduleItem(schedule, 'view');
-                    });
-                    rowHTML += '</div>';
+                    // ✅ 특수 케이스: 해당 날짜의 모든 기록이 결석이고 사유가 모두 같으면 사유만 표시
+                    const allAbsent = schedules.every(s => s.status === '결석');
+                    const allSameReason = allAbsent && schedules.every(s => s.absence_reason === schedules[0].absence_reason);
+                    
+                    if (allAbsent && allSameReason && schedules[0].absence_reason) {
+                        // 사유만 표시 (취소선 없이)
+                        rowHTML += '<div class="schedule-list">';
+                        rowHTML += `<div class="schedule-item holiday-reason" style="color: #666; font-weight: 600; text-align: center;">${schedules[0].absence_reason}</div>`;
+                        rowHTML += '</div>';
+                    } else {
+                        // 일반 표시 (모든 출석 기록)
+                        rowHTML += '<div class="schedule-list">';
+                        schedules.forEach(schedule => {
+                            rowHTML += renderScheduleItem(schedule, 'view');
+                        });
+                        rowHTML += '</div>';
+                    }
                 }
                 
                 rowHTML += '</td>';
@@ -3925,6 +3967,433 @@ function filterAttendanceViewByTeacher() {
 }
 
 // ========================================
+// 휴일 등록 기능
+// ========================================
+
+let selectedHolidayDates = [];
+let selectedHolidayStudents = [];
+
+// 휴일 등록 모달 열기
+function openHolidayModal() {
+    const modal = document.createElement('div');
+    modal.id = 'holidayModal';
+    modal.style.cssText = `
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.5);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 10000;
+    `;
+    
+    modal.innerHTML = `
+        <div style="background: white; border-radius: 12px; padding: 2rem; width: 90%; max-width: 800px; max-height: 90vh; overflow-y: auto;">
+            <h2 style="margin: 0 0 1.5rem 0; color: #333;">휴일 등록</h2>
+            
+            <!-- 제목 입력 -->
+            <div style="margin-bottom: 1.5rem;">
+                <label style="display: block; font-weight: 600; margin-bottom: 0.5rem; color: #495057;">제목 (결석 사유)</label>
+                <input type="text" id="holidayTitle" placeholder="예: 설날, 추석, 개교기념일" 
+                    style="width: 100%; padding: 0.75rem; border: 1px solid #ced4da; border-radius: 4px; font-size: 1rem;" />
+            </div>
+            
+            <!-- 날짜 선택 -->
+            <div style="margin-bottom: 1.5rem;">
+                <label style="display: block; font-weight: 600; margin-bottom: 0.5rem; color: #495057;">날짜 선택 (복수 선택 가능)</label>
+                <div id="holidayDatePicker" style="border: 1px solid #dee2e6; border-radius: 8px; padding: 1rem; background: #f8f9fa;"></div>
+                <div id="selectedDatesDisplay" style="margin-top: 0.5rem; font-size: 0.9rem; color: #666;"></div>
+            </div>
+            
+            <!-- 학생 선택 -->
+            <div style="margin-bottom: 1.5rem;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+                    <label style="font-weight: 600; color: #495057;">학생 선택</label>
+                    <button onclick="toggleAllStudentsForHoliday()" class="btn-secondary" style="padding: 0.4rem 0.8rem; font-size: 0.85rem;">전체 선택/해제</button>
+                </div>
+                <div id="holidayStudentList" style="border: 1px solid #dee2e6; border-radius: 8px; padding: 1rem; background: white; max-height: 300px; overflow-y: auto;"></div>
+            </div>
+            
+            <!-- 버튼 -->
+            <div style="display: flex; gap: 1rem; justify-content: flex-end;">
+                <button onclick="closeHolidayModal()" class="btn-cancel">취소</button>
+                <button onclick="registerHoliday()" class="btn-primary">등록</button>
+            </div>
+        </div>
+    `;
+    
+    document.body.appendChild(modal);
+    
+    // 날짜 선택기 렌더링
+    renderHolidayDatePicker();
+    
+    // 학생 목록 로드
+    loadStudentsForHoliday();
+}
+
+// 휴일 등록 모달 닫기
+function closeHolidayModal() {
+    const modal = document.getElementById('holidayModal');
+    if (modal) {
+        modal.remove();
+    }
+    selectedHolidayDates = [];
+    selectedHolidayStudents = [];
+}
+
+// 휴일 달력 상태 변수
+let holidayCalendarYear = new Date().getFullYear();
+let holidayCalendarMonth = new Date().getMonth();
+
+// 날짜 선택기 렌더링 (월 이동 가능)
+function renderHolidayDatePicker() {
+    const container = document.getElementById('holidayDatePicker');
+    
+    const firstDay = new Date(holidayCalendarYear, holidayCalendarMonth, 1);
+    const lastDay = new Date(holidayCalendarYear, holidayCalendarMonth + 1, 0);
+    
+    // 헤더 (년월 + 이전/다음 버튼)
+    let html = `
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+            <button onclick="changeHolidayCalendarMonth(-1)" style="padding: 0.5rem 1rem; border: none; background: #f8f9fa; border-radius: 4px; cursor: pointer; font-size: 1.2rem;">◀</button>
+            <div style="font-weight: 600; font-size: 1.1rem;">${holidayCalendarYear}년 ${holidayCalendarMonth + 1}월</div>
+            <button onclick="changeHolidayCalendarMonth(1)" style="padding: 0.5rem 1rem; border: none; background: #f8f9fa; border-radius: 4px; cursor: pointer; font-size: 1.2rem;">▶</button>
+        </div>
+    `;
+    
+    html += `<div style="display: grid; grid-template-columns: repeat(7, 1fr); gap: 0.5rem;">`;
+    
+    // 요일 헤더 (월~일)
+    const dayNames = ['월', '화', '수', '목', '금', '토', '일'];
+    dayNames.forEach(day => {
+        html += `<div style="text-align: center; font-weight: 600; padding: 0.5rem; color: #666;">${day}</div>`;
+    });
+    
+    // 첫 날의 요일 계산 (월요일=0, 일요일=6)
+    let startDayOfWeek = firstDay.getDay() - 1;
+    if (startDayOfWeek === -1) startDayOfWeek = 6; // 일요일인 경우
+    
+    // 빈 칸 (첫 주 시작 전)
+    for (let i = 0; i < startDayOfWeek; i++) {
+        html += `<div></div>`;
+    }
+    
+    // 날짜 버튼
+    for (let date = 1; date <= lastDay.getDate(); date++) {
+        const dateString = `${holidayCalendarYear}-${String(holidayCalendarMonth + 1).padStart(2, '0')}-${String(date).padStart(2, '0')}`;
+        
+        // 요일 계산 (0=월요일, 6=일요일)
+        const currentDate = new Date(holidayCalendarYear, holidayCalendarMonth, date);
+        let dayOfWeek = currentDate.getDay() - 1;
+        if (dayOfWeek === -1) dayOfWeek = 6;
+        
+        // 토요일(5) 또는 일요일(6)이면 배경색 연회색
+        const isWeekend = dayOfWeek === 5 || dayOfWeek === 6;
+        const bgColor = isWeekend ? '#f5f5f5' : 'white';
+        
+        // 이미 선택된 날짜인지 확인
+        const isSelected = selectedHolidayDates.includes(dateString);
+        const selectedStyle = isSelected ? 'background: #FF6B35; border-color: #FF6B35; color: white;' : `background: ${bgColor};`;
+        
+        html += `
+            <button onclick="toggleHolidayDate('${dateString}')" 
+                id="holiday-date-${dateString}"
+                style="padding: 0.5rem; border: 2px solid #dee2e6; border-radius: 4px; ${selectedStyle} cursor: pointer; transition: all 0.2s;">
+                ${date}
+            </button>
+        `;
+    }
+    
+    html += `</div>`;
+    container.innerHTML = html;
+}
+
+// 휴일 달력 월 변경
+function changeHolidayCalendarMonth(direction) {
+    holidayCalendarMonth += direction;
+    
+    if (holidayCalendarMonth < 0) {
+        holidayCalendarMonth = 11;
+        holidayCalendarYear--;
+    } else if (holidayCalendarMonth > 11) {
+        holidayCalendarMonth = 0;
+        holidayCalendarYear++;
+    }
+    
+    renderHolidayDatePicker();
+}
+
+// 날짜 토글
+function toggleHolidayDate(dateString) {
+    const button = document.getElementById(`holiday-date-${dateString}`);
+    const index = selectedHolidayDates.indexOf(dateString);
+    
+    // 해당 날짜의 요일 확인 (토·일요일인지)
+    const [year, month, day] = dateString.split('-');
+    const currentDate = new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
+    let dayOfWeek = currentDate.getDay() - 1;
+    if (dayOfWeek === -1) dayOfWeek = 6;
+    const isWeekend = dayOfWeek === 5 || dayOfWeek === 6;
+    const weekendBgColor = isWeekend ? '#f5f5f5' : 'white';
+    
+    if (index > -1) {
+        // 선택 해제 - 주말이면 연회색, 평일이면 흰색
+        selectedHolidayDates.splice(index, 1);
+        button.style.background = weekendBgColor;
+        button.style.borderColor = '#dee2e6';
+        button.style.color = '#333';
+    } else {
+        // 선택 - 주황색
+        selectedHolidayDates.push(dateString);
+        button.style.background = '#FF6B35';
+        button.style.borderColor = '#FF6B35';
+        button.style.color = 'white';
+    }
+    
+    // 선택된 날짜 표시 업데이트
+    updateSelectedDatesDisplay();
+}
+
+// 선택된 날짜 표시 업데이트
+function updateSelectedDatesDisplay() {
+    const display = document.getElementById('selectedDatesDisplay');
+    if (selectedHolidayDates.length === 0) {
+        display.innerHTML = '선택된 날짜가 없습니다.';
+    } else {
+        const sortedDates = selectedHolidayDates.sort();
+        const dateStrings = sortedDates.map(d => {
+            const [year, month, day] = d.split('-');
+            return `${parseInt(month)}/${parseInt(day)}`;
+        });
+        display.innerHTML = `선택된 날짜: <span style="color: #FF6B35; font-weight: 600;">${dateStrings.join(', ')}</span> (${sortedDates.length}일)`;
+    }
+}
+
+// 학생 목록 로드
+async function loadStudentsForHoliday() {
+    const container = document.getElementById('holidayStudentList');
+    container.innerHTML = '<p style="text-align: center; color: #999;">로딩 중...</p>';
+    
+    try {
+        const response = await API.getList('students', { limit: 1000 });
+        let allStudents = Array.isArray(response) ? response : (response.data || []);
+        
+        // 권한 필터링
+        allStudents = Permissions.filterStudentsByTeacher(allStudents);
+        
+        // 재원생만
+        const activeStudents = allStudents.filter(s => s.status === '재원');
+        
+        if (activeStudents.length === 0) {
+            container.innerHTML = '<p style="text-align: center; color: #999;">재원생이 없습니다.</p>';
+            return;
+        }
+        
+        // 학교급/학년별로 그룹화
+        const groupedStudents = {};
+        
+        activeStudents.forEach(student => {
+            const schoolType = student.school_type || '기타';
+            const grade = student.grade || '미정';
+            const schoolTypeFull = schoolType === '초' ? '초등' : 
+                                   schoolType === '중' ? '중등' : 
+                                   schoolType === '고' ? '고등' : schoolType;
+            const key = `${schoolTypeFull} ${grade}학년`;
+            
+            if (!groupedStudents[key]) {
+                groupedStudents[key] = [];
+            }
+            groupedStudents[key].push(student);
+        });
+        
+        // 각 그룹 내에서 이름순 정렬
+        Object.keys(groupedStudents).forEach(key => {
+            groupedStudents[key].sort((a, b) => (a.name || '').localeCompare(b.name || '', 'ko'));
+        });
+        
+        // 그룹 키 정렬
+        const sortedKeys = Object.keys(groupedStudents).sort((a, b) => {
+            const schoolOrder = { '초등': 1, '중등': 2, '고등': 3, '기타': 4 };
+            const [typeA, gradeA] = a.split(' ');
+            const [typeB, gradeB] = b.split(' ');
+            
+            if (typeA !== typeB) {
+                return (schoolOrder[typeA] || 999) - (schoolOrder[typeB] || 999);
+            }
+            
+            const gradeNumA = parseInt(gradeA) || 999;
+            const gradeNumB = parseInt(gradeB) || 999;
+            return gradeNumA - gradeNumB;
+        });
+        
+        let html = '';
+        
+        // 학년별로 렌더링
+        sortedKeys.forEach(groupKey => {
+            const students = groupedStudents[groupKey];
+            
+            // 학년 헤더
+            html += `<div style="font-weight: 700; color: #8B4513; font-size: 0.95rem; margin-top: 1rem; margin-bottom: 0.5rem; padding-bottom: 0.3rem; border-bottom: 2px solid #d0d0d0;">${groupKey}</div>`;
+            
+            // 학생 체크박스 (가로 나열)
+            html += `<div style="display: flex; flex-wrap: wrap; gap: 1rem; padding: 0.5rem 0;">`;
+            students.forEach(student => {
+                html += `
+                    <div style="display: flex; align-items: center; min-width: 120px;">
+                        <input type="checkbox" id="holiday-student-${student.id}" value="${student.id}" 
+                            onchange="toggleHolidayStudent('${student.id}')"
+                            style="margin-right: 0.5rem; width: 18px; height: 18px; cursor: pointer;" />
+                        <label for="holiday-student-${student.id}" style="cursor: pointer; font-size: 0.95rem; white-space: nowrap;">${student.name}</label>
+                    </div>
+                `;
+            });
+            html += `</div>`;
+        });
+        
+        container.innerHTML = html;
+        
+    } catch (error) {
+        console.error('학생 목록 로드 실패:', error);
+        container.innerHTML = '<p style="text-align: center; color: #f44336;">학생 목록 로드에 실패했습니다.</p>';
+    }
+}
+
+// 학생 토글
+function toggleHolidayStudent(studentId) {
+    const checkbox = document.getElementById(`holiday-student-${studentId}`);
+    const index = selectedHolidayStudents.indexOf(studentId);
+    
+    if (checkbox.checked) {
+        if (index === -1) {
+            selectedHolidayStudents.push(studentId);
+        }
+    } else {
+        if (index > -1) {
+            selectedHolidayStudents.splice(index, 1);
+        }
+    }
+}
+
+// 전체 학생 선택/해제
+function toggleAllStudentsForHoliday() {
+    const checkboxes = document.querySelectorAll('#holidayStudentList input[type="checkbox"]');
+    const allChecked = Array.from(checkboxes).every(cb => cb.checked);
+    
+    checkboxes.forEach(checkbox => {
+        checkbox.checked = !allChecked;
+        const studentId = checkbox.value;
+        const index = selectedHolidayStudents.indexOf(studentId);
+        
+        if (checkbox.checked) {
+            if (index === -1) {
+                selectedHolidayStudents.push(studentId);
+            }
+        } else {
+            if (index > -1) {
+                selectedHolidayStudents.splice(index, 1);
+            }
+        }
+    });
+}
+
+// 휴일 등록 실행
+async function registerHoliday() {
+    const title = document.getElementById('holidayTitle').value.trim();
+    
+    // 유효성 검사
+    if (!title) {
+        alert('제목을 입력해주세요.');
+        return;
+    }
+    
+    if (selectedHolidayDates.length === 0) {
+        alert('날짜를 선택해주세요.');
+        return;
+    }
+    
+    if (selectedHolidayStudents.length === 0) {
+        alert('학생을 선택해주세요.');
+        return;
+    }
+    
+    if (!confirm(`${selectedHolidayDates.length}일, ${selectedHolidayStudents.length}명의 학생에 대해 "${title}" 사유로 결석 처리하시겠습니까?`)) {
+        return;
+    }
+    
+    try {
+        let successCount = 0;
+        let failCount = 0;
+        
+        // 각 날짜와 학생 조합으로 출석 레코드 생성
+        for (const dateString of selectedHolidayDates) {
+            for (const studentId of selectedHolidayStudents) {
+                try {
+                    // 학생 정보 가져오기
+                    const student = attendanceStudents.find(s => s.id === studentId);
+                    if (!student) continue;
+                    
+                    // 해당 날짜에 이미 출석 레코드가 있는지 확인
+                    const attendanceResponse = await API.getList('attendance', { limit: 10000 });
+                    const allAttendance = Array.isArray(attendanceResponse) ? attendanceResponse : (attendanceResponse.data || []);
+                    const existingRecord = allAttendance.find(r => r.student_id === studentId && r.date === dateString);
+                    
+                    if (existingRecord) {
+                        // 기존 레코드 업데이트
+                        await API.update('attendance', existingRecord.id, {
+                            ...existingRecord,
+                            status: '결석',
+                            absence_reason: title
+                        });
+                    } else {
+                        // 새 레코드 생성
+                        await API.create('attendance', {
+                            student_id: studentId,
+                            student_name: student.name,
+                            date: dateString,
+                            check_in_time: '',
+                            expected_out_time: '',
+                            check_out_time: '',
+                            status: '결석',
+                            absence_reason: title,
+                            makeup_date: ''
+                        });
+                    }
+                    
+                    successCount++;
+                    
+                } catch (error) {
+                    console.error(`등록 실패 - 날짜: ${dateString}, 학생 ID: ${studentId}`, error);
+                    failCount++;
+                }
+            }
+        }
+        
+        alert(`휴일 등록 완료\n성공: ${successCount}건\n실패: ${failCount}건`);
+        
+        // 모달 닫기
+        closeHolidayModal();
+        
+        // 출석 데이터 새로고침
+        await loadAttendanceData();
+        await renderMonthlyCalendar();
+        
+    } catch (error) {
+        console.error('휴일 등록 실패:', error);
+        alert('휴일 등록에 실패했습니다.');
+    }
+}
+
+// ========================================
 // 전역 함수 노출
 // ========================================
 window.changeCheckPageMonth = changeCheckPageMonth;
+window.openHolidayModal = openHolidayModal;
+window.closeHolidayModal = closeHolidayModal;
+window.changeHolidayCalendarMonth = changeHolidayCalendarMonth;
+window.toggleHolidayDate = toggleHolidayDate;
+window.toggleHolidayStudent = toggleHolidayStudent;
+window.toggleAllStudentsForHoliday = toggleAllStudentsForHoliday;
+window.registerHoliday = registerHoliday;
