@@ -3985,7 +3985,7 @@ function filterAttendanceViewByTeacher() {
 // ========================================
 
 let selectedScheduleDates = [];
-let selectedStudentIds = [];
+let selectedScheduleStudentIds = [];
 
 // 일정 등록 모달 열기
 function openScheduleModal() {
@@ -4073,6 +4073,9 @@ function openScheduleModal() {
     
     // 학생 목록 렌더링
     renderScheduleStudentList();
+    
+    // 초기 상태에 맞게 사유/시간 필드 표시
+    handleScheduleStatusChange();
 }
 
 // 일정 등록 모달 닫기
@@ -4082,7 +4085,7 @@ function closeScheduleModal() {
         modal.remove();
     }
     selectedScheduleDates = [];
-    selectedStudentIds = [];
+    selectedScheduleStudentIds = [];
 }
 
 // 일정 달력 상태 변수
@@ -4305,15 +4308,15 @@ async function renderScheduleStudentList() {
 // 학생 토글
 function toggleScheduleStudent(studentId) {
     const checkbox = document.getElementById(`schedule-student-${studentId}`);
-    const index = selectedStudentIds.indexOf(studentId);
+    const index = selectedScheduleStudentIds.indexOf(studentId);
     
     if (checkbox.checked) {
         if (index === -1) {
-            selectedStudentIds.push(studentId);
+            selectedScheduleStudentIds.push(studentId);
         }
     } else {
         if (index > -1) {
-            selectedStudentIds.splice(index, 1);
+            selectedScheduleStudentIds.splice(index, 1);
         }
     }
 }
@@ -4331,20 +4334,6 @@ function handleScheduleStatusChange() {
         reasonInput.style.display = 'none';
         supplementTimeDiv.style.display = 'block';
     }
-}
-        const studentId = checkbox.value;
-        const index = selectedHolidayStudents.indexOf(studentId);
-        
-        if (checkbox.checked) {
-            if (index === -1) {
-                selectedHolidayStudents.push(studentId);
-            }
-        } else {
-            if (index > -1) {
-                selectedHolidayStudents.splice(index, 1);
-            }
-        }
-    });
 }
 
 // 일정 등록 실행
@@ -4381,9 +4370,9 @@ async function registerSchedule() {
     }
     
     // 확인 메시지
-    const studentText = selectedStudentIds.length === 0 
+    const studentText = selectedScheduleStudentIds.length === 0 
         ? '스케줄이 있는 모든 학생' 
-        : `선택한 ${selectedStudentIds.length}명의 학생`;
+        : `선택한 ${selectedScheduleStudentIds.length}명의 학생`;
     
     if (!confirm(`${selectedScheduleDates.length}일에 대해 ${studentText}을(를) "${status}" 처리하시겠습니까?`)) {
         return;
@@ -4408,8 +4397,8 @@ async function registerSchedule() {
         let activeStudents = allStudents.filter(s => s.status === '재원');
         
         // ✅ 학생 선택이 있으면 해당 학생들만 처리
-        if (selectedStudentIds.length > 0) {
-            activeStudents = activeStudents.filter(s => selectedStudentIds.includes(s.id));
+        if (selectedScheduleStudentIds.length > 0) {
+            activeStudents = activeStudents.filter(s => selectedScheduleStudentIds.includes(s.id));
         }
         
         console.log(`[registerSchedule] 처리 대상 학생 수: ${activeStudents.length}명`);
@@ -4534,6 +4523,8 @@ async function registerSchedule() {
 // ========================================
 // 전역 함수 노출
 // ========================================
+window.showAttendanceCheckPage = showAttendanceCheckPage;
+window.showAttendanceViewPage = showAttendanceViewPage;
 window.changeCheckPageMonth = changeCheckPageMonth;
 window.openScheduleModal = openScheduleModal;
 window.closeScheduleModal = closeScheduleModal;
