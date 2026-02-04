@@ -730,6 +730,15 @@
     font-weight: 500;
 }
 
+/* 휴일 사유 표시: 회색 굵은 글자, 중앙 정렬, 취소선 없음 */
+.schedule-item.holiday-reason {
+    color: #666;
+    font-weight: 600;
+    text-align: center;
+    background: transparent;
+    text-decoration: none;
+}
+
 .schedule-strikethrough {
     text-decoration: line-through;
 }
