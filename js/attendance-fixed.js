@@ -4326,29 +4326,64 @@ async function registerHoliday() {
     try {
         let successCount = 0;
         let failCount = 0;
+        let skippedCount = 0;
         
-        // 각 날짜와 학생 조합으로 출석 레코드 생성
+        // 전체 출석 레코드 한번만 로드
+        const attendanceResponse = await API.getList('attendance', { limit: 10000 });
+        const allAttendance = Array.isArray(attendanceResponse) ? attendanceResponse : (attendanceResponse.data || []);
+        
+        // 학생 정보 로드
+        const studentsResponse = await API.getList('students', { limit: 1000 });
+        const allStudents = Array.isArray(studentsResponse) ? studentsResponse : (studentsResponse.data || []);
+        
+        // 각 날짜별로 처리
         for (const dateString of selectedHolidayDates) {
+            // 해당 날짜의 요일 계산
+            const [year, month, day] = dateString.split('-');
+            const dateObj = new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
+            const dayOfWeek = dateObj.getDay(); // 0=일요일, 1=월요일, ..., 6=토요일
+            const dayKeys = ['일', '월', '화', '수', '목', '금', '토'];
+            const dayKey = dayKeys[dayOfWeek];
+            
             for (const studentId of selectedHolidayStudents) {
                 try {
                     // 학생 정보 가져오기
-                    const student = attendanceStudents.find(s => s.id === studentId);
-                    if (!student) continue;
+                    const student = allStudents.find(s => s.id === studentId);
+                    if (!student) {
+                        skippedCount++;
+                        continue;
+                    }
+                    
+                    // 학생의 스케줄 확인
+                    let schedule = student.schedule;
+                    if (typeof schedule === 'string') {
+                        try {
+                            schedule = JSON.parse(schedule);
+                        } catch (e) {
+                            schedule = null;
+                        }
+                    }
+                    
+                    // 해당 요일에 스케줄이 있는지 확인
+                    const hasSchedule = schedule && schedule[dayKey] && 
+                                       schedule[dayKey].checkIn && 
+                                       schedule[dayKey].checkOut;
                     
                     // 해당 날짜에 이미 출석 레코드가 있는지 확인
-                    const attendanceResponse = await API.getList('attendance', { limit: 10000 });
-                    const allAttendance = Array.isArray(attendanceResponse) ? attendanceResponse : (attendanceResponse.data || []);
-                    const existingRecord = allAttendance.find(r => r.student_id === studentId && r.date === dateString);
+                    const existingRecords = allAttendance.filter(r => r.student_id === studentId && r.date === dateString);
                     
-                    if (existingRecord) {
-                        // 기존 레코드 업데이트
-                        await API.update('attendance', existingRecord.id, {
-                            ...existingRecord,
-                            status: '결석',
-                            absence_reason: title
-                        });
-                    } else {
-                        // 새 레코드 생성
+                    if (existingRecords.length > 0) {
+                        // 기존 레코드가 있으면 모두 결석으로 업데이트 (출석, 보강, 보충 모두 포함)
+                        for (const record of existingRecords) {
+                            await API.update('attendance', record.id, {
+                                ...record,
+                                status: '결석',
+                                absence_reason: title
+                            });
+                            successCount++;
+                        }
+                    } else if (hasSchedule) {
+                        // 스케줄이 있지만 레코드가 없으면 결석 레코드 생성
                         await API.create('attendance', {
                             student_id: studentId,
                             student_name: student.name,
@@ -4360,9 +4395,11 @@ async function registerHoliday() {
                             absence_reason: title,
                             makeup_date: ''
                         });
+                        successCount++;
+                    } else {
+                        // 스케줄도 없고 레코드도 없으면 건너뜀
+                        skippedCount++;
                     }
-                    
-                    successCount++;
                     
                 } catch (error) {
                     console.error(`등록 실패 - 날짜: ${dateString}, 학생 ID: ${studentId}`, error);
@@ -4371,7 +4408,8 @@ async function registerHoliday() {
             }
         }
         
-        alert(`휴일 등록 완료\n성공: ${successCount}건\n실패: ${failCount}건`);
+        const message = `휴일 등록 완료\n성공: ${successCount}건${skippedCount > 0 ? `\n건너뜀: ${skippedCount}건 (스케줄 없음)` : ''}${failCount > 0 ? `\n실패: ${failCount}건` : ''}`;
+        alert(message);
         
         // 모달 닫기
         closeHolidayModal();
