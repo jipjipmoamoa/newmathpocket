@@ -754,11 +754,13 @@ function renderAttendanceTable() {
             // 보충 표시
             statusColor = 'style="color: #9C27B0; font-weight: 600;"';
         } else if (status === '결석') {
-            // 결석 사유 표시
+            // 결석 사유 표시: "결석"에만 취소선
             if (absenceReason) {
-                statusText = `결석(${absenceReason})`;
+                statusText = `<span style="text-decoration: line-through;">결석</span>(${absenceReason})`;
+            } else {
+                statusText = `<span style="text-decoration: line-through;">결석</span>`;
             }
-            statusColor = 'style="color: #000; font-weight: 600; text-decoration: line-through;"';
+            statusColor = 'style="color: #000; font-weight: 600;"';
         } else {
             // 상태가 비어있을 때: 입실만 있으면 체크 이모티콘 표시
             if (checkInTime && !checkOutTime) {
@@ -871,9 +873,11 @@ function renderAttendanceTable() {
                 statusColor = 'color: #9C27B0; font-weight: 600;';
             } else if (status === '결석') {
                 if (absenceReason) {
-                    statusText = `결석(${absenceReason})`;
+                    statusText = `<span style="text-decoration: line-through;">결석</span>(${absenceReason})`;
+                } else {
+                    statusText = `<span style="text-decoration: line-through;">결석</span>`;
                 }
-                statusColor = 'color: #000; font-weight: 600; text-decoration: line-through;';
+                statusColor = 'color: #000; font-weight: 600;';
             } else {
                 // 상태가 비어있을 때: 입실만 있으면 체크 이모티콘 표시
                 if (checkInTime && !checkOutTime) {
@@ -996,9 +1000,11 @@ function renderAttendanceTable() {
                 statusColor = 'style="color: #9C27B0; font-weight: 600;"';
             } else if (status === '결석') {
                 if (absenceReason) {
-                    statusText = `결석(${absenceReason})`;
+                    statusText = `<span style="text-decoration: line-through;">결석</span>(${absenceReason})`;
+                } else {
+                    statusText = `<span style="text-decoration: line-through;">결석</span>`;
                 }
-                statusColor = 'style="color: #000; font-weight: 600; text-decoration: line-through;"';
+                statusColor = 'style="color: #000; font-weight: 600;"';
             } else {
                 // 상태가 비어있을 때: 입실만 있으면 체크 이모티콘 표시
                 if (checkInTime && !checkOutTime) {
@@ -2228,10 +2234,10 @@ function renderScheduleItem(schedule, pageType = 'check') {
     }
     
     if (schedule.status === '결석') {
-        // 결석: "이름, 결석"에 취소선, "(사유)"는 취소선 없음
+        // 결석: "결석"에만 취소선, 이름과 "(사유)"는 취소선 없음
         itemClass += ' absent';
-        const reason = schedule.absence_reason ? `(${schedule.absence_reason})` : '';
-        content = `<span style="text-decoration: line-through;">${schedule.student_name} 결석</span>${reason ? ' ' + reason : ''}`;
+        const reason = schedule.absence_reason ? ` (${schedule.absence_reason})` : '';
+        content = `${schedule.student_name} <span style="text-decoration: line-through;">결석</span>${reason}`;
     } else if (schedule.status === '보강') {
         // 보강: "입실시간, 이름, 퇴실시간 (결석날짜)" - 빨간색
         itemClass += ' makeup';
@@ -4385,10 +4391,12 @@ async function registerHoliday() {
                                 absence_reason: title
                             });
                             successCount++;
-                            console.log(`  ✅ 업데이트: ${student.name} (기존 레코드)`);
+                            console.log(`  ✅ 업데이트: ${student.name} (기존 레코드 → 결석)`);
                         }
                     } else {
-                        // 스케줄이 있지만 레코드가 없으면 결석 레코드 생성
+                        // ✅ 스케줄만 있고 레코드가 없는 경우
+                        // → 출석 현황 테이블에 미확정 스케줄로 표시되는 경우
+                        // → 결석 레코드를 생성하여 "결석(사유)" 상태로 변경
                         await API.create('attendance', {
                             student_id: student.id,
                             student_name: student.name,
@@ -4401,7 +4409,7 @@ async function registerHoliday() {
                             makeup_date: ''
                         });
                         successCount++;
-                        console.log(`  ✅ 생성: ${student.name} (새 레코드)`);
+                        console.log(`  ✅ 생성: ${student.name} (미확정 스케줄 → 결석)`);
                     }
                     
                 } catch (error) {
