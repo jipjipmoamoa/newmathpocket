@@ -38,26 +38,65 @@ function renderScoresTab(student) {
                 <tbody>
                     <!-- 입력 행 (2행) -->
                     <tr class="input-row">
-                        <td><input type="text" id="new-score-category-${student.id}" placeholder="교 또는 원" class="input-field" onblur="this.value = formatScoreCategory(this.value)"></td>
-                        <td><input type="text" id="new-score-type-${student.id}" placeholder="단원 또는 11중" class="input-field" onblur="this.value = formatScoreType(this.value)"></td>
-                        <td><input type="text" id="new-score-range-${student.id}" placeholder="중111 또는 초421" class="input-field" onblur="this.value = formatScoreRange(this.value)"></td>
-                        <td><input type="text" id="new-score-value-${student.id}" placeholder="점수" class="input-field"></td>
-                        <td><input type="text" id="new-score-notes-${student.id}" placeholder="오답유형" class="input-field"></td>
-                        <td style="padding: 0.3rem;"><button class="btn-register" onclick="addScore('${student.id}')" style="font-size: 1.2rem; padding: 0.3rem 0.5rem;">✏️</button></td>
+                        <td><input type="text" id="new-score-category-${student.id}" placeholder="교 또는 원" class="input-field" 
+                            onblur="this.value = formatScoreCategory(this.value)" 
+                            onkeydown="handleScoreEnter(event, 'new', '${student.id}', 'category')"></td>
+                        <td><input type="text" id="new-score-type-${student.id}" placeholder="단원 또는 11중" class="input-field" 
+                            onblur="this.value = formatScoreType(this.value)"
+                            onkeydown="handleScoreEnter(event, 'new', '${student.id}', 'type')"></td>
+                        <td><input type="text" id="new-score-range-${student.id}" placeholder="중111 또는 초421" class="input-field" 
+                            onblur="this.value = formatScoreRange(this.value)"
+                            onkeydown="handleScoreEnter(event, 'new', '${student.id}', 'range')"></td>
+                        <td><input type="text" id="new-score-value-${student.id}" placeholder="점수" class="input-field"
+                            onkeydown="handleScoreEnter(event, 'new', '${student.id}', 'value')"></td>
+                        <td><input type="text" id="new-score-notes-${student.id}" placeholder="오답유형" class="input-field"
+                            onkeydown="handleScoreEnter(event, 'new', '${student.id}', 'notes')"></td>
+                        <td style="padding: 0.3rem; text-align: center;"></td>
                     </tr>
                     
                     <!-- 데이터 행 (3행부터, 최신순) -->
                     ${scores.length === 0 ? '<tr><td colspan="6" class="empty-message">등록된 시험점수가 없습니다</td></tr>' : ''}
                     ${scores.map(score => `
-                        <tr>
-                            <td>${score.category || '-'}</td>
-                            <td>${score.type || '-'}</td>
-                            <td>${score.range || '-'}</td>
-                            <td>${formatScoreWithColor(score.value || '0')}</td>
-                            <td>${score.notes || '-'}</td>
-                            <td style="padding: 0.3rem;">
-                                <button class="btn-edit" onclick="editScore('${student.id}', '${score.id}')" style="font-size: 1.1rem; padding: 0.2rem 0.4rem;">✏️</button>
-                                <button class="btn-delete" onclick="deleteScore('${student.id}', '${score.id}')" style="font-size: 1.1rem; padding: 0.2rem 0.4rem;">❌</button>
+                        <tr id="score-row-${score.id}">
+                            <td><input type="text" class="input-field score-edit-field" 
+                                data-score-id="${score.id}" 
+                                data-student-id="${student.id}" 
+                                data-field="category" 
+                                value="${score.category || ''}" 
+                                onblur="this.value = formatScoreCategory(this.value); updateScoreField('${student.id}', '${score.id}', 'category', this.value)"
+                                onkeydown="handleScoreEnter(event, 'edit', '${student.id}', 'category', '${score.id}')"></td>
+                            <td><input type="text" class="input-field score-edit-field" 
+                                data-score-id="${score.id}" 
+                                data-student-id="${student.id}" 
+                                data-field="type" 
+                                value="${score.type || ''}" 
+                                onblur="this.value = formatScoreType(this.value); updateScoreField('${student.id}', '${score.id}', 'type', this.value)"
+                                onkeydown="handleScoreEnter(event, 'edit', '${student.id}', 'type', '${score.id}')"></td>
+                            <td><input type="text" class="input-field score-edit-field" 
+                                data-score-id="${score.id}" 
+                                data-student-id="${student.id}" 
+                                data-field="range" 
+                                value="${score.range || ''}" 
+                                onblur="this.value = formatScoreRange(this.value); updateScoreField('${student.id}', '${score.id}', 'range', this.value)"
+                                onkeydown="handleScoreEnter(event, 'edit', '${student.id}', 'range', '${score.id}')"></td>
+                            <td><input type="text" class="input-field score-edit-field" 
+                                data-score-id="${score.id}" 
+                                data-student-id="${student.id}" 
+                                data-field="value" 
+                                value="${score.value || ''}" 
+                                style="color: ${getScoreColor(score.value)}"
+                                onblur="updateScoreField('${student.id}', '${score.id}', 'value', this.value)"
+                                onkeydown="handleScoreEnter(event, 'edit', '${student.id}', 'value', '${score.id}')"></td>
+                            <td><input type="text" class="input-field score-edit-field" 
+                                data-score-id="${score.id}" 
+                                data-student-id="${student.id}" 
+                                data-field="notes" 
+                                value="${score.notes || ''}" 
+                                onblur="updateScoreField('${student.id}', '${score.id}', 'notes', this.value)"
+                                onkeydown="handleScoreEnter(event, 'edit', '${student.id}', 'notes', '${score.id}')"></td>
+                            <td style="padding: 0.3rem; text-align: center;">
+                                <button onclick="deleteScore('${student.id}', '${score.id}')" 
+                                    style="background: none; border: none; color: #FF6B35; font-size: 1.3rem; cursor: pointer; padding: 0; line-height: 1;">❌</button>
                             </td>
                         </tr>
                     `).join('')}
@@ -113,6 +152,117 @@ window.formatScoreRange = function(value) {
     }
     
     return value;
+}
+
+// 점수 색상 반환: 100점=파랑, 70점 미만=빨강
+window.getScoreColor = function(value) {
+    const numScore = parseInt(value);
+    if (isNaN(numScore)) return '#000';
+    if (numScore === 100) return '#2196F3'; // 파란색
+    if (numScore < 70) return '#f44336'; // 빨간색
+    return '#000'; // 기본 검은색
+}
+
+// 엔터키 핸들러: 다음 필드로 이동 또는 저장
+window.handleScoreEnter = function(event, mode, studentId, currentField, scoreId = null) {
+    if (event.key === 'Enter') {
+        event.preventDefault();
+        
+        const fieldOrder = ['category', 'type', 'range', 'value', 'notes'];
+        const currentIndex = fieldOrder.indexOf(currentField);
+        
+        if (mode === 'new') {
+            // 2행 (입력 행)
+            if (currentField === 'notes') {
+                // 마지막 필드에서 엔터: 저장
+                addScore(studentId);
+            } else {
+                // 다음 필드로 이동
+                const nextField = fieldOrder[currentIndex + 1];
+                const nextInput = document.getElementById(`new-score-${nextField}-${studentId}`);
+                if (nextInput) nextInput.focus();
+            }
+        } else if (mode === 'edit') {
+            // 3행 이후 (수정 행)
+            if (currentField === 'notes') {
+                // 마지막 필드에서 엔터: blur 이벤트 발생 (자동 저장)
+                event.target.blur();
+                
+                // 다음 행의 첫 번째 필드로 이동
+                const currentRow = document.getElementById(`score-row-${scoreId}`);
+                if (currentRow) {
+                    const nextRow = currentRow.nextElementSibling;
+                    if (nextRow && nextRow.id.startsWith('score-row-')) {
+                        const firstInput = nextRow.querySelector('input');
+                        if (firstInput) {
+                            setTimeout(() => firstInput.focus(), 50);
+                        }
+                    } else {
+                        // 마지막 행이면 2행 (입력 행)으로 이동
+                        const newCategoryInput = document.getElementById(`new-score-category-${studentId}`);
+                        if (newCategoryInput) {
+                            setTimeout(() => newCategoryInput.focus(), 50);
+                        }
+                    }
+                }
+            } else {
+                // 같은 행의 다음 필드로 이동
+                const nextField = fieldOrder[currentIndex + 1];
+                const nextInput = event.target.closest('tr').querySelector(`input[data-field="${nextField}"]`);
+                if (nextInput) nextInput.focus();
+            }
+        }
+    }
+}
+
+// 실시간 필드 업데이트
+window.updateScoreField = async function(studentId, scoreId, field, value) {
+    try {
+        // 학생 데이터 가져오기
+        const student = allStudents.find(s => s.id === studentId);
+        if (!student) return;
+        
+        // 기존 scores 파싱
+        let scores = [];
+        try {
+            if (student.scores && typeof student.scores === 'string' && student.scores.trim() !== '') {
+                scores = JSON.parse(student.scores);
+            } else if (Array.isArray(student.scores)) {
+                scores = student.scores;
+            }
+        } catch (e) {
+            scores = [];
+        }
+        
+        // 해당 점수 찾아서 업데이트
+        const scoreIndex = scores.findIndex(s => s.id === scoreId);
+        if (scoreIndex !== -1) {
+            scores[scoreIndex][field] = value;
+            
+            // DB 업데이트
+            await API.update('students', studentId, {
+                scores: JSON.stringify(scores)
+            });
+            
+            // allStudents 배열 업데이트
+            const studentIndex = allStudents.findIndex(s => s.id === studentId);
+            if (studentIndex !== -1) {
+                allStudents[studentIndex].scores = JSON.stringify(scores);
+            }
+            
+            console.log(`[updateScoreField] ${field} 업데이트 완료:`, value);
+            
+            // 점수 필드 업데이트 시 색상 변경
+            if (field === 'value') {
+                const input = event.target || document.querySelector(`input[data-score-id="${scoreId}"][data-field="value"]`);
+                if (input) {
+                    input.style.color = getScoreColor(value);
+                }
+            }
+        }
+    } catch (error) {
+        console.error('필드 업데이트 오류:', error);
+    }
 }
 
 // ===== 사용책 탭 렌더링 =====
