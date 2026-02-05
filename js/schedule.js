@@ -26,6 +26,8 @@ const studentColors = [
 
 let studentColorMap = {}; // 학생 ID -> 색상 매핑
 let scheduleTeacherFilter = 'all'; // 스케줄 페이지 선생님 필터
+let highlightedScheduleStudentId = null; // 강조된 학생 ID
+let monthlyAttendanceCount = {}; // 학생별 월별 출석 횟수 { studentId: count }
 
 // 이번달 스케줄표 페이지
 window.showScheduleCurrentPage = async function() {
@@ -63,6 +65,8 @@ window.showScheduleCurrentPage = async function() {
     if (!Auth.isTeacher()) {
         await loadTeachersForCheckboxFilter();
     }
+    // 월별 출석 횟수 로드
+    await loadMonthlyAttendanceCount();
     await loadWeeklySchedule();
     
     // 테이블 크기에 맞춰 자동 스케일 조정
@@ -665,8 +669,11 @@ function renderWeeklyScheduleTable_OLD(data) {
                         renderedCells[key] = true;
                     }
                     
+                    const isHighlighted = highlightedScheduleStudentId === student.id;
+                    const borderStyle = isHighlighted ? 'border: 3px solid #FF6B35 !important;' : '';
+                    
                     html += `
-                        <td rowspan="${slots}" class="student-cell ${isLastColOfDay ? 'last-col' : ''}" style="background: ${color}; vertical-align: top; padding: 0.4rem;">
+                        <td rowspan="${slots}" class="student-cell ${isLastColOfDay ? 'last-col' : ''}" style="background: ${color}; vertical-align: top; padding: 0.4rem; ${borderStyle} cursor: pointer; position: relative;" onclick="toggleHighlightScheduleStudent('${student.id}', event)" data-student-id="${student.id}">
                             <div style="font-weight: 600; color: #333; font-size: 0.85rem;">${student.name}</div>
                             <div style="font-size: 0.7rem; color: #555; margin-top: 0.2rem;">(${checkIn}-${checkOut})</div>
                         </td>
@@ -1021,8 +1028,11 @@ function generateScheduleTableHTML(data, globalTimeRange = null) {
                         renderedCells[key] = true;
                     }
                     
+                    const isHighlighted = highlightedScheduleStudentId === student.id;
+                    const borderStyle = isHighlighted ? 'border: 3px solid #FF6B35 !important;' : '';
+                    
                     html += `
-                        <td rowspan="${slots}" class="student-cell ${isLastColOfDay ? 'last-col' : ''}" style="background: ${color}; vertical-align: top; padding: 0.4rem;">
+                        <td rowspan="${slots}" class="student-cell ${isLastColOfDay ? 'last-col' : ''}" style="background: ${color}; vertical-align: top; padding: 0.4rem; ${borderStyle} cursor: pointer; position: relative;" onclick="toggleHighlightScheduleStudent('${student.id}', event)" data-student-id="${student.id}">
                             <div style="font-weight: 600; color: #333; font-size: 0.85rem;">${student.name}</div>
                             <div style="font-size: 0.7rem; color: #555; margin-top: 0.2rem;">(${checkIn}-${checkOut})</div>
                         </td>
@@ -1043,6 +1053,263 @@ function generateScheduleTableHTML(data, globalTimeRange = null) {
     `;
     
     return html;
+}
+
+// 월별 출석 상세 정보 로드 (휴일 제외)
+async function loadMonthlyAttendanceCount() {
+    try {
+        const now = new Date();
+        const year = now.getFullYear();
+        const month = now.getMonth(); // 0-based
+        
+        // 해당 월의 시작/종료 날짜
+        const startDate = new Date(year, month, 1);
+        const endDate = new Date(year, month + 1, 0);
+        const startDateStr = startDate.toISOString().split('T')[0];
+        const endDateStr = endDate.toISOString().split('T')[0];
+        
+        console.log(`[loadMonthlyAttendanceCount] 조회 기간: ${startDateStr} ~ ${endDateStr}`);
+        
+        // 출석 데이터 로드
+        const attendanceResponse = await API.getList('attendance', { limit: 10000 });
+        const allAttendance = Array.isArray(attendanceResponse) ? attendanceResponse : (attendanceResponse.data || []);
+        
+        // 학생 목록 로드
+        const studentsResponse = await API.getList('students', { limit: 1000 });
+        const allStudents = Array.isArray(studentsResponse) ? studentsResponse : (studentsResponse.data || []);
+        
+        // 해당 월의 출석 기록만 필터링
+        const monthAttendance = allAttendance.filter(record => 
+            record.date >= startDateStr && record.date <= endDateStr
+        );
+        
+        // 날짜별로 그룹화하여 휴일 여부 확인
+        const dateGroups = {};
+        monthAttendance.forEach(record => {
+            if (!dateGroups[record.date]) {
+                dateGroups[record.date] = [];
+            }
+            dateGroups[record.date].push(record);
+        });
+        
+        // 휴일 날짜 찾기 (모든 학생이 같은 사유로 결석)
+        const holidayDates = new Set();
+        Object.keys(dateGroups).forEach(date => {
+            const records = dateGroups[date];
+            const allAbsent = records.every(r => r.status === '결석');
+            const allSameReason = allAbsent && records.length > 0 && 
+                                  records.every(r => r.absence_reason === records[0].absence_reason);
+            
+            if (allAbsent && allSameReason && records[0].absence_reason) {
+                holidayDates.add(date);
+                console.log(`[loadMonthlyAttendanceCount] 휴일 발견: ${date} (사유: ${records[0].absence_reason})`);
+            }
+        });
+        
+        // 각 학생의 상세 출석 정보 계산
+        const detailMap = {};
+        
+        allStudents.forEach(student => {
+            // 학생의 스케줄 파싱
+            let schedule = student.schedule;
+            if (typeof schedule === 'string') {
+                try {
+                    schedule = JSON.parse(schedule);
+                } catch (e) {
+                    schedule = null;
+                }
+            }
+            
+            // 이번 달 출석해야 하는 횟수 계산 (주간 스케줄 * 4주 - 휴일)
+            let expectedCount = 0;
+            if (schedule) {
+                const dayKeys = ['월', '화', '수', '목', '금', '토'];
+                const dayKeysEng = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+                
+                dayKeysEng.forEach(dayKey => {
+                    if (schedule[dayKey] && schedule[dayKey].enabled) {
+                        expectedCount++;
+                    }
+                });
+                
+                expectedCount *= 4; // 4주 기준
+                
+                // 휴일 중 해당 학생이 스케줄이 있는 날짜 개수 차감
+                holidayDates.forEach(date => {
+                    const dateObj = new Date(date);
+                    const dayOfWeek = dateObj.getDay(); // 0=일, 1=월, ..., 6=토
+                    const dayKeys = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+                    const dayKey = dayKeys[dayOfWeek];
+                    
+                    if (schedule[dayKey] && schedule[dayKey].enabled) {
+                        expectedCount--;
+                    }
+                });
+            }
+            
+            detailMap[student.id] = {
+                expected: expectedCount,
+                attendance: 0,
+                makeup: 0,
+                supplement: 0,
+                absence: 0
+            };
+        });
+        
+        // 출석 기록 집계 (휴일 제외)
+        monthAttendance.forEach(record => {
+            if (holidayDates.has(record.date)) {
+                return; // 휴일은 제외
+            }
+            
+            if (!detailMap[record.student_id]) {
+                return;
+            }
+            
+            // 퇴실시간이 있는 경우만 카운트
+            if (record.check_out_time) {
+                if (record.status === '출석') {
+                    detailMap[record.student_id].attendance++;
+                } else if (record.status === '보강') {
+                    detailMap[record.student_id].makeup++;
+                } else if (record.status === '보충') {
+                    detailMap[record.student_id].supplement++;
+                }
+            }
+            
+            // 결석은 퇴실시간 없어도 카운트
+            if (record.status === '결석') {
+                detailMap[record.student_id].absence++;
+            }
+        });
+        
+        console.log(`[loadMonthlyAttendanceCount] 학생별 출석 상세:`, detailMap);
+        console.log(`[loadMonthlyAttendanceCount] 제외된 휴일 수: ${holidayDates.size}일`);
+        
+        monthlyAttendanceCount = detailMap;
+        
+    } catch (error) {
+        console.error('[loadMonthlyAttendanceCount] 월별 출석 정보 로드 실패:', error);
+        monthlyAttendanceCount = {};
+    }
+}
+
+// 학생 강조 토글 및 정보 팝업 표시
+window.toggleHighlightScheduleStudent = function(studentId, event) {
+    // 기존 팝업 제거
+    const existingPopup = document.getElementById('studentAttendancePopup');
+    if (existingPopup) {
+        existingPopup.remove();
+    }
+    
+    if (highlightedScheduleStudentId === studentId) {
+        // 이미 선택된 학생 클릭 시 해제
+        highlightedScheduleStudentId = null;
+        
+        // 모든 학생 셀의 테두리 제거
+        const allStudentCells = document.querySelectorAll('.student-cell[data-student-id]');
+        allStudentCells.forEach(cell => {
+            cell.style.border = '';
+        });
+        
+        return;
+    }
+    
+    // 새로운 학생 선택
+    highlightedScheduleStudentId = studentId;
+    
+    console.log('[toggleHighlightScheduleStudent] 선택된 학생 ID:', highlightedScheduleStudentId);
+    
+    // 모든 학생 셀의 스타일 업데이트
+    const allStudentCells = document.querySelectorAll('.student-cell[data-student-id]');
+    allStudentCells.forEach(cell => {
+        const cellStudentId = cell.getAttribute('data-student-id');
+        if (cellStudentId === highlightedScheduleStudentId) {
+            cell.style.border = '3px solid #FF6B35';
+        } else {
+            cell.style.border = '';
+        }
+    });
+    
+    // 출석 정보 팝업 생성 및 표시
+    const studentInfo = monthlyAttendanceCount[studentId];
+    if (!studentInfo) {
+        console.warn('[toggleHighlightScheduleStudent] 학생 정보 없음:', studentId);
+        return;
+    }
+    
+    const popup = document.createElement('div');
+    popup.id = 'studentAttendancePopup';
+    popup.style.cssText = `
+        position: fixed;
+        background: white;
+        border: 2px solid #FF6B35;
+        border-radius: 8px;
+        padding: 1rem;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+        z-index: 10000;
+        min-width: 200px;
+    `;
+    
+    const now = new Date();
+    const monthName = `${now.getFullYear()}년 ${now.getMonth() + 1}월`;
+    
+    popup.innerHTML = `
+        <div style="font-weight: 600; font-size: 1rem; margin-bottom: 0.75rem; color: #FF6B35; border-bottom: 2px solid #FF6B35; padding-bottom: 0.5rem;">
+            ${monthName}
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 0.5rem; font-size: 0.9rem;">
+            <div style="display: flex; justify-content: space-between;">
+                <span style="color: #666;">출석해야 할 횟수:</span>
+                <span style="font-weight: 600; color: #333;">${studentInfo.expected}회</span>
+            </div>
+            <div style="height: 1px; background: #e0e0e0;"></div>
+            <div style="display: flex; justify-content: space-between;">
+                <span style="color: #666;">출석:</span>
+                <span style="font-weight: 600; color: #4CAF50;">${studentInfo.attendance}회</span>
+            </div>
+            <div style="display: flex; justify-content: space-between;">
+                <span style="color: #666;">보강:</span>
+                <span style="font-weight: 600; color: #f44336;">${studentInfo.makeup}회</span>
+            </div>
+            <div style="display: flex; justify-content: space-between;">
+                <span style="color: #666;">보충:</span>
+                <span style="font-weight: 600; color: #9C27B0;">${studentInfo.supplement}회</span>
+            </div>
+            <div style="display: flex; justify-content: space-between;">
+                <span style="color: #666;">결석:</span>
+                <span style="font-weight: 600; color: #000; text-decoration: line-through;">${studentInfo.absence}회</span>
+            </div>
+        </div>
+    `;
+    
+    // 클릭한 셀의 위치 계산
+    const targetCell = event.target.closest('.student-cell');
+    if (targetCell) {
+        const rect = targetCell.getBoundingClientRect();
+        
+        // 팝업 위치: 셀 오른쪽 상단
+        popup.style.left = `${rect.right + 10}px`;
+        popup.style.top = `${rect.top}px`;
+        
+        // 화면 오른쪽을 벗어나면 왼쪽에 표시
+        document.body.appendChild(popup);
+        const popupRect = popup.getBoundingClientRect();
+        if (popupRect.right > window.innerWidth) {
+            popup.style.left = `${rect.left - popupRect.width - 10}px`;
+        }
+        
+        // 화면 아래를 벗어나면 위로 이동
+        if (popupRect.bottom > window.innerHeight) {
+            popup.style.top = `${rect.bottom - popupRect.height}px`;
+        }
+    } else {
+        // 기본 위치: 화면 중앙
+        popup.style.left = '50%';
+        popup.style.top = '50%';
+        popup.style.transform = 'translate(-50%, -50%)';
+        document.body.appendChild(popup);
+    }
 }
 
 // 스케줄표 인쇄
