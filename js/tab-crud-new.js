@@ -1,6 +1,6 @@
 // ===== 시험점수 등록 함수 =====
 
-async function addScore(studentId) {
+window.addScore = async function(studentId) {
     console.log('[addScore] 호출됨 - studentId:', studentId);
     
     // Auth 모듈을 사용한 로그인 확인
@@ -43,7 +43,7 @@ async function addScore(studentId) {
     const formattedType = formatScoreType(typeInput);
     const formattedRange = formatScoreRange(rangeInput);
     
-    console.log('[addScore] 포맷 변환 완료:', { formattedDate, formattedName, formattedRange });
+    console.log('[addScore] 포맷 변환 완료:', { formattedCategory, formattedType, formattedRange });
     
     try {
         // 학생 데이터 가져오기 (allStudents에서 직접 찾기)
@@ -124,7 +124,7 @@ async function addScore(studentId) {
 
 // ===== 시험점수 삭제 함수 =====
 
-async function deleteScore(studentId, scoreId) {
+window.deleteScore = async function(studentId, scoreId) {
     if (!confirm('이 시험점수를 삭제하시겠습니까?')) {
         return;
     }
