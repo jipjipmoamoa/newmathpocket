@@ -164,7 +164,7 @@ window.getScoreColor = function(value) {
 }
 
 // 엔터키 핸들러: 다음 필드로 이동 또는 저장
-window.handleScoreEnter = function(event, mode, studentId, currentField, scoreId = null) {
+window.handleScoreEnter = async function(event, mode, studentId, currentField, scoreId = null) {
     if (event.key === 'Enter') {
         event.preventDefault();
         
@@ -174,8 +174,26 @@ window.handleScoreEnter = function(event, mode, studentId, currentField, scoreId
         if (mode === 'new') {
             // 2행 (입력 행)
             if (currentField === 'notes') {
-                // 마지막 필드에서 엔터: 저장
-                addScore(studentId);
+                // 마지막 필드에서 엔터: 저장 후 3행으로 이동
+                await addScore(studentId);
+                
+                // 저장 후 3행의 첫 번째 필드로 포커스 이동
+                setTimeout(() => {
+                    const tbody = document.querySelector('.scores-table tbody');
+                    if (tbody) {
+                        const thirdRow = tbody.rows[2]; // 0=헤더, 1=빈칸?, 2=입력행, 3=첫 데이터
+                        if (thirdRow && thirdRow.id.startsWith('score-row-')) {
+                            const firstInput = thirdRow.querySelector('input');
+                            if (firstInput) {
+                                firstInput.focus();
+                            }
+                        } else {
+                            // 데이터가 없으면 입력행의 첫 칸으로
+                            const categoryInput = document.getElementById(`new-score-category-${studentId}`);
+                            if (categoryInput) categoryInput.focus();
+                        }
+                    }
+                }, 300); // 화면 갱신 대기
             } else {
                 // 다음 필드로 이동
                 const nextField = fieldOrder[currentIndex + 1];
