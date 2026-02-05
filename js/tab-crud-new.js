@@ -12,16 +12,22 @@ async function addScore(studentId) {
     console.log('[addScore] 로그인 확인 완료');
     
     // 입력값 가져오기
-    const nameInput = document.getElementById(`new-score-name-${studentId}`).value.trim();
+    const categoryInput = document.getElementById(`new-score-category-${studentId}`).value.trim();
+    const typeInput = document.getElementById(`new-score-type-${studentId}`).value.trim();
     const rangeInput = document.getElementById(`new-score-range-${studentId}`).value.trim();
     const valueInput = document.getElementById(`new-score-value-${studentId}`).value.trim();
     const notesInput = document.getElementById(`new-score-notes-${studentId}`).value.trim();
     
-    console.log('[addScore] 입력값:', { nameInput, rangeInput, valueInput, notesInput });
+    console.log('[addScore] 입력값:', { categoryInput, typeInput, rangeInput, valueInput, notesInput });
     
     // 필수 입력 검증
-    if (!nameInput) {
-        alert('시험명을 입력해주세요.');
+    if (!categoryInput) {
+        alert('구분을 입력해주세요.');
+        return;
+    }
+    
+    if (!typeInput) {
+        alert('종류를 입력해주세요.');
         return;
     }
     
@@ -32,14 +38,10 @@ async function addScore(studentId) {
     
     console.log('[addScore] 입력 검증 통과');
     
-    // 날짜는 빈 문자열로 설정 (날짜 입력란 제거됨)
-    const formattedDate = '';
-    
-    // 시험명 자동 변환
-    const formattedName = formatExamName(nameInput);
-    
-    // 시험범위 자동 변환
-    const formattedRange = formatExamRange(rangeInput);
+    // 입력값 자동 변환
+    const formattedCategory = formatScoreCategory(categoryInput);
+    const formattedType = formatScoreType(typeInput);
+    const formattedRange = formatScoreRange(rangeInput);
     
     console.log('[addScore] 포맷 변환 완료:', { formattedDate, formattedName, formattedRange });
     
@@ -72,8 +74,8 @@ async function addScore(studentId) {
         // 새 점수 추가
         const newScore = {
             id: Date.now().toString(),
-            date: formattedDate,
-            name: formattedName,
+            category: formattedCategory,
+            type: formattedType,
             range: formattedRange,
             value: valueInput,
             notes: notesInput
@@ -92,7 +94,8 @@ async function addScore(studentId) {
         console.log('[addScore] DB 업데이트 완료');
         
         // 입력 필드 초기화
-        document.getElementById(`new-score-name-${studentId}`).value = '';
+        document.getElementById(`new-score-category-${studentId}`).value = '';
+        document.getElementById(`new-score-type-${studentId}`).value = '';
         document.getElementById(`new-score-range-${studentId}`).value = '';
         document.getElementById(`new-score-value-${studentId}`).value = '';
         document.getElementById(`new-score-notes-${studentId}`).value = '';
