@@ -102,19 +102,17 @@ function formatExamRange(input) {
 
 /**
  * 점수에 따라 색상 CSS 클래스 반환
- * 70점 이하: 빨강
- * 90-99점: 초록
+ * 70점 미만: 빨강
  * 100점: 파랑
  */
 function getScoreColorClass(score) {
     const numScore = parseInt(score);
     
     if (isNaN(numScore)) return '';
-    if (numScore <= 70) return 'score-red';
-    if (numScore >= 90 && numScore <= 99) return 'score-green';
+    if (numScore < 70) return 'score-red';
     if (numScore === 100) return 'score-blue';
     
-    return ''; // 71-89점은 기본 색상
+    return ''; // 70-99점은 기본 색상
 }
 
 /**
@@ -122,5 +120,5 @@ function getScoreColorClass(score) {
  */
 function formatScoreWithColor(score) {
     const colorClass = getScoreColorClass(score);
-    return `<span class="${colorClass}">${score}점</span>`;
+    return `<span class="${colorClass}">${score}</span>`;
 }
