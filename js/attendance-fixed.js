@@ -1393,6 +1393,9 @@ async function saveAttendance(rowId, recordId) {
     console.log('[saveAttendance] recordId:', recordId);
     console.log('[saveAttendance] studentId 추출:', studentId);
     
+    // 기존 레코드 확인 (시간 유지를 위해)
+    const existingRecord = recordId ? todayAttendanceRecords.find(r => r.id === recordId) : null;
+    
     // 입력 필드에서 값 가져오기
     let checkInTime = document.getElementById(`edit-checkin-${rowId}`)?.value || '';
     const expectedOutTime = document.getElementById(`edit-expected-${rowId}`)?.value || '';
@@ -1413,7 +1416,19 @@ async function saveAttendance(rowId, recordId) {
         }
     }
     
-    // 스케줄에서 기본값 가져오기
+    // 핵심: 기존 레코드에 시간이 있으면 유지 (덮어쓰지 않음)
+    if (existingRecord) {
+        // 기존 입실시간이 있으면 유지 (입력 필드가 비어있어도)
+        if (existingRecord.check_in_time && !checkInTime) {
+            checkInTime = existingRecord.check_in_time;
+        }
+        // 기존 퇴실시간이 있으면 유지 (입력 필드가 비어있어도)
+        if (existingRecord.check_out_time && !checkOutTime) {
+            checkOutTime = existingRecord.check_out_time;
+        }
+    }
+    
+    // 스케줄에서 기본값 가져오기 (기존 레코드에도 없을 때만)
     const student = attendanceStudents.find(s => s.id === studentId);
     let studentName = '';
     
@@ -1434,7 +1449,7 @@ async function saveAttendance(rowId, recordId) {
         const selectedDayKey = dayKeys[dateObj.getDay()];
         const daySchedule = schedule[selectedDayKey];
         
-        // 입력하지 않았으면 스케줄 시간 사용
+        // 입력도 없고 기존 레코드에도 없으면 스케줄 시간 사용
         if (!checkInTime && daySchedule) {
             checkInTime = daySchedule.checkIn || '';
         }
@@ -1464,22 +1479,19 @@ async function saveAttendance(rowId, recordId) {
     // 상태가 비어있으면 자동 결정
     if (!status) {
         if (checkInTime && checkOutTime) {
-            // 보강 날짜가 있으면 '보강', 보충인지 확인 (recordId로 판단)
+            // 입실/퇴실 모두 있으면: 보강/보충/출석 확정
             if (makeupDate) {
                 status = '보강';
-            } else if (recordId) {
-                // 기존 레코드의 schedule_type 확인
-                const existingRecord = todayAttendanceRecords.find(r => r.id === recordId);
-                if (existingRecord && existingRecord.schedule_type === 'extra') {
-                    status = '보충';
-                } else {
-                    status = '출석';
-                }
+            } else if (existingRecord && existingRecord.schedule_type === 'extra') {
+                status = '보충';
             } else {
                 status = '출석';
             }
+        } else if (checkInTime && !checkOutTime) {
+            // 입실만 있고 퇴실 없으면: 체크 표시 (빈 상태 유지)
+            status = '';
         } else {
-            // 입실만 있으면 빈 상태 (체크 표시)
+            // 입실도 없으면 빈 상태
             status = '';
         }
     }
@@ -1549,17 +1561,13 @@ async function quickCheckIn(studentId, recordId = null) {
         if (recordId) {
             const existingRecord = todayAttendanceRecords.find(r => r.id === recordId);
             if (existingRecord) {
-                // 퇴실시간이 있으면 상태 결정, 없으면 빈 문자열 (체크 이모티콘 표시용)
+                // 입실 버튼: 상태를 체크로 (빈 문자열)
+                // 단, 기존에 보강/보충으로 등록되었다면 해당 상태 유지 (체크 표시)
                 let newStatus = '';
-                if (existingRecord.check_out_time) {
-                    // 보강 날짜가 있으면 '보강', 보충 스케줄이면 '보충', 아니면 '출석'
-                    if (existingRecord.makeup_date) {
-                        newStatus = '보강';
-                    } else if (existingRecord.schedule_type === 'extra') {
-                        newStatus = '보충';
-                    } else {
-                        newStatus = '출석';
-                    }
+                if (existingRecord.makeup_date) {
+                    newStatus = ''; // 보강도 입실 시 체크 표시
+                } else if (existingRecord.schedule_type === 'extra') {
+                    newStatus = ''; // 보충도 입실 시 체크 표시
                 }
                 
                 await API.update('attendance', existingRecord.id, {
@@ -1575,17 +1583,13 @@ async function quickCheckIn(studentId, recordId = null) {
             const existingRecord = todayAttendanceRecords.find(r => r.student_id === student.id);
             
             if (existingRecord) {
-                // 퇴실시간이 있으면 상태 결정, 없으면 빈 문자열 (체크 이모티콘 표시용)
+                // 입실 버튼: 상태를 체크로 (빈 문자열)
+                // 단, 기존에 보강/보충으로 등록되었다면 해당 상태 유지 (체크 표시)
                 let newStatus = '';
-                if (existingRecord.check_out_time) {
-                    // 보강 날짜가 있으면 '보강', 보충 스케줄이면 '보충', 아니면 '출석'
-                    if (existingRecord.makeup_date) {
-                        newStatus = '보강';
-                    } else if (existingRecord.schedule_type === 'extra') {
-                        newStatus = '보충';
-                    } else {
-                        newStatus = '출석';
-                    }
+                if (existingRecord.makeup_date) {
+                    newStatus = ''; // 보강도 입실 시 체크 표시
+                } else if (existingRecord.schedule_type === 'extra') {
+                    newStatus = ''; // 보충도 입실 시 체크 표시
                 }
                 
                 await API.update('attendance', existingRecord.id, {
