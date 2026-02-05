@@ -27,34 +27,37 @@ function renderScoresTab(student) {
             <table class="data-table scores-table">
                 <thead>
                     <tr>
-                        <th>시험명</th>
-                        <th>점수</th>
-                        <th>시험 범위</th>
-                        <th>오답 내용</th>
-                        <th>관리</th>
+                        <th style="width: 80px;">구분</th>
+                        <th style="width: 150px;">종류</th>
+                        <th style="width: 150px;">범위</th>
+                        <th style="width: 80px;">점수</th>
+                        <th>오답유형</th>
+                        <th style="width: 90px;">관리</th>
                     </tr>
                 </thead>
                 <tbody>
                     <!-- 입력 행 (2행) -->
                     <tr class="input-row">
-                        <td><input type="text" id="new-score-name-${student.id}" placeholder="11중" class="input-field"></td>
+                        <td><input type="text" id="new-score-category-${student.id}" placeholder="교 또는 원" class="input-field" onblur="this.value = formatScoreCategory(this.value)"></td>
+                        <td><input type="text" id="new-score-type-${student.id}" placeholder="단원 또는 11중" class="input-field" onblur="this.value = formatScoreType(this.value)"></td>
+                        <td><input type="text" id="new-score-range-${student.id}" placeholder="중111 또는 초421" class="input-field" onblur="this.value = formatScoreRange(this.value)"></td>
                         <td><input type="text" id="new-score-value-${student.id}" placeholder="점수" class="input-field"></td>
-                        <td><input type="text" id="new-score-range-${student.id}" placeholder="중111" class="input-field"></td>
-                        <td><input type="text" id="new-score-notes-${student.id}" placeholder="오답 내용" class="input-field"></td>
-                        <td><button class="btn-register" onclick="addScore('${student.id}')">등록</button></td>
+                        <td><input type="text" id="new-score-notes-${student.id}" placeholder="오답유형" class="input-field"></td>
+                        <td style="padding: 0.3rem;"><button class="btn-register" onclick="addScore('${student.id}')" style="font-size: 1.2rem; padding: 0.3rem 0.5rem;">✏️</button></td>
                     </tr>
                     
                     <!-- 데이터 행 (3행부터, 최신순) -->
-                    ${scores.length === 0 ? '<tr><td colspan="5" class="empty-message">등록된 시험점수가 없습니다</td></tr>' : ''}
+                    ${scores.length === 0 ? '<tr><td colspan="6" class="empty-message">등록된 시험점수가 없습니다</td></tr>' : ''}
                     ${scores.map(score => `
                         <tr>
-                            <td>${score.name || '-'}</td>
-                            <td>${formatScoreWithColor(score.value || '0')}</td>
+                            <td>${score.category || '-'}</td>
+                            <td>${score.type || '-'}</td>
                             <td>${score.range || '-'}</td>
+                            <td>${formatScoreWithColor(score.value || '0')}</td>
                             <td>${score.notes || '-'}</td>
-                            <td>
-                                <button class="btn-edit" onclick="editScore('${student.id}', '${score.id}')"><i class="fas fa-pencil-alt"></i></button>
-                                <button class="btn-delete" onclick="deleteScore('${student.id}', '${score.id}')"><i class="fas fa-times"></i></button>
+                            <td style="padding: 0.3rem;">
+                                <button class="btn-edit" onclick="editScore('${student.id}', '${score.id}')" style="font-size: 1.1rem; padding: 0.2rem 0.4rem;">✏️</button>
+                                <button class="btn-delete" onclick="deleteScore('${student.id}', '${score.id}')" style="font-size: 1.1rem; padding: 0.2rem 0.4rem;">❌</button>
                             </td>
                         </tr>
                     `).join('')}
@@ -62,6 +65,54 @@ function renderScoresTab(student) {
             </table>
         </div>
     `;
+}
+
+// ===== 시험점수 입력값 변환 함수들 =====
+
+// 구분 변환: "교" → "학교", "원" → "학원"
+window.formatScoreCategory = function(value) {
+    if (!value) return '';
+    value = value.trim();
+    if (value === '교') return '학교';
+    if (value === '원') return '학원';
+    return value;
+}
+
+// 종류 변환: "단원" → "단원평가", "11중" → "1-1 중간고사", "22기" → "2-2 기말고사"
+window.formatScoreType = function(value) {
+    if (!value) return '';
+    value = value.trim();
+    
+    if (value === '단원') return '단원평가';
+    
+    // 패턴: 숫자숫자 + 중/기 (예: "11중", "22기")
+    const match = value.match(/^(\d)(\d)(중|기)$/);
+    if (match) {
+        const grade = match[1];
+        const semester = match[2];
+        const type = match[3] === '중' ? '중간고사' : '기말고사';
+        return `${grade}-${semester} ${type}`;
+    }
+    
+    return value;
+}
+
+// 범위 변환: "중111" → "중등 1-1-1", "초421" → "초등 4-2-1"
+window.formatScoreRange = function(value) {
+    if (!value) return '';
+    value = value.trim();
+    
+    // 패턴: 중/초 + 숫자 3개 (예: "중111", "초421")
+    const match = value.match(/^(중|초)(\d)(\d)(\d)$/);
+    if (match) {
+        const level = match[1] === '중' ? '중등' : '초등';
+        const grade = match[2];
+        const semester = match[3];
+        const unit = match[4];
+        return `${level} ${grade}-${semester}-${unit}`;
+    }
+    
+    return value;
 }
 
 // ===== 사용책 탭 렌더링 =====
