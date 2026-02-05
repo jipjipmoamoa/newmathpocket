@@ -178,6 +178,17 @@ function showPage(pageId) {
         if (schedulePrintCSS) {
             schedulePrintCSS.remove();
         }
+        
+        // 스케줄표 팝업 제거
+        const popup = document.getElementById('studentAttendancePopup');
+        if (popup) {
+            popup.remove();
+        }
+        
+        // 강조 상태 초기화
+        if (typeof highlightedScheduleStudentId !== 'undefined') {
+            highlightedScheduleStudentId = null;
+        }
     }
     
     const mainContent = document.getElementById('mainContent');
