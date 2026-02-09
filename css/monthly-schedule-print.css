@@ -92,4 +92,9 @@
         padding: 0 !important;
         page-break-inside: avoid !important;
     }
+    
+    /* 학생 이름 폰트 크기 50% 확대 (0.845rem × 1.5 = 1.2675rem) */
+    #monthlyScheduleCalendar td span {
+        font-size: 1.2675rem !important;
+    }
 }
