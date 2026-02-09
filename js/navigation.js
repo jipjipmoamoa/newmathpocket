@@ -46,8 +46,8 @@ const Navigation = {
             // 부관리자
             return ['classManagement', 'members', 'attendance', 'schedule', 'tuition', 'curriculum', 'academyManagement', 'settings'];
         } else if (role === 'teacher') {
-            // 선생님은 제한된 메뉴만 접근 가능
-            return ['classManagement', 'members', 'attendance', 'schedule', 'curriculum'];
+            // 선생님: 스케줄표 전체 접근 + 학원 관리 접근 가능
+            return ['classManagement', 'members', 'attendance', 'schedule', 'curriculum', 'academyManagement'];
         }
         
         return [];
