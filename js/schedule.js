@@ -555,36 +555,112 @@ async function renderMonthlyScheduleCalendar(students, attendanceRecords) {
         }
         const dayNames = { monday: '월', tuesday: '화', wednesday: '수', thursday: '목', friday: '금', saturday: '토' };
         
+        // ===== 1단계: 각 요일-시간대별 최대 학생 수 계산 =====
+        const maxStudentsPerSlot = {}; // key: `${dayKey}_${time}`, value: 최대 학생 수
+        
+        weekGroups.forEach(week => {
+            timeSlots.forEach(time => {
+                dayKeys.forEach(dayKey => {
+                    const dateInfo = week[dayKey];
+                    if (!dateInfo) return;
+                    
+                    const dateSchedules = [];
+                    const addedStudentIds = new Set();
+                    
+                    // 출석 기록 기준
+                    attendanceRecords.forEach(record => {
+                        if (record.date !== dateInfo.dateString) return;
+                        if (record.status === '결석') return;
+                        if (record.check_in_time !== time) return;
+                        
+                        const student = teacherStudents.find(s => s.id === record.student_id);
+                        if (student && !addedStudentIds.has(student.id)) {
+                            dateSchedules.push(student);
+                            addedStudentIds.add(student.id);
+                        }
+                    });
+                    
+                    // 스케줄 기준
+                    teacherStudents.forEach(student => {
+                        if (addedStudentIds.has(student.id)) return;
+                        
+                        let schedule = student.schedule;
+                        if (typeof schedule === 'string') {
+                            try {
+                                schedule = JSON.parse(schedule);
+                            } catch (e) {
+                                return;
+                            }
+                        }
+                        if (!schedule) return;
+                        
+                        const date = new Date(dateInfo.dateString);
+                        const dayKeysMap = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+                        const studentDayKey = dayKeysMap[date.getDay()];
+                        const daySchedule = schedule[studentDayKey];
+                        
+                        if (!daySchedule || !daySchedule.enabled) return;
+                        if (daySchedule.checkIn !== time) return;
+                        
+                        const attendanceRecord = attendanceRecords.find(r => r.student_id === student.id && r.date === dateInfo.dateString);
+                        if (attendanceRecord && attendanceRecord.status === '결석') return;
+                        
+                        dateSchedules.push(student);
+                        addedStudentIds.add(student.id);
+                    });
+                    
+                    const slotKey = `${dayKey}_${time}`;
+                    const currentMax = maxStudentsPerSlot[slotKey] || 0;
+                    maxStudentsPerSlot[slotKey] = Math.max(currentMax, dateSchedules.length);
+                });
+            });
+        });
+        
+        // 각 요일별 최대 열 개수 계산
+        const maxColsPerDay = {};
+        dayKeys.forEach(dayKey => {
+            let maxCols = 0;
+            timeSlots.forEach(time => {
+                const slotKey = `${dayKey}_${time}`;
+                maxCols = Math.max(maxCols, maxStudentsPerSlot[slotKey] || 0);
+            });
+            maxColsPerDay[dayKey] = Math.max(maxCols, 1); // 최소 1열
+        });
+        
+        console.log('[renderMonthlyScheduleCalendar] 요일별 최대 열 개수:', maxColsPerDay);
+        
         // 거대한 테이블 생성
         html += '<div style="overflow-x: auto;">';
         html += '<table style="width: 100%; border-collapse: collapse; font-size: 0.6rem; table-layout: fixed;">';
         
-        // colgroup으로 열 너비 설정
+        // colgroup으로 열 너비 설정 (동적)
         html += '<colgroup>';
         html += '<col style="width: 60px;">'; // 시간 열
         dayKeys.forEach(dayKey => {
-            // 각 요일당 4개 열 (정원 4명)
-            for (let i = 0; i < 4; i++) {
+            const colCount = maxColsPerDay[dayKey];
+            for (let i = 0; i < colCount; i++) {
                 html += '<col style="width: 45px;">'; // 학생 열 너비
             }
         });
         html += '</colgroup>';
         
-        // 1행: 요일 헤더
+        // 1행: 요일 헤더 (동적 colspan)
         html += '<thead>';
         html += '<tr>';
         html += '<th style="border: 1px solid #ccc; padding: 0.3rem; background: #f8f9fa; color: #333; font-weight: 700; text-align: center;">시간</th>';
         
         dayKeys.forEach(dayKey => {
-            html += `<th colspan="4" style="border: 1px solid #ccc; padding: 0.3rem; background: #f8f9fa; color: #333; font-weight: 600; text-align: center; font-size: 0.7rem;">${dayNames[dayKey]}</th>`;
+            const colCount = maxColsPerDay[dayKey];
+            html += `<th colspan="${colCount}" style="border: 1px solid #ccc; padding: 0.3rem; background: #f8f9fa; color: #333; font-weight: 600; text-align: center; font-size: 0.7rem;">${dayNames[dayKey]}</th>`;
         });
         html += '</tr>';
         
-        // 2행: 날짜 행 추가
+        // 2행: 날짜 행 추가 (동적 colspan)
         html += '<tr>';
         html += '<th style="border: 1px solid #ccc; padding: 0.3rem; background: #f8f9fa; color: #333; font-weight: 700; text-align: center;">날짜</th>';
         
         dayKeys.forEach(dayKey => {
+            const colCount = maxColsPerDay[dayKey];
             const dateInfo = weekGroups[0] ? weekGroups[0][dayKey] : null; // 첫 주의 날짜 정보
             const dateText = dateInfo ? dateInfo.date : '-';
             // 토/일 배경색 처리
@@ -596,7 +672,7 @@ async function renderMonthlyScheduleCalendar(students, attendanceRecords) {
                     bgColor = '#fafafa';
                 }
             }
-            html += `<th colspan="4" style="border: 1px solid #ccc; padding: 0.3rem; background: ${bgColor}; color: #333; font-weight: 600; text-align: center; font-size: 0.65rem;">${dateText}</th>`;
+            html += `<th colspan="${colCount}" style="border: 1px solid #ccc; padding: 0.3rem; background: ${bgColor}; color: #333; font-weight: 600; text-align: center; font-size: 0.65rem;">${dateText}</th>`;
         });
         
         html += '</tr></thead><tbody>';
@@ -611,6 +687,7 @@ async function renderMonthlyScheduleCalendar(students, attendanceRecords) {
                 html += '<th style="border: 1px solid #ccc; border-top: 4px solid #000; padding: 0.3rem; background: #f8f9fa; color: #333; font-weight: 700; text-align: center;">날짜</th>';
                 
                 dayKeys.forEach(dayKey => {
+                    const colCount = maxColsPerDay[dayKey];
                     const dateInfo = week[dayKey];
                     const dateText = dateInfo ? dateInfo.date : '-';
                     // 토/일 배경색 처리
@@ -622,7 +699,7 @@ async function renderMonthlyScheduleCalendar(students, attendanceRecords) {
                             bgColor = '#fafafa';
                         }
                     }
-                    html += `<th colspan="4" style="border: 1px solid #ccc; border-top: 4px solid #000; padding: 0.3rem; background: ${bgColor}; color: #333; font-weight: 600; text-align: center; font-size: 0.65rem;">${dateText}</th>`;
+                    html += `<th colspan="${colCount}" style="border: 1px solid #ccc; border-top: 4px solid #000; padding: 0.3rem; background: ${bgColor}; color: #333; font-weight: 600; text-align: center; font-size: 0.65rem;">${dateText}</th>`;
                 });
                 
                 html += '</tr>';
@@ -648,9 +725,11 @@ async function renderMonthlyScheduleCalendar(students, attendanceRecords) {
                     // 요일 구분선 (왼쪽에 얇은 검정색 세로선)
                     const dayBorderStyle = dayIndex > 0 ? 'border-left: 2px solid #000;' : '';
                     
+                    const colCount = maxColsPerDay[dayKey];
+                    
                     if (!dateInfo) {
-                        // 해당 요일이 없으면 빈 칸 4개
-                        for (let col = 0; col < 4; col++) {
+                        // 해당 요일이 없으면 빈 칸 (동적 개수)
+                        for (let col = 0; col < colCount; col++) {
                             const firstColBorder = col === 0 ? dayBorderStyle : '';
                             html += `<td style="border: 1px solid #dee2e6; padding: 0.2rem; background: #f0f0f0; vertical-align: middle; ${weekSeparatorStyle} ${firstColBorder}"></td>`;
                         }
@@ -735,8 +814,9 @@ async function renderMonthlyScheduleCalendar(students, attendanceRecords) {
                         }
                     });
                     
-                    // 4개 열 출력 (정원 4명)
-                    for (let col = 0; col < 4; col++) {
+                    // 동적 열 출력 (실제 학생 수만큼)
+                    const colCount = maxColsPerDay[dayKey];
+                    for (let col = 0; col < colCount; col++) {
                         const cellKey = `${timeIndex}_${dayKey}_${col}`;
                         
                         // 이미 렌더링된 셀이면 건너뛰기 (rowspan으로 병합됨)
@@ -789,7 +869,7 @@ async function renderMonthlyScheduleCalendar(students, attendanceRecords) {
                             const firstColBorder = col === 0 ? dayBorderStyle : '';
                             
                             html += `<td ${rowspan > 1 ? `rowspan="${rowspan}"` : ''} style="border: 1px solid #dee2e6; padding: 0.2rem; text-align: center; background: ${color}; vertical-align: middle; ${weekSeparatorStyle} ${firstColBorder}">`;
-                            html += `<span style="color: ${textColor}; text-decoration: ${textDecoration}; font-weight: 500; font-size: 0.65rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: block;">${getShortName(student.name)}</span>`;
+                            html += `<span style="color: ${textColor}; text-decoration: ${textDecoration}; font-weight: 500; font-size: 0.845rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: block;">${getShortName(student.name)}</span>`;
                             html += `</td>`;
                         } else {
                             // 빈 자리
