@@ -32,16 +32,21 @@ const Permissions = {
             return !blockedPages.includes(pageId);
         }
         
-        // 선생님 권한: 학생관리, 전체회원관리, 출석체크, 출석조회, 이번달스케줄, 스케줄조회, 교육과정 접근 가능 (담당학생만)
+        // 선생님 권한: 학생관리, 전체회원관리, 출석체크, 출석조회, 스케줄표, 교육과정, 수업관리, 학원관리 접근 가능 (담당학생만)
         if (Auth.isTeacher()) {
             const allowedPages = [
                 'students',          // 학생관리 (담당학생만)
                 'all-members',       // 전체회원관리 (담당학생만)
                 'attendance-check',  // 출석체크 (담당학생만)
                 'attendance-view',   // 출석조회 (담당학생만)
-                'schedule-current',  // 이번달 스케줄표 (담당학생만)
-                'schedule-view',     // 스케줄표 조회 (담당학생만)
-                'curriculum'         // 교육과정 (조회 + 편집)
+                'schedule-current',  // 이번달 스케줄표 (담당학생만) - 하위 호환
+                'schedule-view',     // 스케줄표 조회 (담당학생만) - 하위 호환
+                'schedule-weekly',   // 주간 스케줄표 (담당학생만)
+                'schedule-monthly',  // 월간 스케줄표 (담당학생만)
+                'curriculum',        // 교육과정 (조회 + 편집)
+                'classManagement',   // 수업 관리 (대시보드)
+                'academyManagement', // 학원 관리 (연간 달력 조회)
+                'welcome'            // 웰컴 페이지
             ];
             return allowedPages.includes(pageId);
         }
