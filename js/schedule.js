@@ -815,7 +815,7 @@ async function renderMonthlyScheduleCalendar(students, attendanceRecords) {
                     });
                     
                     // 동적 열 출력 (실제 학생 수만큼)
-                    const colCount = maxColsPerDay[dayKey];
+                    // colCount는 이미 728번 줄에서 선언됨
                     for (let col = 0; col < colCount; col++) {
                         const cellKey = `${timeIndex}_${dayKey}_${col}`;
                         
