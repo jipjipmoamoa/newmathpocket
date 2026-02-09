@@ -555,112 +555,36 @@ async function renderMonthlyScheduleCalendar(students, attendanceRecords) {
         }
         const dayNames = { monday: '월', tuesday: '화', wednesday: '수', thursday: '목', friday: '금', saturday: '토' };
         
-        // ===== 1단계: 각 요일-시간대별 최대 학생 수 계산 =====
-        const maxStudentsPerSlot = {}; // key: `${dayKey}_${time}`, value: 최대 학생 수
-        
-        weekGroups.forEach(week => {
-            timeSlots.forEach(time => {
-                dayKeys.forEach(dayKey => {
-                    const dateInfo = week[dayKey];
-                    if (!dateInfo) return;
-                    
-                    const dateSchedules = [];
-                    const addedStudentIds = new Set();
-                    
-                    // 출석 기록 기준
-                    attendanceRecords.forEach(record => {
-                        if (record.date !== dateInfo.dateString) return;
-                        if (record.status === '결석') return;
-                        if (record.check_in_time !== time) return;
-                        
-                        const student = teacherStudents.find(s => s.id === record.student_id);
-                        if (student && !addedStudentIds.has(student.id)) {
-                            dateSchedules.push(student);
-                            addedStudentIds.add(student.id);
-                        }
-                    });
-                    
-                    // 스케줄 기준
-                    teacherStudents.forEach(student => {
-                        if (addedStudentIds.has(student.id)) return;
-                        
-                        let schedule = student.schedule;
-                        if (typeof schedule === 'string') {
-                            try {
-                                schedule = JSON.parse(schedule);
-                            } catch (e) {
-                                return;
-                            }
-                        }
-                        if (!schedule) return;
-                        
-                        const date = new Date(dateInfo.dateString);
-                        const dayKeysMap = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
-                        const studentDayKey = dayKeysMap[date.getDay()];
-                        const daySchedule = schedule[studentDayKey];
-                        
-                        if (!daySchedule || !daySchedule.enabled) return;
-                        if (daySchedule.checkIn !== time) return;
-                        
-                        const attendanceRecord = attendanceRecords.find(r => r.student_id === student.id && r.date === dateInfo.dateString);
-                        if (attendanceRecord && attendanceRecord.status === '결석') return;
-                        
-                        dateSchedules.push(student);
-                        addedStudentIds.add(student.id);
-                    });
-                    
-                    const slotKey = `${dayKey}_${time}`;
-                    const currentMax = maxStudentsPerSlot[slotKey] || 0;
-                    maxStudentsPerSlot[slotKey] = Math.max(currentMax, dateSchedules.length);
-                });
-            });
-        });
-        
-        // 각 요일별 최대 열 개수 계산
-        const maxColsPerDay = {};
-        dayKeys.forEach(dayKey => {
-            let maxCols = 0;
-            timeSlots.forEach(time => {
-                const slotKey = `${dayKey}_${time}`;
-                maxCols = Math.max(maxCols, maxStudentsPerSlot[slotKey] || 0);
-            });
-            maxColsPerDay[dayKey] = Math.max(maxCols, 1); // 최소 1열
-        });
-        
-        console.log('[renderMonthlyScheduleCalendar] 요일별 최대 열 개수:', maxColsPerDay);
-        
-        // 거대한 테이블 생성
+        // 거대한 테이블 생성 (요일별 4열 고정)
         html += '<div style="overflow-x: auto;">';
         html += '<table style="width: 100%; border-collapse: collapse; font-size: 0.6rem; table-layout: fixed;">';
         
-        // colgroup으로 열 너비 설정 (동적)
+        // colgroup으로 열 너비 설정 (요일별 4열 고정)
         html += '<colgroup>';
         html += '<col style="width: 60px;">'; // 시간 열
         dayKeys.forEach(dayKey => {
-            const colCount = maxColsPerDay[dayKey];
-            for (let i = 0; i < colCount; i++) {
+            // 각 요일당 4개 열 고정
+            for (let i = 0; i < 4; i++) {
                 html += '<col style="width: 45px;">'; // 학생 열 너비
             }
         });
         html += '</colgroup>';
         
-        // 1행: 요일 헤더 (동적 colspan)
+        // 1행: 요일 헤더 (고정 4열)
         html += '<thead>';
         html += '<tr>';
         html += '<th style="border: 1px solid #ccc; padding: 0.3rem; background: #f8f9fa; color: #333; font-weight: 700; text-align: center;">시간</th>';
         
         dayKeys.forEach(dayKey => {
-            const colCount = maxColsPerDay[dayKey];
-            html += `<th colspan="${colCount}" style="border: 1px solid #ccc; padding: 0.3rem; background: #f8f9fa; color: #333; font-weight: 600; text-align: center; font-size: 0.7rem;">${dayNames[dayKey]}</th>`;
+            html += `<th colspan="4" style="border: 1px solid #ccc; padding: 0.3rem; background: #f8f9fa; color: #333; font-weight: 600; text-align: center; font-size: 0.7rem;">${dayNames[dayKey]}</th>`;
         });
         html += '</tr>';
         
-        // 2행: 날짜 행 추가 (동적 colspan)
+        // 2행: 날짜 행 추가 (고정 4열)
         html += '<tr>';
         html += '<th style="border: 1px solid #ccc; padding: 0.3rem; background: #f8f9fa; color: #333; font-weight: 700; text-align: center;">날짜</th>';
         
         dayKeys.forEach(dayKey => {
-            const colCount = maxColsPerDay[dayKey];
             const dateInfo = weekGroups[0] ? weekGroups[0][dayKey] : null; // 첫 주의 날짜 정보
             const dateText = dateInfo ? dateInfo.date : '-';
             // 토/일 배경색 처리
@@ -672,7 +596,7 @@ async function renderMonthlyScheduleCalendar(students, attendanceRecords) {
                     bgColor = '#fafafa';
                 }
             }
-            html += `<th colspan="${colCount}" style="border: 1px solid #ccc; padding: 0.3rem; background: ${bgColor}; color: #333; font-weight: 600; text-align: center; font-size: 0.65rem;">${dateText}</th>`;
+            html += `<th colspan="4" style="border: 1px solid #ccc; padding: 0.3rem; background: ${bgColor}; color: #333; font-weight: 600; text-align: center; font-size: 0.65rem;">${dateText}</th>`;
         });
         
         html += '</tr></thead><tbody>';
@@ -687,7 +611,6 @@ async function renderMonthlyScheduleCalendar(students, attendanceRecords) {
                 html += '<th style="border: 1px solid #ccc; border-top: 4px solid #000; padding: 0.3rem; background: #f8f9fa; color: #333; font-weight: 700; text-align: center;">날짜</th>';
                 
                 dayKeys.forEach(dayKey => {
-                    const colCount = maxColsPerDay[dayKey];
                     const dateInfo = week[dayKey];
                     const dateText = dateInfo ? dateInfo.date : '-';
                     // 토/일 배경색 처리
@@ -699,7 +622,7 @@ async function renderMonthlyScheduleCalendar(students, attendanceRecords) {
                             bgColor = '#fafafa';
                         }
                     }
-                    html += `<th colspan="${colCount}" style="border: 1px solid #ccc; border-top: 4px solid #000; padding: 0.3rem; background: ${bgColor}; color: #333; font-weight: 600; text-align: center; font-size: 0.65rem;">${dateText}</th>`;
+                    html += `<th colspan="4" style="border: 1px solid #ccc; border-top: 4px solid #000; padding: 0.3rem; background: ${bgColor}; color: #333; font-weight: 600; text-align: center; font-size: 0.65rem;">${dateText}</th>`;
                 });
                 
                 html += '</tr>';
@@ -718,18 +641,16 @@ async function renderMonthlyScheduleCalendar(students, attendanceRecords) {
                 // 시간 열
                 html += `<td style="border: 1px solid #ccc; padding: 0.3rem; text-align: center; font-weight: 700; background: #f8f9fa; vertical-align: middle; font-size: 0.65rem; ${weekSeparatorStyle}">${time}</td>`;
                 
-                // 각 요일별로 4열씩
+                // 각 요일별로 4열씩 (고정)
                 dayKeys.forEach((dayKey, dayIndex) => {
                     const dateInfo = week[dayKey];
                     
                     // 요일 구분선 (왼쪽에 얇은 검정색 세로선)
                     const dayBorderStyle = dayIndex > 0 ? 'border-left: 2px solid #000;' : '';
                     
-                    const colCount = maxColsPerDay[dayKey];
-                    
                     if (!dateInfo) {
-                        // 해당 요일이 없으면 빈 칸 (동적 개수)
-                        for (let col = 0; col < colCount; col++) {
+                        // 해당 요일이 없으면 빈 칸 4개
+                        for (let col = 0; col < 4; col++) {
                             const firstColBorder = col === 0 ? dayBorderStyle : '';
                             html += `<td style="border: 1px solid #dee2e6; padding: 0.2rem; background: #f0f0f0; vertical-align: middle; ${weekSeparatorStyle} ${firstColBorder}"></td>`;
                         }
@@ -740,44 +661,12 @@ async function renderMonthlyScheduleCalendar(students, attendanceRecords) {
                     const dateSchedules = [];
                     const addedStudentIds = new Set(); // 중복 방지
                     
-                    // 1. 출석 기록 기준으로 먼저 찾기 (보강/보충 포함)
-                    attendanceRecords.forEach(record => {
-                        if (record.date !== dateInfo.dateString) return;
-                        if (record.status === '결석') return; // 결석은 표시 안 함
-                        if (!record.check_in_time) return;
-                        
-                        // check_in_time이 현재 시간대와 일치하는지 확인
-                        if (record.check_in_time === time) {
-                            const student = teacherStudents.find(s => s.id === record.student_id);
-                            if (!student) return;
-                            
-                            let schedule = student.schedule;
-                            if (typeof schedule === 'string') {
-                                try {
-                                    schedule = JSON.parse(schedule);
-                                } catch (e) {
-                                    schedule = null;
-                                }
-                            }
-                            
-                            const date = new Date(dateInfo.dateString);
-                            const dayKeysMap = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
-                            const studentDayKey = dayKeysMap[date.getDay()];
-                            const daySchedule = schedule ? schedule[studentDayKey] : null;
-                            
-                            dateSchedules.push({
-                                student: student,
-                                schedule: daySchedule || { checkIn: record.check_in_time, checkOut: record.expected_out_time },
-                                attendance: record
-                            });
-                            addedStudentIds.add(student.id);
-                        }
-                    });
+                    const date = new Date(dateInfo.dateString);
+                    const dayKeysMap = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+                    const studentDayKey = dayKeysMap[date.getDay()];
                     
-                    // 2. 스케줄 기준으로 찾기 (출석 기록 없는 미확정 스케줄)
+                    // 모든 학생을 확인
                     teacherStudents.forEach(student => {
-                        if (addedStudentIds.has(student.id)) return; // 이미 추가됨
-                        
                         let schedule = student.schedule;
                         if (typeof schedule === 'string') {
                             try {
@@ -787,36 +676,53 @@ async function renderMonthlyScheduleCalendar(students, attendanceRecords) {
                             }
                         }
                         
-                        if (!schedule) return;
+                        const daySchedule = schedule ? schedule[studentDayKey] : null;
+                        const attendanceRecord = attendanceRecords.find(r => r.student_id === student.id && r.date === dateInfo.dateString);
                         
-                        const date = new Date(dateInfo.dateString);
-                        const dayKeysMap = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
-                        const studentDayKey = dayKeysMap[date.getDay()];
-                        const daySchedule = schedule[studentDayKey];
+                        // 결석인 경우 표시하지 않음
+                        if (attendanceRecord && attendanceRecord.status === '결석') {
+                            return;
+                        }
                         
-                        if (!daySchedule || !daySchedule.enabled) return;
+                        // 표시 여부 판단
+                        let shouldDisplay = false;
+                        let displaySchedule = null;
                         
-                        // 시간 일치 확인
-                        if (daySchedule.checkIn === time) {
-                            const attendanceRecord = attendanceRecords.find(r => r.student_id === student.id && r.date === dateInfo.dateString);
-                            
-                            // 결석 확정된 경우 표시하지 않음
-                            if (attendanceRecord && attendanceRecord.status === '결석') {
-                                return;
+                        // 보강/보충 여부 확인
+                        const isMakeupOrSupplement = attendanceRecord && 
+                                                     attendanceRecord.check_in_time && 
+                                                     (attendanceRecord.status === '보강' || attendanceRecord.status === '보충');
+                        
+                        if (isMakeupOrSupplement) {
+                            // 보강/보충: 등록된 입실 시간대에만 표시
+                            if (attendanceRecord.check_in_time === time) {
+                                shouldDisplay = true;
+                                displaySchedule = {
+                                    checkIn: attendanceRecord.check_in_time,
+                                    checkOut: attendanceRecord.expected_out_time
+                                };
                             }
-                            
+                        } else {
+                            // 보강/보충이 아닌 경우: 원래 스케줄 시간대에 표시
+                            // (출석, 체크만, 출석 기록 없음 모두 포함)
+                            if (daySchedule && daySchedule.enabled && daySchedule.checkIn === time) {
+                                shouldDisplay = true;
+                                displaySchedule = daySchedule;
+                            }
+                        }
+                        
+                        if (shouldDisplay && !addedStudentIds.has(student.id)) {
                             dateSchedules.push({
                                 student: student,
-                                schedule: daySchedule,
+                                schedule: displaySchedule,
                                 attendance: attendanceRecord
                             });
                             addedStudentIds.add(student.id);
                         }
                     });
                     
-                    // 동적 열 출력 (실제 학생 수만큼)
-                    // colCount는 이미 728번 줄에서 선언됨
-                    for (let col = 0; col < colCount; col++) {
+                    // 4열 고정 출력 (rowspan 없이)
+                    for (let col = 0; col < 4; col++) {
                         const cellKey = `${timeIndex}_${dayKey}_${col}`;
                         
                         // 이미 렌더링된 셀이면 건너뛰기 (rowspan으로 병합됨)
@@ -832,19 +738,39 @@ async function renderMonthlyScheduleCalendar(students, attendanceRecords) {
                             
                             const color = getStudentColor(student.id);
                             
-                            let textColor = '#000'; // 기본: 미확정 스케줄 (검정색)
+                            let textColor = '#000'; // 기본: 검정색
                             let textDecoration = 'none';
                             
+                            // 색상 판단 로직 개선
                             if (attendance) {
                                 // 출석 기록이 있는 경우
-                                if (attendance.status === '출석') {
-                                    textColor = '#000'; // 검정색 (출석도 검정색)
-                                } else if (attendance.status === '보강') {
+                                
+                                // 원래 스케줄 시간인지 확인
+                                const date = new Date(dateInfo.dateString);
+                                const dayKeysMap = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+                                const studentDayKey = dayKeysMap[date.getDay()];
+                                
+                                let studentSchedule = student.schedule;
+                                if (typeof studentSchedule === 'string') {
+                                    try {
+                                        studentSchedule = JSON.parse(studentSchedule);
+                                    } catch (e) {
+                                        studentSchedule = null;
+                                    }
+                                }
+                                
+                                const originalSchedule = studentSchedule ? studentSchedule[studentDayKey] : null;
+                                const isOriginalTime = originalSchedule && originalSchedule.enabled && originalSchedule.checkIn === time;
+                                
+                                // 보강/보충 판단
+                                if (attendance.status === '보강' && !isOriginalTime) {
+                                    // 원래 스케줄 시간이 아닌데 보강인 경우만 빨간색
                                     textColor = '#f44336'; // 빨간색
-                                } else if (attendance.status === '보충') {
+                                } else if (attendance.status === '보충' && !isOriginalTime) {
+                                    // 원래 스케줄 시간이 아닌데 보충인 경우만 보라색
                                     textColor = '#9C27B0'; // 보라색
                                 } else {
-                                    // 상태가 없거나 기타 상태 (체크만 있는 경우)
+                                    // 출석, 또는 원래 스케줄 시간대의 보강/보충
                                     textColor = '#000'; // 검정색
                                 }
                             }
@@ -852,7 +778,7 @@ async function renderMonthlyScheduleCalendar(students, attendanceRecords) {
                             
                             // rowspan 계산 (수업 시간이 여러 시간대에 걸치는 경우)
                             let rowspan = 1;
-                            if (daySchedule.checkIn && daySchedule.checkOut) {
+                            if (daySchedule && daySchedule.checkIn && daySchedule.checkOut) {
                                 const checkInIndex = timeSlots.indexOf(daySchedule.checkIn);
                                 const checkOutIndex = timeSlots.indexOf(daySchedule.checkOut);
                                 if (checkInIndex >= 0 && checkOutIndex > checkInIndex) {
