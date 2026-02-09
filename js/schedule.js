@@ -45,8 +45,55 @@ function getStudentColor(studentId) {
 
 // 월간 스케줄표 인쇄 (세로)
 window.printMonthlySchedule = function() {
+    // 인쇄 전 추가 스타일 주입 (한 페이지 강제)
+    const style = document.createElement('style');
+    style.id = 'monthlyPrintFix';
+    style.textContent = `
+        @media print {
+            @page {
+                size: A4 portrait !important;
+                margin: 0 !important;
+            }
+            html, body {
+                height: 297mm !important;
+                max-height: 297mm !important;
+                overflow: hidden !important;
+                position: relative !important;
+            }
+            .page-container {
+                position: relative !important;
+                overflow: hidden !important;
+            }
+            #monthlyScheduleCalendar {
+                position: absolute !important;
+                overflow: hidden !important;
+                page-break-inside: avoid !important;
+                page-break-before: avoid !important;
+                page-break-after: avoid !important;
+            }
+            #monthlyScheduleCalendar > div,
+            #monthlyScheduleCalendar table,
+            #monthlyScheduleCalendar tbody,
+            #monthlyScheduleCalendar tr {
+                page-break-inside: avoid !important;
+                page-break-before: avoid !important;
+                page-break-after: avoid !important;
+            }
+            table {
+                width: 100% !important;
+            }
+        }
+    `;
+    document.head.appendChild(style);
+    
     // CSS 파일이 이미 로드되어 있으므로 바로 인쇄
     window.print();
+    
+    // 인쇄 후 제거
+    setTimeout(() => {
+        const fixStyle = document.getElementById('monthlyPrintFix');
+        if (fixStyle) fixStyle.remove();
+    }, 1000);
 }
 
 // 주간 스케줄표 페이지
