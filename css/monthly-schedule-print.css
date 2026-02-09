@@ -1,0 +1,67 @@
+/* 월간 스케줄표 인쇄 전용 스타일 */
+
+@page {
+    size: 210mm 297mm;
+    margin: 5mm;
+}
+
+@media print {
+    * {
+        box-sizing: border-box;
+    }
+    
+    html, body {
+        width: 210mm !important;
+        height: 297mm !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        overflow: hidden !important;
+        print-color-adjust: exact !important;
+        -webkit-print-color-adjust: exact !important;
+    }
+    
+    /* 헤더 숨김 */
+    .page-header {
+        display: none !important;
+    }
+    
+    /* 컨테이너 조정 */
+    .page-container {
+        width: 200mm !important;
+        max-width: 200mm !important;
+        margin: 5mm auto !important;
+        padding: 0 !important;
+    }
+    
+    /* 월간 스케줄표 축소 */
+    #monthlyScheduleCalendar {
+        transform: scale(0.55) !important;
+        transform-origin: top center !important;
+        width: 181.82% !important; /* 100% / 0.55 */
+        margin: 0 auto !important;
+    }
+    
+    /* 테이블 설정 */
+    table {
+        page-break-inside: auto !important;
+        margin: 0 auto !important;
+    }
+    
+    tr {
+        page-break-inside: avoid !important;
+        page-break-after: auto !important;
+    }
+    
+    thead {
+        display: table-header-group !important;
+    }
+    
+    tbody {
+        display: table-row-group !important;
+    }
+    
+    /* 불필요한 요소 숨김 */
+    button {
+        display: none !important;
+    }
+}
