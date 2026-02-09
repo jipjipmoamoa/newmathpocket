@@ -173,7 +173,7 @@
     <script src="js/upgrade-students.js?t=1737276500"></script>
     <script src="js/attendance-fixed.js?v=20260124050"></script>
     <script src="js/tuition.js?t=1737276500"></script>
-    <script src="js/schedule.js?v=20260122003"></script>
+    <script src="js/schedule.js?v=20260209001"></script>
     <script src="js/curriculum.js?t=1737276500"></script>
     <script src="js/class-management.js"></script>
     <script src="js/academy-management.js"></script>
@@ -184,10 +184,21 @@
     <script>
     // schedule.js 로드 확인
     document.addEventListener('DOMContentLoaded', function() {
-        if (typeof window.showScheduleCurrentPage === 'undefined') {
-            console.error('❌ schedule.js 로드 실패');
+        console.log('=== schedule.js 로드 확인 ===');
+        console.log('showScheduleWeekly:', typeof window.showScheduleWeekly);
+        console.log('showScheduleMonthly:', typeof window.showScheduleMonthly);
+        console.log('printMonthlySchedule:', typeof window.printMonthlySchedule);
+        
+        if (typeof window.showScheduleWeekly === 'undefined') {
+            console.error('❌ showScheduleWeekly 함수 없음');
         } else {
-            console.log('✅ schedule.js 로드 완료');
+            console.log('✅ showScheduleWeekly 함수 있음');
+        }
+        
+        if (typeof window.showScheduleMonthly === 'undefined') {
+            console.error('❌ showScheduleMonthly 함수 없음');
+        } else {
+            console.log('✅ showScheduleMonthly 함수 있음');
         }
     });
     </script>
