@@ -526,27 +526,27 @@ async function renderMonthlyScheduleCalendar(students, attendanceRecords) {
         // 1행: 요일 헤더
         html += '<thead>';
         html += '<tr>';
-        html += '<th style="border: 1px solid #ccc; padding: 0.3rem; background: #b8c5d0; color: #333; font-weight: 700; text-align: center;">시간</th>';
+        html += '<th style="border: 1px solid #ccc; padding: 0.3rem; background: #f8f9fa; color: #333; font-weight: 700; text-align: center;">시간</th>';
         
         dayKeys.forEach(dayKey => {
-            html += `<th colspan="4" style="border: 1px solid #ccc; padding: 0.3rem; background: #d4dce4; color: #333; font-weight: 600; text-align: center; font-size: 0.7rem;">${dayNames[dayKey]}</th>`;
+            html += `<th colspan="4" style="border: 1px solid #ccc; padding: 0.3rem; background: #f8f9fa; color: #333; font-weight: 600; text-align: center; font-size: 0.7rem;">${dayNames[dayKey]}</th>`;
         });
         html += '</tr>';
         
         // 2행: 날짜 행 추가
         html += '<tr>';
-        html += '<th style="border: 1px solid #ccc; padding: 0.3rem; background: #b8c5d0; color: #333; font-weight: 700; text-align: center;">날짜</th>';
+        html += '<th style="border: 1px solid #ccc; padding: 0.3rem; background: #f8f9fa; color: #333; font-weight: 700; text-align: center;">날짜</th>';
         
         dayKeys.forEach(dayKey => {
             const dateInfo = weekGroups[0] ? weekGroups[0][dayKey] : null; // 첫 주의 날짜 정보
             const dateText = dateInfo ? dateInfo.date : '-';
             // 토/일 배경색 처리
-            let bgColor = '#d4dce4';
+            let bgColor = '#f8f9fa';
             if (dateInfo) {
                 if (dateInfo.dayOfWeek === 6) { // 토요일
-                    bgColor = '#f0e8e8';
+                    bgColor = '#fafafa';
                 } else if (dateInfo.dayOfWeek === 0) { // 일요일
-                    bgColor = '#f0e8e8';
+                    bgColor = '#fafafa';
                 }
             }
             html += `<th colspan="4" style="border: 1px solid #ccc; padding: 0.3rem; background: ${bgColor}; color: #333; font-weight: 600; text-align: center; font-size: 0.65rem;">${dateText}</th>`;
@@ -561,18 +561,18 @@ async function renderMonthlyScheduleCalendar(students, attendanceRecords) {
             // 주차 구분: 날짜 행 추가
             if (weekIndex > 0) {
                 html += '<tr>';
-                html += '<th style="border: 1px solid #ccc; border-top: 4px solid #000; padding: 0.3rem; background: #b8c5d0; color: #333; font-weight: 700; text-align: center;">날짜</th>';
+                html += '<th style="border: 1px solid #ccc; border-top: 4px solid #000; padding: 0.3rem; background: #f8f9fa; color: #333; font-weight: 700; text-align: center;">날짜</th>';
                 
                 dayKeys.forEach(dayKey => {
                     const dateInfo = week[dayKey];
                     const dateText = dateInfo ? dateInfo.date : '-';
                     // 토/일 배경색 처리
-                    let bgColor = '#d4dce4';
+                    let bgColor = '#f8f9fa';
                     if (dateInfo) {
                         if (dateInfo.dayOfWeek === 6) { // 토요일
-                            bgColor = '#f0e8e8';
+                            bgColor = '#fafafa';
                         } else if (dateInfo.dayOfWeek === 0) { // 일요일
-                            bgColor = '#f0e8e8';
+                            bgColor = '#fafafa';
                         }
                     }
                     html += `<th colspan="4" style="border: 1px solid #ccc; border-top: 4px solid #000; padding: 0.3rem; background: ${bgColor}; color: #333; font-weight: 600; text-align: center; font-size: 0.65rem;">${dateText}</th>`;
