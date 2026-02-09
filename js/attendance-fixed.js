@@ -1416,14 +1416,14 @@ async function saveAttendance(rowId, recordId) {
         }
     }
     
-    // 핵심: 기존 레코드에 시간이 있으면 유지 (덮어쓰지 않음)
+    // 핵심: 기존 레코드에 시간이 있으면 무조건 유지 (덮어쓰지 않음)
     if (existingRecord) {
-        // 기존 입실시간이 있으면 유지 (입력 필드가 비어있어도)
-        if (existingRecord.check_in_time && !checkInTime) {
+        // 기존 입실시간이 있으면 무조건 유지
+        if (existingRecord.check_in_time) {
             checkInTime = existingRecord.check_in_time;
         }
-        // 기존 퇴실시간이 있으면 유지 (입력 필드가 비어있어도)
-        if (existingRecord.check_out_time && !checkOutTime) {
+        // 기존 퇴실시간이 있으면 무조건 유지
+        if (existingRecord.check_out_time) {
             checkOutTime = existingRecord.check_out_time;
         }
     }
