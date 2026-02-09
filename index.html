@@ -56,6 +56,11 @@
     <!-- 메인 네비게이션 -->
     <nav class="main-nav">
         <ul class="main-menu" id="mainMenu">
+            <li class="menu-item" data-menu="classManagement">
+                <a href="#" onclick="showPage('classManagement')">
+                    <i class="fas fa-chalkboard-teacher"></i> 수업 관리
+                </a>
+            </li>
             <li class="menu-item" data-menu="members">
                 <a href="#" onclick="toggleSubMenu(event, 'members')">
                     <i class="fas fa-users"></i> 회원 관리
@@ -73,7 +78,7 @@
             </li>
             <li class="menu-item" data-menu="tuition">
                 <a href="#" onclick="toggleSubMenu(event, 'tuition')">
-                    <i class="fas fa-won-sign"></i> 원비관리
+                    <i class="fas fa-won-sign"></i> 원비 관리
                 </a>
             </li>
             <li class="menu-item" data-menu="curriculum">
@@ -81,9 +86,9 @@
                     <i class="fas fa-book"></i> 교육과정
                 </a>
             </li>
-            <li class="menu-item" data-menu="prints" style="display: none;">
-                <a href="#" onclick="toggleSubMenu(event, 'prints')">
-                    <i class="fas fa-print"></i> 프린트
+            <li class="menu-item" data-menu="academyManagement">
+                <a href="#" onclick="showPage('academyManagement')">
+                    <i class="fas fa-building"></i> 학원 관리
                 </a>
             </li>
             <li class="menu-item" data-menu="settings">
@@ -170,6 +175,8 @@
     <script src="js/tuition.js?t=1737276500"></script>
     <script src="js/schedule.js?v=20260122003"></script>
     <script src="js/curriculum.js?t=1737276500"></script>
+    <script src="js/class-management.js"></script>
+    <script src="js/academy-management.js"></script>
     <script src="js/settings.js?t=1737276500"></script>
     <script src="js/prints.js?t=1737280200"></script>
     <script src="js/navigation.js?v=20260123001"></script>
