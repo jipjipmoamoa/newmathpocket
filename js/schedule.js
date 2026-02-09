@@ -28,9 +28,55 @@ let studentColorMap = {}; // 학생 ID -> 색상 매핑
 let scheduleTeacherFilter = 'all'; // 스케줄 페이지 선생님 필터
 let highlightedScheduleStudentId = null; // 강조된 학생 ID
 let monthlyAttendanceCount = {}; // 학생별 월별 출석 횟수 { studentId: count }
+let currentScheduleTab = 'weekly'; // 현재 탭: 'weekly' 또는 'monthly'
+let monthlyScheduleYear = new Date().getFullYear(); // 월간 스케줄 연도
+let monthlyScheduleMonth = new Date().getMonth(); // 월간 스케줄 월 (0-based)
 
-// 이번달 스케줄표 페이지
-window.showScheduleCurrentPage = async function() {
+// 학생 색상 가져오기 헬퍼 함수
+function getStudentColor(studentId) {
+    if (!studentColorMap[studentId]) {
+        // 색상이 없으면 임시로 할당
+        const keys = Object.keys(studentColorMap);
+        const index = keys.length;
+        studentColorMap[studentId] = studentColors[index % studentColors.length];
+    }
+    return studentColorMap[studentId];
+}
+
+// 월간 스케줄표 인쇄 (세로)
+window.printMonthlySchedule = function() {
+    // 인쇄 스타일 추가
+    const style = document.createElement('style');
+    style.id = 'monthlyPrintStyle';
+    style.textContent = `
+        @media print {
+            @page {
+                size: portrait;
+                margin: 0.5cm;
+            }
+            .page-header {
+                display: none !important;
+            }
+            body {
+                print-color-adjust: exact;
+                -webkit-print-color-adjust: exact;
+            }
+        }
+    `;
+    document.head.appendChild(style);
+    
+    // 인쇄
+    window.print();
+    
+    // 인쇄 후 스타일 제거
+    setTimeout(() => {
+        const styleEl = document.getElementById('monthlyPrintStyle');
+        if (styleEl) styleEl.remove();
+    }, 1000);
+}
+
+// 주간 스케줄표 페이지
+window.showScheduleWeekly = async function() {
     const mainContent = document.getElementById('mainContent');
     
     // 스케줄 인쇄 CSS 추가
@@ -50,13 +96,18 @@ window.showScheduleCurrentPage = async function() {
     mainContent.innerHTML = `
         <div class="page-container" id="schedulePageContainer" style="max-width: 98%; margin: 0 auto;">
             <div class="page-header" style="display: flex; justify-content: space-between; align-items: center; gap: 1rem; margin-bottom: 1rem;">
-                <div id="teacherCheckboxList" style="${filterDisplay} display: flex; gap: 1rem; flex-wrap: wrap; align-items: center;">
-                    <!-- 체크박스 목록이 여기에 동적으로 추가됩니다 -->
+                <h2>주간 스케줄표</h2>
+                <div style="display: flex; gap: 1rem; align-items: center;">
+                    <div id="teacherCheckboxList" style="${filterDisplay} display: flex; gap: 1rem; flex-wrap: wrap; align-items: center;">
+                        <!-- 체크박스 목록이 여기에 동적으로 추가됩니다 -->
+                    </div>
+                    <button class="btn btn-primary" onclick="printScheduleTable()">
+                        <i class="fas fa-print"></i> 인쇄
+                    </button>
                 </div>
-                <button class="btn btn-primary" onclick="printScheduleTable()">
-                    <i class="fas fa-print"></i> 인쇄
-                </button>
             </div>
+            
+            <!-- 주간 스케줄 -->
             <div id="weeklyScheduleTable" style="transform-origin: top left;"></div>
         </div>
     `;
@@ -65,12 +116,630 @@ window.showScheduleCurrentPage = async function() {
     if (!Auth.isTeacher()) {
         await loadTeachersForCheckboxFilter();
     }
+    
     // 월별 출석 횟수 로드
     await loadMonthlyAttendanceCount();
     await loadWeeklySchedule();
     
     // 테이블 크기에 맞춰 자동 스케일 조정
     adjustTableScale();
+}
+
+// 월간 스케줄표 페이지
+window.showScheduleMonthly = async function() {
+    const mainContent = document.getElementById('mainContent');
+    
+    mainContent.innerHTML = `
+        <div class="page-container" style="max-width: 98%; margin: 0 auto;">
+            <div class="page-header" style="display: flex; justify-content: space-between; align-items: center; gap: 1rem; margin-bottom: 1rem;">
+                <h2>월간 스케줄표</h2>
+                <div style="display: flex; gap: 1rem; align-items: center;">
+                    <!-- 월간 스케줄 월 이동 버튼 -->
+                    <button onclick="changeMonthlyScheduleMonth(-1)" class="btn-secondary" style="padding: 0.5rem 1rem;">◀ 이전 달</button>
+                    <span id="monthlyScheduleTitle" style="font-size: 1.1rem; font-weight: 600; min-width: 120px; text-align: center;"></span>
+                    <button onclick="changeMonthlyScheduleMonth(1)" class="btn-secondary" style="padding: 0.5rem 1rem;">다음 달 ▶</button>
+                    <button class="btn btn-primary" onclick="printMonthlySchedule()" style="margin-left: 1rem;">
+                        <i class="fas fa-print"></i> 인쇄
+                    </button>
+                </div>
+            </div>
+            
+            <!-- 월간 스케줄 -->
+            <div id="monthlyScheduleCalendar"></div>
+        </div>
+    `;
+    
+    // 초기 연월 설정
+    const today = new Date();
+    monthlyScheduleYear = today.getFullYear();
+    monthlyScheduleMonth = today.getMonth();
+    
+    // 월간 스케줄 로드
+    await loadMonthlyScheduleCalendar();
+}
+
+// 이번달 스케줄표 페이지 (하위 호환성 유지)
+window.showScheduleCurrentPage = async function() {
+    const mainContent = document.getElementById('mainContent');
+    
+    // 스케줄 인쇄 CSS 추가
+    let schedulePrintCSS = document.getElementById('schedulePrintCSS');
+    if (!schedulePrintCSS) {
+        schedulePrintCSS = document.createElement('link');
+        schedulePrintCSS.id = 'schedulePrintCSS';
+        schedulePrintCSS.rel = 'stylesheet';
+        schedulePrintCSS.href = 'css/schedule-print.css';
+        document.head.appendChild(schedulePrintCSS);
+    }
+    
+    // 일반 선생님인 경우 필터 숨김
+    const isTeacher = Auth.isTeacher();
+    const filterDisplay = isTeacher ? 'display: none;' : '';
+    
+    mainContent.innerHTML = `
+        <div class="page-container" id="schedulePageContainer" style="max-width: 98%; margin: 0 auto;">
+            <!-- 탭 메뉴 -->
+            <div style="display: flex; gap: 1rem; margin-bottom: 1rem; border-bottom: 2px solid #dee2e6;">
+                <button id="weeklyScheduleTab" class="schedule-tab-btn active" onclick="switchScheduleTab('weekly')" style="padding: 0.75rem 1.5rem; border: none; background: none; font-size: 1rem; font-weight: 600; color: #666; cursor: pointer; border-bottom: 3px solid transparent; transition: all 0.3s;">
+                    주간 스케줄표
+                </button>
+                <button id="monthlyScheduleTab" class="schedule-tab-btn" onclick="switchScheduleTab('monthly')" style="padding: 0.75rem 1.5rem; border: none; background: none; font-size: 1rem; font-weight: 600; color: #666; cursor: pointer; border-bottom: 3px solid transparent; transition: all 0.3s;">
+                    월간 스케줄표
+                </button>
+            </div>
+            
+            <div class="page-header" style="display: flex; justify-content: space-between; align-items: center; gap: 1rem; margin-bottom: 1rem;">
+                <div id="teacherCheckboxList" style="${filterDisplay} display: flex; gap: 1rem; flex-wrap: wrap; align-items: center;">
+                    <!-- 체크박스 목록이 여기에 동적으로 추가됩니다 -->
+                </div>
+                <div style="display: flex; gap: 1rem; align-items: center;">
+                    <!-- 월간 스케줄 월 이동 버튼 -->
+                    <div id="monthlyScheduleControls" style="display: none; align-items: center; gap: 1rem;">
+                        <button onclick="changeMonthlyScheduleMonth(-1)" class="btn-secondary" style="padding: 0.5rem 1rem;">◀</button>
+                        <span id="monthlyScheduleTitle" style="font-size: 1.1rem; font-weight: 600; min-width: 120px; text-align: center;"></span>
+                        <button onclick="changeMonthlyScheduleMonth(1)" class="btn-secondary" style="padding: 0.5rem 1rem;">▶</button>
+                    </div>
+                    <button class="btn btn-primary" onclick="printScheduleTable()">
+                        <i class="fas fa-print"></i> 인쇄
+                    </button>
+                </div>
+            </div>
+            
+            <!-- 주간 스케줄 -->
+            <div id="weeklyScheduleContainer" style="display: block;">
+                <div id="weeklyScheduleTable" style="transform-origin: top left;"></div>
+            </div>
+            
+            <!-- 월간 스케줄 -->
+            <div id="monthlyScheduleContainer" style="display: none;">
+                <div id="monthlyScheduleCalendar"></div>
+            </div>
+        </div>
+    `;
+    
+    // 일반 선생님인 경우 필터 로드 안 함
+    if (!Auth.isTeacher()) {
+        await loadTeachersForCheckboxFilter();
+    }
+    
+    // 초기 연월 설정
+    const today = new Date();
+    monthlyScheduleYear = today.getFullYear();
+    monthlyScheduleMonth = today.getMonth();
+    
+    // 월별 출석 횟수 로드
+    await loadMonthlyAttendanceCount();
+    await loadWeeklySchedule();
+    
+    // 테이블 크기에 맞춰 자동 스케일 조정
+    adjustTableScale();
+}
+
+// 탭 전환
+window.switchScheduleTab = async function(tab) {
+    currentScheduleTab = tab;
+    
+    // 탭 버튼 스타일 업데이트
+    const weeklyTab = document.getElementById('weeklyScheduleTab');
+    const monthlyTab = document.getElementById('monthlyScheduleTab');
+    
+    if (tab === 'weekly') {
+        weeklyTab.classList.add('active');
+        weeklyTab.style.color = '#FF6B35';
+        weeklyTab.style.borderBottomColor = '#FF6B35';
+        monthlyTab.classList.remove('active');
+        monthlyTab.style.color = '#666';
+        monthlyTab.style.borderBottomColor = 'transparent';
+        
+        // 컨테이너 표시/숨김
+        document.getElementById('weeklyScheduleContainer').style.display = 'block';
+        document.getElementById('monthlyScheduleContainer').style.display = 'none';
+        document.getElementById('monthlyScheduleControls').style.display = 'none';
+        
+    } else if (tab === 'monthly') {
+        monthlyTab.classList.add('active');
+        monthlyTab.style.color = '#FF6B35';
+        monthlyTab.style.borderBottomColor = '#FF6B35';
+        weeklyTab.classList.remove('active');
+        weeklyTab.style.color = '#666';
+        weeklyTab.style.borderBottomColor = 'transparent';
+        
+        // 컨테이너 표시/숨김
+        document.getElementById('weeklyScheduleContainer').style.display = 'none';
+        document.getElementById('monthlyScheduleContainer').style.display = 'block';
+        document.getElementById('monthlyScheduleControls').style.display = 'flex';
+        
+        // 월간 스케줄 로드
+        await loadMonthlyScheduleCalendar();
+    }
+}
+
+// 월간 스케줄 월 변경
+window.changeMonthlyScheduleMonth = async function(direction) {
+    monthlyScheduleMonth += direction;
+    
+    if (monthlyScheduleMonth < 0) {
+        monthlyScheduleMonth = 11;
+        monthlyScheduleYear--;
+    } else if (monthlyScheduleMonth > 11) {
+        monthlyScheduleMonth = 0;
+        monthlyScheduleYear++;
+    }
+    
+    await loadMonthlyScheduleCalendar();
+}
+
+// 월간 스케줄 달력 로드
+async function loadMonthlyScheduleCalendar() {
+    const container = document.getElementById('monthlyScheduleCalendar');
+    const titleElement = document.getElementById('monthlyScheduleTitle');
+    
+    if (!container || !titleElement) {
+        console.error('[loadMonthlyScheduleCalendar] 컨테이너 또는 타이틀 요소를 찾을 수 없습니다.');
+        return;
+    }
+    
+    titleElement.textContent = `${monthlyScheduleYear}년 ${monthlyScheduleMonth + 1}월`;
+    container.innerHTML = '<p style="text-align: center; padding: 2rem;">로딩 중...</p>';
+    
+    try {
+        console.log('[loadMonthlyScheduleCalendar] 데이터 로드 시작');
+        
+        // 학생 목록 로드
+        const studentsResponse = await API.getList('students', { limit: 1000 });
+        let allStudents = Array.isArray(studentsResponse) ? studentsResponse : (studentsResponse.data || []);
+        console.log('[loadMonthlyScheduleCalendar] 전체 학생 수:', allStudents.length);
+        
+        // 권한 필터링
+        allStudents = Permissions.filterStudentsByTeacher(allStudents);
+        console.log('[loadMonthlyScheduleCalendar] 권한 필터링 후 학생 수:', allStudents.length);
+        
+        // 재원생만
+        const activeStudents = allStudents.filter(s => s.status === '재원');
+        console.log('[loadMonthlyScheduleCalendar] 재원생 수:', activeStudents.length);
+        
+        // 학생 색상 할당
+        assignStudentColors(activeStudents);
+        console.log('[loadMonthlyScheduleCalendar] 학생 색상 할당 완료');
+        
+        // 해당 월의 출석 기록 로드
+        const startDate = new Date(monthlyScheduleYear, monthlyScheduleMonth, 1);
+        const endDate = new Date(monthlyScheduleYear, monthlyScheduleMonth + 1, 0);
+        const startDateStr = `${monthlyScheduleYear}-${String(monthlyScheduleMonth + 1).padStart(2, '0')}-01`;
+        const endDateStr = `${monthlyScheduleYear}-${String(monthlyScheduleMonth + 1).padStart(2, '0')}-${endDate.getDate()}`;
+        
+        const attendanceResponse = await API.getList('attendance', { limit: 10000 });
+        const allAttendance = Array.isArray(attendanceResponse) ? attendanceResponse : (attendanceResponse.data || []);
+        const monthAttendance = allAttendance.filter(r => r.date >= startDateStr && r.date <= endDateStr);
+        console.log('[loadMonthlyScheduleCalendar] 출석 기록 수:', monthAttendance.length);
+        
+        // 보강/보충 통계
+        const makeupCount = monthAttendance.filter(r => r.status === '보강').length;
+        const supplementCount = monthAttendance.filter(r => r.status === '보충').length;
+        const attendanceCount = monthAttendance.filter(r => r.status === '출석').length;
+        const absenceCount = monthAttendance.filter(r => r.status === '결석').length;
+        console.log(`[loadMonthlyScheduleCalendar] 출석 현황 - 출석: ${attendanceCount}, 보강: ${makeupCount}, 보충: ${supplementCount}, 결석: ${absenceCount}`);
+        
+        // 보강/보충 상세 로그
+        if (makeupCount > 0) {
+            console.log('[loadMonthlyScheduleCalendar] 보강 기록:', monthAttendance.filter(r => r.status === '보강').map(r => ({
+                student: r.student_name,
+                date: r.date,
+                checkIn: r.check_in_time,
+                checkOut: r.check_out_time
+            })));
+        }
+        if (supplementCount > 0) {
+            console.log('[loadMonthlyScheduleCalendar] 보충 기록:', monthAttendance.filter(r => r.status === '보충').map(r => ({
+                student: r.student_name,
+                date: r.date,
+                checkIn: r.check_in_time,
+                checkOut: r.check_out_time
+            })));
+        }
+        
+        // 달력 렌더링
+        renderMonthlyScheduleCalendar(activeStudents, monthAttendance);
+        console.log('[loadMonthlyScheduleCalendar] 달력 렌더링 완료');
+        
+    } catch (error) {
+        console.error('[loadMonthlyScheduleCalendar] 월간 스케줄 로드 실패:', error);
+        console.error('[loadMonthlyScheduleCalendar] 에러 스택:', error.stack);
+        container.innerHTML = `<p style="text-align: center; color: #f44336; padding: 2rem;">데이터 로드에 실패했습니다.<br/>에러: ${error.message}</p>`;
+    }
+}
+
+// 이름에서 성 제거 (마지막 2글자만)
+function getShortName(fullName) {
+    if (!fullName || fullName.length <= 2) return fullName;
+    return fullName.slice(-2); // 마지막 2글자 (이름만)
+}
+
+// 월간 스케줄 달력 렌더링 (거대한 단일 테이블)
+async function renderMonthlyScheduleCalendar(students, attendanceRecords) {
+    console.log('[renderMonthlyScheduleCalendar] 렌더링 시작');
+    console.log('[renderMonthlyScheduleCalendar] 학생 수:', students.length);
+    console.log('[renderMonthlyScheduleCalendar] 출석 기록 수:', attendanceRecords.length);
+    
+    const container = document.getElementById('monthlyScheduleCalendar');
+    if (!container) {
+        console.error('[renderMonthlyScheduleCalendar] 컨테이너를 찾을 수 없습니다.');
+        return;
+    }
+    
+    // 선생님 목록 로드
+    let teachers = [];
+    try {
+        const teachersResponse = await API.getList('teachers', { limit: 1000 });
+        const allTeachers = Array.isArray(teachersResponse) ? teachersResponse : (teachersResponse.data || []);
+        
+        // 재직 중인 선생님만
+        teachers = allTeachers.filter(t => {
+            const hasRole = t.role && (
+                t.role === '관리자' || t.role === 'admin' || 
+                t.role === '부관리자' || t.role === 'sub-admin' || 
+                t.role === '선생님' || t.role === 'teacher'
+            );
+            const notResigned = !t.status || (t.status !== '퇴사' && t.status !== '퇴직');
+            return hasRole && notResigned;
+        });
+        
+        // 선생님 로그인 시 본인 것만 표시
+        if (Auth.isTeacher()) {
+            const currentUser = Auth.getCurrentUser();
+            teachers = teachers.filter(t => t.id === currentUser.id);
+            console.log('[renderMonthlyScheduleCalendar] 선생님 로그인 - 본인만 표시:', teachers.length);
+        }
+        
+        console.log('[renderMonthlyScheduleCalendar] 선생님 수:', teachers.length);
+    } catch (error) {
+        console.error('[renderMonthlyScheduleCalendar] 선생님 로드 실패:', error);
+    }
+    
+    const firstDay = new Date(monthlyScheduleYear, monthlyScheduleMonth, 1);
+    const lastDay = new Date(monthlyScheduleYear, monthlyScheduleMonth + 1, 0);
+    
+    // 월요일부터 시작하도록 조정
+    let startDayOfWeek = firstDay.getDay();
+    if (startDayOfWeek === 0) startDayOfWeek = 7;
+    startDayOfWeek -= 1;
+    
+    let html = '';
+    
+    // 선생님별로 거대한 테이블 생성
+    teachers.forEach((teacher, teacherIndex) => {
+        const teacherStudents = students.filter(s => s.teacher_id === teacher.id);
+        if (teacherStudents.length === 0) return;
+        
+        console.log(`[renderMonthlyScheduleCalendar] ${teacher.name} 선생님 학생 수:`, teacherStudents.length);
+        
+        // 선생님 헤더
+        html += `<div style="margin-bottom: 2rem; ${teacherIndex > 0 ? 'margin-top: 3rem;' : ''}">`;
+        html += `<h3 style="margin-bottom: 1rem; padding-bottom: 0.5rem; border-bottom: 3px solid #FF6B35; color: #333; font-size: 1.3rem;">${teacher.name} 선생님</h3>`;
+        
+        // 해당 월의 모든 날짜 수집 (주차별로 그룹핑)
+        const weekGroups = []; // 각 주차별 날짜 배열 [{ monday: {...}, tuesday: {...}, ... }]
+        let currentWeek = { monday: null, tuesday: null, wednesday: null, thursday: null, friday: null, saturday: null };
+        let currentDate = 1;
+        
+        // 첫 번째 날짜부터 시작
+        let startDate = new Date(monthlyScheduleYear, monthlyScheduleMonth, 1);
+        let startDayOfWeek = startDate.getDay(); // 0=일, 1=월, ..., 6=토
+        
+        // 첫 번째 주의 시작을 월요일로 맞추기
+        if (startDayOfWeek === 0) { // 일요일인 경우
+            currentDate = 2; // 다음 월요일부터 시작
+        } else if (startDayOfWeek >= 2) { // 화요일 이후인 경우
+            currentDate = 9 - startDayOfWeek; // 다음 월요일로 이동
+        }
+        
+        while (currentDate <= lastDay.getDate()) {
+            let actualDate = new Date(monthlyScheduleYear, monthlyScheduleMonth, currentDate);
+            let actualDayOfWeek = actualDate.getDay();
+            
+            // 월요일이 시작이면 새로운 주 시작
+            if (actualDayOfWeek === 1 && (currentWeek.monday || currentWeek.tuesday || currentWeek.wednesday || currentWeek.thursday || currentWeek.friday || currentWeek.saturday)) {
+                weekGroups.push({...currentWeek});
+                currentWeek = { monday: null, tuesday: null, wednesday: null, thursday: null, friday: null, saturday: null };
+            }
+            
+            // 일요일 제외
+            if (actualDayOfWeek !== 0) {
+                const dateString = `${monthlyScheduleYear}-${String(monthlyScheduleMonth + 1).padStart(2, '0')}-${String(currentDate).padStart(2, '0')}`;
+                const dayKeys = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+                const dayKey = dayKeys[actualDayOfWeek];
+                
+                currentWeek[dayKey] = {
+                    date: currentDate,
+                    dateString: dateString,
+                    dayOfWeek: actualDayOfWeek,
+                    dayName: ['일', '월', '화', '수', '목', '금', '토'][actualDayOfWeek]
+                };
+            }
+            
+            currentDate++;
+        }
+        
+        // 마지막 주 추가
+        if (currentWeek.monday || currentWeek.tuesday || currentWeek.wednesday || currentWeek.thursday || currentWeek.friday || currentWeek.saturday) {
+            weekGroups.push(currentWeek);
+        }
+        
+        console.log(`[renderMonthlyScheduleCalendar] 주차별 날짜:`, weekGroups);
+        
+        // 토요일에 스케줄이 있는지 확인
+        let hasSaturdaySchedule = false;
+        teacherStudents.forEach(student => {
+            let schedule = student.schedule;
+            if (typeof schedule === 'string') {
+                try {
+                    schedule = JSON.parse(schedule);
+                } catch (e) {
+                    schedule = null;
+                }
+            }
+            if (schedule && schedule.saturday && schedule.saturday.enabled) {
+                hasSaturdaySchedule = true;
+            }
+        });
+        
+        console.log(`[renderMonthlyScheduleCalendar] 토요일 스케줄 존재:`, hasSaturdaySchedule);
+        
+        // 시간대 목록 (13:30 ~ 19:30, 30분 단위) - 총 13개 시간대
+        const timeSlots = [];
+        timeSlots.push('13:30');
+        for (let hour = 14; hour <= 19; hour++) {
+            timeSlots.push(`${String(hour).padStart(2, '0')}:00`);
+            if (hour < 19) {
+                timeSlots.push(`${String(hour).padStart(2, '0')}:30`);
+            }
+        }
+        timeSlots.push('19:30');
+        
+        console.log(`[renderMonthlyScheduleCalendar] 시간대 개수:`, timeSlots.length);
+        console.log(`[renderMonthlyScheduleCalendar] 주차 수:`, weekGroups.length);
+        
+        // 요일 배열 (토요일은 조건부)
+        const dayKeys = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday'];
+        if (hasSaturdaySchedule) {
+            dayKeys.push('saturday');
+        }
+        const dayNames = { monday: '월', tuesday: '화', wednesday: '수', thursday: '목', friday: '금', saturday: '토' };
+        
+        // 거대한 테이블 생성
+        html += '<div style="overflow-x: auto;">';
+        html += '<table style="width: 100%; border-collapse: collapse; font-size: 0.6rem; table-layout: fixed;">';
+        
+        // colgroup으로 열 너비 설정
+        html += '<colgroup>';
+        html += '<col style="width: 60px;">'; // 시간 열
+        dayKeys.forEach(dayKey => {
+            // 각 요일당 4개 열 (정원 4명)
+            for (let i = 0; i < 4; i++) {
+                html += '<col style="width: 45px;">'; // 학생 열 너비
+            }
+        });
+        html += '</colgroup>';
+        
+        // 1행: 요일 헤더
+        html += '<thead><tr>';
+        html += '<th style="border: 2px solid #333; padding: 0.3rem; background: #495057; color: #fff; font-weight: 700; text-align: center;">시간</th>';
+        
+        dayKeys.forEach(dayKey => {
+            html += `<th colspan="4" style="border: 2px solid #333; padding: 0.3rem; background: #6c757d; color: #fff; font-weight: 600; text-align: center; font-size: 0.7rem;">${dayNames[dayKey]}</th>`;
+        });
+        
+        html += '</tr></thead><tbody>';
+        
+        // 각 주차별로 반복
+        weekGroups.forEach((week, weekIndex) => {
+            console.log(`[renderMonthlyScheduleCalendar] ${weekIndex + 1}주차 렌더링`);
+            
+            // 이미 렌더링된 셀 추적 (rowspan 처리용)
+            const renderedCells = {}; // key: `${timeIndex}_${dayKey}_${col}`, value: true
+            
+            // 각 시간대별 행 (총 13개 시간대)
+            timeSlots.forEach((time, timeIndex) => {
+                // 주차 구분선 (첫 번째 행에 굵은 위쪽 테두리)
+                const weekSeparatorStyle = (weekIndex > 0 && timeIndex === 0) ? 'border-top: 4px solid #000;' : '';
+                
+                html += `<tr style="${weekSeparatorStyle}">`;
+                
+                // 시간 열
+                html += `<td style="border: 2px solid #333; padding: 0.3rem; text-align: center; font-weight: 700; background: #f8f9fa; vertical-align: middle; font-size: 0.65rem; ${weekSeparatorStyle}">${time}</td>`;
+                
+                // 각 요일별로 4열씩
+                dayKeys.forEach((dayKey, dayIndex) => {
+                    const dateInfo = week[dayKey];
+                    
+                    // 요일 구분선 (왼쪽에 얇은 검정색 세로선)
+                    const dayBorderStyle = dayIndex > 0 ? 'border-left: 2px solid #000;' : '';
+                    
+                    if (!dateInfo) {
+                        // 해당 요일이 없으면 빈 칸 4개
+                        for (let col = 0; col < 4; col++) {
+                            const firstColBorder = col === 0 ? dayBorderStyle : '';
+                            html += `<td style="border: 1px solid #dee2e6; padding: 0.2rem; background: #f0f0f0; vertical-align: middle; ${weekSeparatorStyle} ${firstColBorder}"></td>`;
+                        }
+                        return;
+                    }
+                    
+                    // 해당 날짜, 해당 시간의 학생들 찾기
+                    const dateSchedules = [];
+                    const addedStudentIds = new Set(); // 중복 방지
+                    
+                    // 1. 출석 기록 기준으로 먼저 찾기 (보강/보충 포함)
+                    attendanceRecords.forEach(record => {
+                        if (record.date !== dateInfo.dateString) return;
+                        if (record.status === '결석') return; // 결석은 표시 안 함
+                        if (!record.check_in_time) return;
+                        
+                        // check_in_time이 현재 시간대와 일치하는지 확인
+                        if (record.check_in_time === time) {
+                            const student = teacherStudents.find(s => s.id === record.student_id);
+                            if (!student) return;
+                            
+                            let schedule = student.schedule;
+                            if (typeof schedule === 'string') {
+                                try {
+                                    schedule = JSON.parse(schedule);
+                                } catch (e) {
+                                    schedule = null;
+                                }
+                            }
+                            
+                            const date = new Date(dateInfo.dateString);
+                            const dayKeysMap = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+                            const studentDayKey = dayKeysMap[date.getDay()];
+                            const daySchedule = schedule ? schedule[studentDayKey] : null;
+                            
+                            dateSchedules.push({
+                                student: student,
+                                schedule: daySchedule || { checkIn: record.check_in_time, checkOut: record.expected_out_time },
+                                attendance: record
+                            });
+                            addedStudentIds.add(student.id);
+                        }
+                    });
+                    
+                    // 2. 스케줄 기준으로 찾기 (출석 기록 없는 미확정 스케줄)
+                    teacherStudents.forEach(student => {
+                        if (addedStudentIds.has(student.id)) return; // 이미 추가됨
+                        
+                        let schedule = student.schedule;
+                        if (typeof schedule === 'string') {
+                            try {
+                                schedule = JSON.parse(schedule);
+                            } catch (e) {
+                                schedule = null;
+                            }
+                        }
+                        
+                        if (!schedule) return;
+                        
+                        const date = new Date(dateInfo.dateString);
+                        const dayKeysMap = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+                        const studentDayKey = dayKeysMap[date.getDay()];
+                        const daySchedule = schedule[studentDayKey];
+                        
+                        if (!daySchedule || !daySchedule.enabled) return;
+                        
+                        // 시간 일치 확인
+                        if (daySchedule.checkIn === time) {
+                            const attendanceRecord = attendanceRecords.find(r => r.student_id === student.id && r.date === dateInfo.dateString);
+                            
+                            // 결석 확정된 경우 표시하지 않음
+                            if (attendanceRecord && attendanceRecord.status === '결석') {
+                                return;
+                            }
+                            
+                            dateSchedules.push({
+                                student: student,
+                                schedule: daySchedule,
+                                attendance: attendanceRecord
+                            });
+                            addedStudentIds.add(student.id);
+                        }
+                    });
+                    
+                    // 4개 열 출력 (정원 4명)
+                    for (let col = 0; col < 4; col++) {
+                        const cellKey = `${timeIndex}_${dayKey}_${col}`;
+                        
+                        // 이미 렌더링된 셀이면 건너뛰기 (rowspan으로 병합됨)
+                        if (renderedCells[cellKey]) {
+                            continue;
+                        }
+                        
+                        if (col < dateSchedules.length) {
+                            const item = dateSchedules[col];
+                            const student = item.student;
+                            const attendance = item.attendance;
+                            const daySchedule = item.schedule;
+                            
+                            const color = getStudentColor(student.id);
+                            
+                            let textColor = '#000'; // 기본: 미확정 스케줄 (검정색)
+                            let textDecoration = 'none';
+                            
+                            if (attendance) {
+                                // 출석 기록이 있는 경우
+                                if (attendance.status === '출석') {
+                                    textColor = '#000'; // 검정색 (출석도 검정색)
+                                } else if (attendance.status === '보강') {
+                                    textColor = '#f44336'; // 빨간색
+                                } else if (attendance.status === '보충') {
+                                    textColor = '#9C27B0'; // 보라색
+                                } else {
+                                    // 상태가 없거나 기타 상태 (체크만 있는 경우)
+                                    textColor = '#000'; // 검정색
+                                }
+                            }
+                            // attendance가 없으면 기본 검정색 (미확정 스케줄)
+                            
+                            // rowspan 계산 (수업 시간이 여러 시간대에 걸치는 경우)
+                            let rowspan = 1;
+                            if (daySchedule.checkIn && daySchedule.checkOut) {
+                                const checkInIndex = timeSlots.indexOf(daySchedule.checkIn);
+                                const checkOutIndex = timeSlots.indexOf(daySchedule.checkOut);
+                                if (checkInIndex >= 0 && checkOutIndex > checkInIndex) {
+                                    rowspan = checkOutIndex - checkInIndex;
+                                    
+                                    // 병합된 셀들 표시
+                                    for (let r = 1; r < rowspan; r++) {
+                                        renderedCells[`${timeIndex + r}_${dayKey}_${col}`] = true;
+                                    }
+                                }
+                            }
+                            
+                            // 요일 구분선 (첫 번째 열에만)
+                            const firstColBorder = col === 0 ? dayBorderStyle : '';
+                            
+                            html += `<td ${rowspan > 1 ? `rowspan="${rowspan}"` : ''} style="border: 1px solid #dee2e6; padding: 0.2rem; text-align: center; background: ${color}; vertical-align: middle; ${weekSeparatorStyle} ${firstColBorder}">`;
+                            html += `<span style="color: ${textColor}; text-decoration: ${textDecoration}; font-weight: 500; font-size: 0.65rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: block;">${getShortName(student.name)}</span>`;
+                            html += `</td>`;
+                        } else {
+                            // 빈 자리
+                            const firstColBorder = col === 0 ? dayBorderStyle : '';
+                            html += `<td style="border: 1px solid #dee2e6; padding: 0.2rem; background: #fff; vertical-align: middle; ${weekSeparatorStyle} ${firstColBorder}"></td>`;
+                        }
+                    }
+                });
+                
+                html += '</tr>';
+            });
+        });
+        
+        html += '</tbody></table>';
+        html += '</div>'; // overflow-x wrapper
+        html += '</div>'; // 선생님 달력 끝
+    });
+    
+    if (html === '') {
+        html = '<p style="text-align: center; color: #999; padding: 2rem;">표시할 스케줄이 없습니다.</p>';
+    }
+    
+    container.innerHTML = html;
 }
 
 // 테이블 스케일 자동 조정
