@@ -45,34 +45,8 @@ function getStudentColor(studentId) {
 
 // 월간 스케줄표 인쇄 (세로)
 window.printMonthlySchedule = function() {
-    // 인쇄 스타일 추가
-    const style = document.createElement('style');
-    style.id = 'monthlyPrintStyle';
-    style.textContent = `
-        @media print {
-            @page {
-                size: portrait;
-                margin: 0.5cm;
-            }
-            .page-header {
-                display: none !important;
-            }
-            body {
-                print-color-adjust: exact;
-                -webkit-print-color-adjust: exact;
-            }
-        }
-    `;
-    document.head.appendChild(style);
-    
-    // 인쇄
+    // CSS 파일이 이미 로드되어 있으므로 바로 인쇄
     window.print();
-    
-    // 인쇄 후 스타일 제거
-    setTimeout(() => {
-        const styleEl = document.getElementById('monthlyPrintStyle');
-        if (styleEl) styleEl.remove();
-    }, 1000);
 }
 
 // 주간 스케줄표 페이지
@@ -129,10 +103,19 @@ window.showScheduleWeekly = async function() {
 window.showScheduleMonthly = async function() {
     const mainContent = document.getElementById('mainContent');
     
+    // 월간 스케줄 인쇄 CSS 추가
+    let monthlyPrintCSS = document.getElementById('monthlyPrintCSS');
+    if (!monthlyPrintCSS) {
+        monthlyPrintCSS = document.createElement('link');
+        monthlyPrintCSS.id = 'monthlyPrintCSS';
+        monthlyPrintCSS.rel = 'stylesheet';
+        monthlyPrintCSS.href = 'css/monthly-schedule-print.css?v=' + Date.now();
+        document.head.appendChild(monthlyPrintCSS);
+    }
+    
     mainContent.innerHTML = `
         <div class="page-container" style="max-width: 98%; margin: 0 auto;">
-            <div class="page-header" style="display: flex; justify-content: space-between; align-items: center; gap: 1rem; margin-bottom: 1rem;">
-                <h2>월간 스케줄표</h2>
+            <div class="page-header" style="display: flex; justify-content: flex-end; align-items: center; gap: 1rem; margin-bottom: 1rem;">
                 <div style="display: flex; gap: 1rem; align-items: center;">
                     <!-- 월간 스케줄 월 이동 버튼 -->
                     <button onclick="changeMonthlyScheduleMonth(-1)" class="btn-secondary" style="padding: 0.5rem 1rem;">◀ 이전 달</button>
@@ -433,9 +416,8 @@ async function renderMonthlyScheduleCalendar(students, attendanceRecords) {
         
         console.log(`[renderMonthlyScheduleCalendar] ${teacher.name} 선생님 학생 수:`, teacherStudents.length);
         
-        // 선생님 헤더
-        html += `<div style="margin-bottom: 2rem; ${teacherIndex > 0 ? 'margin-top: 3rem;' : ''}">`;
-        html += `<h3 style="margin-bottom: 1rem; padding-bottom: 0.5rem; border-bottom: 3px solid #FF6B35; color: #333; font-size: 1.3rem;">${teacher.name} 선생님</h3>`;
+        // 선생님 구분 (제목 없이 여백만)
+        html += `<div style="margin-bottom: 2rem; ${teacherIndex > 0 ? 'margin-top: 3rem; padding-top: 2rem; border-top: 4px solid #FF6B35;' : ''}">`;
         
         // 해당 월의 모든 날짜 수집 (주차별로 그룹핑)
         const weekGroups = []; // 각 주차별 날짜 배열 [{ monday: {...}, tuesday: {...}, ... }]
@@ -542,11 +524,32 @@ async function renderMonthlyScheduleCalendar(students, attendanceRecords) {
         html += '</colgroup>';
         
         // 1행: 요일 헤더
-        html += '<thead><tr>';
-        html += '<th style="border: 2px solid #333; padding: 0.3rem; background: #495057; color: #fff; font-weight: 700; text-align: center;">시간</th>';
+        html += '<thead>';
+        html += '<tr>';
+        html += '<th style="border: 1px solid #ccc; padding: 0.3rem; background: #b8c5d0; color: #333; font-weight: 700; text-align: center;">시간</th>';
         
         dayKeys.forEach(dayKey => {
-            html += `<th colspan="4" style="border: 2px solid #333; padding: 0.3rem; background: #6c757d; color: #fff; font-weight: 600; text-align: center; font-size: 0.7rem;">${dayNames[dayKey]}</th>`;
+            html += `<th colspan="4" style="border: 1px solid #ccc; padding: 0.3rem; background: #d4dce4; color: #333; font-weight: 600; text-align: center; font-size: 0.7rem;">${dayNames[dayKey]}</th>`;
+        });
+        html += '</tr>';
+        
+        // 2행: 날짜 행 추가
+        html += '<tr>';
+        html += '<th style="border: 1px solid #ccc; padding: 0.3rem; background: #b8c5d0; color: #333; font-weight: 700; text-align: center;">날짜</th>';
+        
+        dayKeys.forEach(dayKey => {
+            const dateInfo = weekGroups[0] ? weekGroups[0][dayKey] : null; // 첫 주의 날짜 정보
+            const dateText = dateInfo ? dateInfo.date : '-';
+            // 토/일 배경색 처리
+            let bgColor = '#d4dce4';
+            if (dateInfo) {
+                if (dateInfo.dayOfWeek === 6) { // 토요일
+                    bgColor = '#f0e8e8';
+                } else if (dateInfo.dayOfWeek === 0) { // 일요일
+                    bgColor = '#f0e8e8';
+                }
+            }
+            html += `<th colspan="4" style="border: 1px solid #ccc; padding: 0.3rem; background: ${bgColor}; color: #333; font-weight: 600; text-align: center; font-size: 0.65rem;">${dateText}</th>`;
         });
         
         html += '</tr></thead><tbody>';
@@ -554,6 +557,29 @@ async function renderMonthlyScheduleCalendar(students, attendanceRecords) {
         // 각 주차별로 반복
         weekGroups.forEach((week, weekIndex) => {
             console.log(`[renderMonthlyScheduleCalendar] ${weekIndex + 1}주차 렌더링`);
+            
+            // 주차 구분: 날짜 행 추가
+            if (weekIndex > 0) {
+                html += '<tr>';
+                html += '<th style="border: 1px solid #ccc; border-top: 4px solid #000; padding: 0.3rem; background: #b8c5d0; color: #333; font-weight: 700; text-align: center;">날짜</th>';
+                
+                dayKeys.forEach(dayKey => {
+                    const dateInfo = week[dayKey];
+                    const dateText = dateInfo ? dateInfo.date : '-';
+                    // 토/일 배경색 처리
+                    let bgColor = '#d4dce4';
+                    if (dateInfo) {
+                        if (dateInfo.dayOfWeek === 6) { // 토요일
+                            bgColor = '#f0e8e8';
+                        } else if (dateInfo.dayOfWeek === 0) { // 일요일
+                            bgColor = '#f0e8e8';
+                        }
+                    }
+                    html += `<th colspan="4" style="border: 1px solid #ccc; border-top: 4px solid #000; padding: 0.3rem; background: ${bgColor}; color: #333; font-weight: 600; text-align: center; font-size: 0.65rem;">${dateText}</th>`;
+                });
+                
+                html += '</tr>';
+            }
             
             // 이미 렌더링된 셀 추적 (rowspan 처리용)
             const renderedCells = {}; // key: `${timeIndex}_${dayKey}_${col}`, value: true
@@ -566,7 +592,7 @@ async function renderMonthlyScheduleCalendar(students, attendanceRecords) {
                 html += `<tr style="${weekSeparatorStyle}">`;
                 
                 // 시간 열
-                html += `<td style="border: 2px solid #333; padding: 0.3rem; text-align: center; font-weight: 700; background: #f8f9fa; vertical-align: middle; font-size: 0.65rem; ${weekSeparatorStyle}">${time}</td>`;
+                html += `<td style="border: 1px solid #ccc; padding: 0.3rem; text-align: center; font-weight: 700; background: #f8f9fa; vertical-align: middle; font-size: 0.65rem; ${weekSeparatorStyle}">${time}</td>`;
                 
                 // 각 요일별로 4열씩
                 dayKeys.forEach((dayKey, dayIndex) => {
