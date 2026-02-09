@@ -4,6 +4,11 @@ const Navigation = {
     currentSubMenu: null,
     
     subMenus: {
+        classManagement: [],  // 수업 관리 (서브메뉴 없음, 단독 페이지)
+        tuition: [
+            { id: 'tuition-student', label: '학생별 원비 관리' },
+            { id: 'tuition-monthly', label: '월별 원비 관리' }
+        ],
         members: [
             { id: 'students', label: '학생 관리' },
             { id: 'teachers', label: '선생님 관리' },
@@ -13,17 +18,17 @@ const Navigation = {
             { id: 'attendance-check', label: '출석 체크' },
             { id: 'attendance-view', label: '출석 조회' }
         ],
-        tuition: [
-            { id: 'tuition-student', label: '학생별 원비 관리' },
-            { id: 'tuition-monthly', label: '월별 원비 관리' }
-        ],
         schedule: [
-            { id: 'schedule-current', label: '이번달 스케줄표' }
+            { id: 'schedule-weekly', label: '주간 스케줄표' },
+            { id: 'schedule-monthly', label: '월간 스케줄표' }
         ],
+        curriculum: [],  // 교육과정 (서브메뉴 없음, 단독 페이지)
+        academyManagement: [],  // 학원 관리 (서브메뉴 없음, 연간 달력 단독 페이지)
         prints: [
             { id: 'print-distribute', label: '프린트물' },
             { id: 'print-list', label: '프린트 목록' }
-        ]
+        ],
+        settings: []  // 설정 (서브메뉴 없음, 단독 페이지)
     },
     
     // 권한별 접근 가능한 메뉴
@@ -36,13 +41,13 @@ const Navigation = {
         
         if (role === 'admin') {
             // 관리자만 모든 메뉴 접근 가능
-            return ['members', 'attendance', 'tuition', 'schedule', 'curriculum', 'prints', 'settings'];
+            return ['classManagement', 'members', 'attendance', 'schedule', 'tuition', 'curriculum', 'academyManagement', 'settings'];
         } else if (role === 'subadmin') {
-            // 부관리자는 프린트 제외
-            return ['members', 'attendance', 'tuition', 'schedule', 'curriculum', 'settings'];
+            // 부관리자
+            return ['classManagement', 'members', 'attendance', 'schedule', 'tuition', 'curriculum', 'academyManagement', 'settings'];
         } else if (role === 'teacher') {
             // 선생님은 제한된 메뉴만 접근 가능
-            return ['members', 'attendance', 'schedule', 'curriculum'];
+            return ['classManagement', 'members', 'attendance', 'schedule', 'curriculum'];
         }
         
         return [];
@@ -60,7 +65,7 @@ const Navigation = {
             // 관리자만 모든 서브메뉴 접근 가능
             return this.subMenus[menuId] || [];
         } else if (role === 'subadmin') {
-            // 부관리자는 프린트 제외하고 모든 서브메뉴 접근 가능
+            // 부관리자는 프린트 제외
             if (menuId === 'prints') {
                 return [];
             }
@@ -79,9 +84,11 @@ const Navigation = {
                 ];
             } else if (menuId === 'schedule') {
                 return [
-                    { id: 'schedule-current', label: '이번달 스케줄표' }
+                    { id: 'schedule-weekly', label: '주간 스케줄표' },
+                    { id: 'schedule-monthly', label: '월간 스케줄표' }
                 ];
             }
+            return this.subMenus[menuId] || [];
         }
         
         return [];
@@ -129,11 +136,23 @@ function toggleSubMenu(event, menuId) {
         const leftOffset = menuRect.left - mainMenuRect.left;
         
         // 서브메뉴 생성 (권한에 따라 필터링)
-        subMenu.innerHTML = accessibleSubMenus.map(item => `
-            <li class="${Navigation.currentSubMenu === item.id ? 'active' : ''}">
-                <a href="#" onclick="showPage('${item.id}'); return false;">${item.label}</a>
-            </li>
-        `).join('');
+        subMenu.innerHTML = accessibleSubMenus.map(item => {
+            if (item.hasSubMenu) {
+                // 중카테고리 (다시 서브메뉴를 가짐)
+                return `
+                    <li class="${Navigation.currentSubMenu === item.id ? 'active' : ''}">
+                        <a href="#" onclick="toggleSubMenu(event, '${item.id}'); return false;">${item.label}</a>
+                    </li>
+                `;
+            } else {
+                // 일반 메뉴 아이템
+                return `
+                    <li class="${Navigation.currentSubMenu === item.id ? 'active' : ''}">
+                        <a href="#" onclick="showPage('${item.id}'); return false;">${item.label}</a>
+                    </li>
+                `;
+            }
+        }).join('');
         
         // 서브메뉴를 해당 메뉴 아래에 정렬
         subMenu.style.paddingLeft = `${leftOffset}px`;
@@ -147,7 +166,18 @@ function toggleSubMenu(event, menuId) {
         // 첫 번째 중카테고리 페이지를 자동으로 표시
         if (Navigation.subMenus[menuId].length > 0) {
             const firstSubMenu = Navigation.subMenus[menuId][0];
-            showPage(firstSubMenu.id);
+            // 중카테고리가 다시 서브메뉴를 가지면 자동으로 열기
+            if (firstSubMenu.hasSubMenu) {
+                // 중카테고리 클릭 (자동으로 서브메뉴 열기)
+                setTimeout(() => {
+                    const subMenuLink = document.querySelector(`a[onclick*="toggleSubMenu(event, '${firstSubMenu.id}')"]`);
+                    if (subMenuLink) {
+                        subMenuLink.click();
+                    }
+                }, 0);
+            } else {
+                showPage(firstSubMenu.id);
+            }
         }
     } else {
         subMenuContainer.style.display = 'none';
@@ -287,8 +317,14 @@ function showPage(pageId) {
         case 'tuition-monthly':
             showTuitionMonthlyPage();
             break;
+        case 'schedule-weekly':
+            showScheduleWeekly();
+            break;
+        case 'schedule-monthly':
+            showScheduleMonthly();
+            break;
         case 'schedule-current':
-            showScheduleCurrentPage();
+            showScheduleCurrentPage(); // 하위 호환성
             break;
         case 'schedule-view':
             showScheduleViewPage();
@@ -311,6 +347,12 @@ function showPage(pageId) {
                 console.error('showPrintListPage is not defined');
                 mainContent.innerHTML = '<div style="padding: 2rem; text-align: center;"><h2>프린트 목록 페이지를 불러오는 중...</h2><p>잠시 후 다시 시도해주세요.</p></div>';
             }
+            break;
+        case 'classManagement':
+            showClassManagementPage();
+            break;
+        case 'academyManagement':
+            showAnnualCalendarPage();
             break;
         case 'settings':
             showSettingsPage();
