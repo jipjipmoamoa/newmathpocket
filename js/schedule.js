@@ -533,9 +533,9 @@ async function renderMonthlyScheduleCalendar(students, attendanceRecords) {
         
         // 선생님 구분 (년월 + 선생님 이름 표시)
         const yearMonthText = `${monthlyScheduleYear}년 ${monthlyScheduleMonth + 1}월`;
-        const teacherTitle = teachers.length > 1 ? `${yearMonthText} - ${teacher.name} 선생님` : yearMonthText;
+        const teacherNameText = teachers.length > 1 ? ` - <span class="teacher-name-print-hide">${teacher.name} 선생님</span>` : '';
         html += `<div style="margin-bottom: 2rem; ${teacherIndex > 0 ? 'margin-top: 3rem; padding-top: 2rem; border-top: 4px solid #FF6B35;' : ''}">`;
-        html += `<h3 style="margin: 0 0 1rem 0; padding: 0.5rem; background: #f8f9fa; border-left: 4px solid #FF6B35; font-size: 1.1rem;">${teacherTitle}</h3>`;
+        html += `<h3 style="margin: 0 0 1rem 0; padding: 0.5rem; background: #f8f9fa; border-left: 4px solid #FF6B35; font-size: 1.1rem;">${yearMonthText}${teacherNameText}</h3>`;
         
         // 해당 월의 모든 날짜 수집 (주차별로 그룹핑)
         const weekGroups = []; // 각 주차별 날짜 배열 [{ monday: {...}, tuesday: {...}, ... }]
@@ -1007,8 +1007,8 @@ async function renderMonthlyScheduleCalendar(students, attendanceRecords) {
                             else if (item.status === '보충') textColor = '#9C27B0';
                             
                             html += `<td rowspan="${slots}" style="border: 1px solid #dee2e6; padding: 0.3rem; background: ${color}; vertical-align: top; text-align: center; ${weekSeparatorStyle} ${firstColBorder}">
-                                <div style="font-size: 0.91rem; font-weight: 600; color: ${textColor}; margin-bottom: 0.1rem;">${shortName}</div>
-                                <div style="font-size: 0.77rem; font-weight: normal; color: #888; line-height: 1.3;">
+                                <div class="student-name" style="font-size: 0.91rem; font-weight: 600; color: ${textColor}; margin-bottom: 0.1rem;">${shortName}</div>
+                                <div class="student-time" style="font-size: 0.77rem; font-weight: normal; color: #888; line-height: 1.3;">
                                     <div>${item.checkIn}</div>
                                     <div>${item.checkOut}</div>
                                 </div>
