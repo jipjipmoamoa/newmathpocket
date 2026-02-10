@@ -745,6 +745,20 @@ function renderAttendanceTable() {
         let statusText = status || '';
         let statusStyle = '';
         
+        // 4열 초과 여부 확인
+        let overflowBadge = '';
+        const selectedDate = getSelectedDateString();
+        if (typeof globalDateScheduleData !== 'undefined' && globalDateScheduleData[selectedDate]) {
+            const dateData = globalDateScheduleData[selectedDate];
+            // 모든 열에서 현재 학생의 overflow 여부 확인
+            dateData.columns.forEach(col => {
+                const studentItem = col.find(item => item.student.id === student.id);
+                if (studentItem && studentItem.overflow) {
+                    overflowBadge = '<span style="display: inline-block; background-color: #ff9800; color: white; padding: 2px 6px; border-radius: 3px; font-size: 0.75rem; margin-left: 5px;">4열 초과</span>';
+                }
+            });
+        }
+        
         if (status === '출석') {
             statusColor = 'style="color: #4CAF50; font-weight: 600;"';
         } else if (status === '보강') {
@@ -808,7 +822,7 @@ function renderAttendanceTable() {
             </td>
             <td class="duration-display" ${durationColor}>${durationText}</td>
             <td>
-                <span class="display-mode" id="display-status-${rowId}" ${statusColor}>${statusText || (existingRecord ? '-' : '')}</span>
+                <span class="display-mode" id="display-status-${rowId}" ${statusColor}>${statusText || (existingRecord ? '-' : '')}${overflowBadge}</span>
                 <div class="edit-mode" id="edit-status-container-${rowId}" style="display: none;">
                     <select class="form-select status-select" id="status-${rowId}" onchange="handleStatusChange('${rowId}')">
                         <option value="" ${status === '' ? 'selected' : ''}></option>
