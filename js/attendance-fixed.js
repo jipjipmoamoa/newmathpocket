@@ -663,7 +663,10 @@ function renderAttendanceTable() {
             const existingRecord = item.record;
             const daySchedule = item.daySchedule;
             
-            // 기본값: 스케줄의 입실/퇴실 시간 (표시용)
+            // 기본값: 스케줄의 입실/퇴실 시간 사용
+            const scheduleCheckIn = daySchedule.checkIn || '';
+            const scheduleCheckOut = daySchedule.checkOut || '';
+            
             let checkInTime = '';
             let checkOutTime = '';
             let status = '';
@@ -673,10 +676,8 @@ function renderAttendanceTable() {
             let absenceReason = '';
             let makeupDate = '';
             
-            // 스케줄 시간은 표시만 하고 실제 등록은 버튼 클릭 시
-            const scheduleCheckIn = daySchedule.checkIn || '';
-            
             if (existingRecord) {
+                // 출석 기록이 있으면 기록의 시간 사용
                 checkInTime = existingRecord.check_in_time || '';
                 checkOutTime = existingRecord.check_out_time || '';
                 status = existingRecord.status || '';
@@ -690,6 +691,10 @@ function renderAttendanceTable() {
                         actualDuration = scheduledDuration;
                     }
                 }
+            } else {
+                // 출석 기록이 없으면 스케줄 시간을 표시
+                checkInTime = scheduleCheckIn;
+                checkOutTime = scheduleCheckOut;
             }
         
         const row = document.createElement('tr');
@@ -792,8 +797,8 @@ function renderAttendanceTable() {
         row.innerHTML = `
             <td>${student.name} (${student.attendance_number || '-'})</td>
             <td>
-                <span class="display-mode" id="display-checkin-${rowId}">${checkInTime || (existingRecord ? scheduleCheckIn : '') || '-'}</span>
-                <input type="text" class="form-input edit-mode" id="edit-checkin-${rowId}" value="${checkInTime || scheduleCheckIn}" placeholder="14:00" style="display: none;"
+                <span class="display-mode" id="display-checkin-${rowId}">${checkInTime || '-'}</span>
+                <input type="text" class="form-input edit-mode" id="edit-checkin-${rowId}" value="${checkInTime}" placeholder="14:00" style="display: none;"
                     onblur="this.value = formatTimeInput(this.value)" />
             </td>
             <td>
@@ -2956,10 +2961,62 @@ async function renderStudentSelectForRegister() {
 function handleRegisterStudentChange() {
     const select = document.getElementById('registerStudentSelect');
     const manualInput = document.getElementById('registerManualName');
+    const checkInInput = document.getElementById('registerCheckInTime');
+    const checkOutInput = document.getElementById('registerCheckOutTime');
     
     if (select.value) {
         // 드롭다운에서 선택하면 수동 입력 초기화
         if (manualInput) manualInput.value = '';
+        
+        // 선택된 학생의 스케줄 정보 가져오기
+        const selectedOption = select.options[select.selectedIndex];
+        if (selectedOption && selectedOption.dataset.studentData) {
+            try {
+                const studentData = JSON.parse(selectedOption.dataset.studentData);
+                let schedule = studentData.schedule;
+                
+                // 스케줄 파싱
+                if (typeof schedule === 'string' && schedule.trim() !== '') {
+                    try {
+                        schedule = JSON.parse(schedule);
+                    } catch (e) {
+                        schedule = null;
+                    }
+                }
+                
+                // 현재 선택된 날짜의 요일 확인
+                const selectedDate = getSelectedDateString();
+                const dateObj = new Date(selectedDate);
+                const dayKeys = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+                const selectedDayKey = dayKeys[dateObj.getDay()];
+                
+                // 해당 요일의 스케줄 가져오기
+                if (schedule && schedule[selectedDayKey] && schedule[selectedDayKey].enabled) {
+                    const daySchedule = schedule[selectedDayKey];
+                    
+                    // 입실/퇴실 시간 자동 입력
+                    if (daySchedule.checkIn && checkInInput) {
+                        checkInInput.value = daySchedule.checkIn;
+                    }
+                    if (daySchedule.checkOut && checkOutInput) {
+                        checkOutInput.value = daySchedule.checkOut;
+                    }
+                    
+                    console.log(`[스케줄 반영] ${studentData.name}: ${daySchedule.checkIn} - ${daySchedule.checkOut}`);
+                } else {
+                    // 스케줄이 없으면 입력창 비우기
+                    if (checkInInput) checkInInput.value = '';
+                    if (checkOutInput) checkOutInput.value = '';
+                    console.log(`[스케줄 반영] ${studentData.name}: 해당 요일 스케줄 없음`);
+                }
+            } catch (error) {
+                console.error('스케줄 반영 오류:', error);
+            }
+        }
+    } else {
+        // 선택 해제 시 입력창 비우기
+        if (checkInInput) checkInInput.value = '';
+        if (checkOutInput) checkOutInput.value = '';
     }
 }
 
