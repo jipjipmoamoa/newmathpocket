@@ -106,7 +106,7 @@ window.showScheduleWeekly = async function() {
         schedulePrintCSS = document.createElement('link');
         schedulePrintCSS.id = 'schedulePrintCSS';
         schedulePrintCSS.rel = 'stylesheet';
-        schedulePrintCSS.href = 'css/schedule-print.css?v=20260210009';
+        schedulePrintCSS.href = 'css/schedule-print.css?v=20260210012';
         document.head.appendChild(schedulePrintCSS);
     }
     
@@ -198,7 +198,7 @@ window.showScheduleCurrentPage = async function() {
         schedulePrintCSS = document.createElement('link');
         schedulePrintCSS.id = 'schedulePrintCSS';
         schedulePrintCSS.rel = 'stylesheet';
-        schedulePrintCSS.href = 'css/schedule-print.css?v=20260210009';
+        schedulePrintCSS.href = 'css/schedule-print.css?v=20260210012';
         document.head.appendChild(schedulePrintCSS);
     }
     
@@ -1013,8 +1013,11 @@ function buildScheduleData(students) {
         maxColumnsPerDay[day] = 0;
     });
     
-    // 학생들의 스케줄을 열에 배치
+    // 학생들을 시작 시간순으로 정렬하여 최적 배치 (핵심!)
     days.forEach((day) => {
+        // 이 요일의 모든 학생 스케줄 수집
+        const dayStudents = [];
+        
         students.forEach(student => {
             // schedule이 JSON 문자열이면 파싱
             let schedule = student.schedule;
@@ -1028,7 +1031,7 @@ function buildScheduleData(students) {
                 }
             }
             
-            // ✅ 1) 기본 요일 스케줄 처리
+            // 이 요일의 스케줄이 있으면 수집
             if (schedule && schedule[day] && schedule[day].enabled) {
                 const daySchedule = schedule[day];
                 const checkIn = daySchedule.checkIn;
@@ -1047,67 +1050,124 @@ function buildScheduleData(students) {
                     const startMinutes = inHour * 60 + inMin;
                     const endMinutes = outHour * 60 + outMin;
                     
-                    // 사용 가능한 열 찾기
-                    let assignedCol = -1;
-                    for (let col = 0; col < scheduleData[day].columns.length; col++) {
-                        const column = scheduleData[day].columns[col];
-                        // 이 열에서 시간이 겹치는 수업이 있는지 확인
-                        let hasConflict = false;
-                        for (let item of column) {
-                            const [itemInHour, itemInMin] = item.checkIn.split(':').map(Number);
-                            const [itemOutHour, itemOutMin] = item.checkOut.split(':').map(Number);
-                            const itemStart = itemInHour * 60 + itemInMin;
-                            const itemEnd = itemOutHour * 60 + itemOutMin;
-                            
-                            // 시간 겹침 확인
-                            if (!(endMinutes <= itemStart || startMinutes >= itemEnd)) {
-                                hasConflict = true;
-                                break;
-                            }
-                        }
+                    dayStudents.push({
+                        student: student,
+                        duration: duration,
+                        checkIn: checkIn,
+                        checkOut: checkOut,
+                        startMinutes: startMinutes,
+                        endMinutes: endMinutes
+                    });
+                }
+            }
+        });
+        
+        // ===== 핵심: 시작 시간순으로 정렬 =====
+        dayStudents.sort((a, b) => a.startMinutes - b.startMinutes);
+        
+        console.log(`[buildScheduleData] ${day} 학생 정렬 결과:`, dayStudents.map(s => `${s.student.name}(${s.checkIn})`).join(', '));
+        
+        // 정렬된 순서대로 최적 열에 배치 (4열 우선)
+        dayStudents.forEach(studentData => {
+            const { student, duration, checkIn, checkOut, startMinutes, endMinutes } = studentData;
+            
+            let assignedCol = -1;
+            
+            // 1단계: 기존 4열 안에서 시간이 겹치지 않는 열 찾기
+            for (let col = 0; col < Math.min(scheduleData[day].columns.length, 4); col++) {
+                const column = scheduleData[day].columns[col];
+                let hasConflict = false;
+                
+                for (let item of column) {
+                    const [itemInHour, itemInMin] = item.checkIn.split(':').map(Number);
+                    const [itemOutHour, itemOutMin] = item.checkOut.split(':').map(Number);
+                    const itemStart = itemInHour * 60 + itemInMin;
+                    const itemEnd = itemOutHour * 60 + itemOutMin;
+                    
+                    // 시간 겹침 확인
+                    if (!(endMinutes <= itemStart || startMinutes >= itemEnd)) {
+                        hasConflict = true;
+                        break;
+                    }
+                }
+                
+                if (!hasConflict) {
+                    assignedCol = col;
+                    break;
+                }
+            }
+            
+            // 2단계: 4열 안에 자리가 없고, 4열 미만이면 새 열 추가 (4열까지)
+            if (assignedCol === -1 && scheduleData[day].columns.length < 4) {
+                assignedCol = scheduleData[day].columns.length;
+                scheduleData[day].columns.push([]);
+                console.log(`[buildScheduleData] ℹ️ ${student.name} ${day} - 새 열 ${assignedCol} 추가 (4열 내)`);
+            }
+            
+            // 3단계: 4열 모두 사용 중이면, 5열 이상에서 찾기
+            if (assignedCol === -1) {
+                for (let col = 4; col < scheduleData[day].columns.length; col++) {
+                    const column = scheduleData[day].columns[col];
+                    let hasConflict = false;
+                    
+                    for (let item of column) {
+                        const [itemInHour, itemInMin] = item.checkIn.split(':').map(Number);
+                        const [itemOutHour, itemOutMin] = item.checkOut.split(':').map(Number);
+                        const itemStart = itemInHour * 60 + itemInMin;
+                        const itemEnd = itemOutHour * 60 + itemOutMin;
                         
-                        if (!hasConflict) {
-                            assignedCol = col;
+                        if (!(endMinutes <= itemStart || startMinutes >= itemEnd)) {
+                            hasConflict = true;
                             break;
                         }
                     }
                     
-                    // 사용 가능한 열이 없으면 새 열 추가
-                    if (assignedCol === -1) {
-                        assignedCol = scheduleData[day].columns.length;
-                        scheduleData[day].columns.push([]);
-                    }
-                    
-                    // 학생을 열에 추가
-                    scheduleData[day].columns[assignedCol].push({
-                        student: student,
-                        duration: duration,
-                        checkIn: checkIn,
-                        checkOut: checkOut
-                    });
-                    
-                    console.log(`[buildScheduleData] ✅ ${student.name} ${day} - 열 ${assignedCol}에 배치: ${checkIn}~${checkOut}`);
-                    
-                    // 최대 열 개수 업데이트
-                    if (scheduleData[day].columns.length > maxColumnsPerDay[day]) {
-                        maxColumnsPerDay[day] = scheduleData[day].columns.length;
+                    if (!hasConflict) {
+                        assignedCol = col;
+                        break;
                     }
                 }
+            }
+            
+            // 4단계: 모든 열에 자리가 없으면 새 열 추가 (5열 이상)
+            if (assignedCol === -1) {
+                assignedCol = scheduleData[day].columns.length;
+                scheduleData[day].columns.push([]);
+                console.log(`[buildScheduleData] ⚠️ ${student.name} ${day} - 5열 이상 추가 (열 ${assignedCol})`);
+            }
+            
+            // 학생을 열에 추가
+            scheduleData[day].columns[assignedCol].push({
+                student: student,
+                duration: duration,
+                checkIn: checkIn,
+                checkOut: checkOut
+            });
+            
+            console.log(`[buildScheduleData] ✅ ${student.name} ${day} - 열 ${assignedCol}에 배치: ${checkIn}~${checkOut}`);
+            
+            // 최대 열 개수 업데이트
+            if (scheduleData[day].columns.length > maxColumnsPerDay[day]) {
+                maxColumnsPerDay[day] = scheduleData[day].columns.length;
             }
         });
     });
     
-    // ===== 각 요일당 최소 4열 보장 =====
+    // ===== 각 요일당 최소 4열 보장 (모든 학생 표시) =====
     days.forEach(day => {
         const currentColumns = scheduleData[day].columns.length;
+        
         if (currentColumns < 4) {
             // 4열까지 빈 열 추가
             for (let i = currentColumns; i < 4; i++) {
                 scheduleData[day].columns.push([]);
             }
-            maxColumnsPerDay[day] = 4;
             console.log(`[buildScheduleData] ${day}: ${currentColumns}열 → 4열로 확장`);
+        } else if (currentColumns > 4) {
+            console.log(`[buildScheduleData] ℹ️ ${day}: ${currentColumns}열 사용 (시간 최적화됨)`);
         }
+        
+        maxColumnsPerDay[day] = Math.max(currentColumns, 4); // 최소 4열, 필요시 더 많이
     });
     
     return { scheduleData, hasSaturday, maxColumnsPerDay };
