@@ -100,6 +100,13 @@ window.printMonthlySchedule = function() {
 
 // 주간 스케줄표 페이지
 window.showScheduleWeekly = async function() {
+    // 기존 팝업 제거
+    const existingPopup = document.getElementById('studentAttendancePopup');
+    if (existingPopup) {
+        existingPopup.remove();
+    }
+    highlightedScheduleStudentId = null;
+    
     const mainContent = document.getElementById('mainContent');
     
     // 스케줄 인쇄 CSS 추가
@@ -150,6 +157,13 @@ window.showScheduleWeekly = async function() {
 
 // 월간 스케줄표 페이지
 window.showScheduleMonthly = async function() {
+    // 기존 팝업 제거
+    const existingPopup = document.getElementById('studentAttendancePopup');
+    if (existingPopup) {
+        existingPopup.remove();
+    }
+    highlightedScheduleStudentId = null;
+    
     const mainContent = document.getElementById('mainContent');
     
     // 월간 스케줄 인쇄 CSS 추가
@@ -1006,7 +1020,10 @@ async function renderMonthlyScheduleCalendar(students, attendanceRecords) {
                             if (item.status === '보강') textColor = '#f44336';
                             else if (item.status === '보충') textColor = '#9C27B0';
                             
-                            html += `<td rowspan="${slots}" style="border: 1px solid #dee2e6; padding: 0.3rem; background: ${color}; vertical-align: top; text-align: center; ${weekSeparatorStyle} ${firstColBorder}">
+                            const isHighlighted = highlightedScheduleStudentId === item.student.id;
+                            const borderStyle = isHighlighted ? 'border: 3px solid #FF6B35 !important;' : '';
+                            
+                            html += `<td rowspan="${slots}" class="monthly-student-cell" data-student-id="${item.student.id}" style="border: 1px solid #dee2e6; padding: 0.3rem; background: ${color}; vertical-align: top; text-align: center; ${weekSeparatorStyle} ${firstColBorder} ${borderStyle} cursor: pointer;" onclick="toggleHighlightMonthlyStudent('${item.student.id}', event)">
                                 <div class="student-name" style="font-size: 0.91rem; font-weight: 600; color: ${textColor}; margin-bottom: 0.1rem;">${shortName}</div>
                                 <div class="student-time" style="font-size: 0.77rem; font-weight: normal; color: #888; line-height: 1.3;">
                                     <div>${item.checkIn}</div>
@@ -2224,6 +2241,7 @@ async function loadMonthlyAttendanceCount() {
 }
 
 // 학생 강조 토글 및 정보 팝업 표시
+// 주간 스케줄 학생 하이라이트
 window.toggleHighlightScheduleStudent = function(studentId, event) {
     // 기존 팝업 제거
     const existingPopup = document.getElementById('studentAttendancePopup');
@@ -2314,6 +2332,124 @@ window.toggleHighlightScheduleStudent = function(studentId, event) {
     
     // 클릭한 셀의 위치 계산
     const targetCell = event.target.closest('.student-cell');
+    if (targetCell) {
+        const rect = targetCell.getBoundingClientRect();
+        
+        // 팝업 위치: 셀 오른쪽 상단
+        popup.style.left = `${rect.right + 10}px`;
+        popup.style.top = `${rect.top}px`;
+        
+        // 화면 오른쪽을 벗어나면 왼쪽에 표시
+        document.body.appendChild(popup);
+        const popupRect = popup.getBoundingClientRect();
+        if (popupRect.right > window.innerWidth) {
+            popup.style.left = `${rect.left - popupRect.width - 10}px`;
+        }
+        
+        // 화면 아래를 벗어나면 위로 이동
+        if (popupRect.bottom > window.innerHeight) {
+            popup.style.top = `${rect.bottom - popupRect.height}px`;
+        }
+    } else {
+        // 기본 위치: 화면 중앙
+        popup.style.left = '50%';
+        popup.style.top = '50%';
+        popup.style.transform = 'translate(-50%, -50%)';
+        document.body.appendChild(popup);
+    }
+}
+
+// 월간 스케줄 학생 하이라이트 (동일한 로직, .monthly-student-cell 사용)
+window.toggleHighlightMonthlyStudent = function(studentId, event) {
+    // 기존 팝업 제거
+    const existingPopup = document.getElementById('studentAttendancePopup');
+    if (existingPopup) {
+        existingPopup.remove();
+    }
+    
+    if (highlightedScheduleStudentId === studentId) {
+        // 이미 선택된 학생 클릭 시 해제
+        highlightedScheduleStudentId = null;
+        
+        // 모든 월간 학생 셀의 테두리 제거
+        const allStudentCells = document.querySelectorAll('.monthly-student-cell[data-student-id]');
+        allStudentCells.forEach(cell => {
+            cell.style.border = '1px solid #dee2e6';
+        });
+        
+        return;
+    }
+    
+    // 새로운 학생 선택
+    highlightedScheduleStudentId = studentId;
+    
+    console.log('[toggleHighlightMonthlyStudent] 선택된 학생 ID:', highlightedScheduleStudentId);
+    
+    // 모든 월간 학생 셀의 스타일 업데이트
+    const allStudentCells = document.querySelectorAll('.monthly-student-cell[data-student-id]');
+    allStudentCells.forEach(cell => {
+        const cellStudentId = cell.getAttribute('data-student-id');
+        if (cellStudentId === highlightedScheduleStudentId) {
+            cell.style.border = '3px solid #FF6B35';
+        } else {
+            cell.style.border = '1px solid #dee2e6';
+        }
+    });
+    
+    // 출석 정보 팝업 생성 및 표시
+    const studentInfo = monthlyAttendanceCount[studentId];
+    if (!studentInfo) {
+        console.warn('[toggleHighlightMonthlyStudent] 학생 정보 없음:', studentId);
+        return;
+    }
+    
+    const popup = document.createElement('div');
+    popup.id = 'studentAttendancePopup';
+    popup.style.cssText = `
+        position: fixed;
+        background: white;
+        border: 2px solid #FF6B35;
+        border-radius: 8px;
+        padding: 1rem;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+        z-index: 10000;
+        min-width: 200px;
+    `;
+    
+    // 현재 선택된 월간 스케줄의 연월 사용
+    const monthName = `${monthlyScheduleYear}년 ${monthlyScheduleMonth + 1}월`;
+    
+    popup.innerHTML = `
+        <div style="font-weight: 600; font-size: 1rem; margin-bottom: 0.75rem; color: #FF6B35; border-bottom: 2px solid #FF6B35; padding-bottom: 0.5rem;">
+            ${monthName}
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 0.5rem; font-size: 0.9rem;">
+            <div style="display: flex; justify-content: space-between;">
+                <span style="color: #666;">출석해야 할 횟수:</span>
+                <span style="font-weight: 600; color: #333;">${studentInfo.expected}회</span>
+            </div>
+            <div style="height: 1px; background: #e0e0e0;"></div>
+            <div style="display: flex; justify-content: space-between;">
+                <span style="color: #666;">출석:</span>
+                <span style="font-weight: 600; color: #4CAF50;">${studentInfo.attendance}회</span>
+            </div>
+            <div style="display: flex; justify-content: space-between;">
+                <span style="color: #666;">보강:</span>
+                <span style="font-weight: 600; color: #f44336;">${studentInfo.makeup}회</span>
+            </div>
+            <div style="display: flex; justify-content: space-between;">
+                <span style="color: #666;">보충:</span>
+                <span style="font-weight: 600; color: #9C27B0;">${studentInfo.supplement}회</span>
+            </div>
+            <div style="display: flex; justify-content: space-between;">
+                <span style="color: #666;">결석:</span>
+                <span style="font-weight: 600; color: #000; text-decoration: line-through;">${studentInfo.absence}회</span>
+            </div>
+        </div>
+    `;
+    
+    // 클릭한 셀의 위치 계산
+    const targetCell = event.target.closest('.monthly-student-cell');
     if (targetCell) {
         const rect = targetCell.getBoundingClientRect();
         
