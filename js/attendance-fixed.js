@@ -1539,30 +1539,43 @@ async function saveAttendance(rowId, recordId) {
 // 출석 처리 (스케줄 시간대로 입실/퇴실 자동 저장)
 async function handleAttendance(studentId, recordId = null) {
     try {
+        console.log('[handleAttendance] 시작 - studentId:', studentId, 'recordId:', recordId);
+        
         if (!Auth.isLoggedIn()) {
             alert('로그인이 필요합니다.');
             return;
         }
         
         const student = attendanceStudents.find(s => s.id === studentId);
+        console.log('[handleAttendance] 학생 정보:', student);
         
         if (!student) {
             alert('학생 정보를 찾을 수 없습니다.');
             return;
         }
         
+        console.log('[handleAttendance] 학생 스케줄 (raw):', student.schedule);
+        console.log('[handleAttendance] 스케줄 타입:', typeof student.schedule);
+        
         let checkInTime, checkOutTime, expectedOutTime;
         
         // recordId가 있으면 해당 기록만 업데이트 (2행 등록된 보강/보충 유지)
         if (recordId) {
             const existingRecord = todayAttendanceRecords.find(r => r.id === recordId);
+            console.log('[handleAttendance] 기존 레코드 (recordId 있음):', existingRecord);
+            
             if (!existingRecord) {
                 alert('출석 기록을 찾을 수 없습니다.');
                 return;
             }
             
+            console.log('[handleAttendance] 기존 레코드 상태:', existingRecord.status);
+            
             // ✅ 보강/보충인 경우: 기존 레코드의 시간 사용
             if (existingRecord.status === '보강' || existingRecord.status === '보충') {
+                console.log('[handleAttendance] 보강/보충 처리 시작');
+                console.log('[handleAttendance] 기존 입실:', existingRecord.check_in_time);
+                console.log('[handleAttendance] 기존 퇴실:', existingRecord.check_out_time);
                 // 이미 입실/퇴실 시간이 있으면 그대로 사용
                 if (existingRecord.check_in_time && existingRecord.check_out_time) {
                     checkInTime = existingRecord.check_in_time;
@@ -1570,7 +1583,10 @@ async function handleAttendance(studentId, recordId = null) {
                     expectedOutTime = existingRecord.expected_out_time || checkOutTime;
                 } else {
                     // 시간이 없으면 스케줄에서 가져오기
+                    console.log('[handleAttendance] 보강/보충이지만 시간 없음 - 스케줄 확인');
                     const schedule = getStudentTodaySchedule(student);
+                    console.log('[handleAttendance] 가져온 스케줄:', schedule);
+                    
                     if (!schedule || !schedule.checkIn || !schedule.checkOut) {
                         alert('스케줄 정보가 없습니다. 2행에서 시간을 먼저 입력해주세요.');
                         return;
@@ -1581,14 +1597,19 @@ async function handleAttendance(studentId, recordId = null) {
                 }
             } else {
                 // 일반 스케줄: 스케줄에서 시간 가져오기
+                console.log('[handleAttendance] 일반 스케줄 처리 (recordId 있음)');
                 const schedule = getStudentTodaySchedule(student);
+                console.log('[handleAttendance] 가져온 스케줄:', schedule);
+                
                 if (!schedule || !schedule.checkIn || !schedule.checkOut) {
+                    console.log('[handleAttendance] ❌ 스케줄 없음 - schedule:', schedule);
                     alert('해당 학생의 오늘 스케줄 정보를 찾을 수 없습니다.');
                     return;
                 }
                 checkInTime = schedule.checkIn;
                 checkOutTime = schedule.checkOut;
                 expectedOutTime = schedule.checkOut;
+                console.log('[handleAttendance] 스케줄에서 가져온 시간 - 입실:', checkInTime, '퇴실:', checkOutTime);
             }
             
             // ✅ 기존 상태가 보강/보충이면 유지, 그렇지 않으면 출석으로 변경
@@ -1608,9 +1629,12 @@ async function handleAttendance(studentId, recordId = null) {
             alert(`${student.name} ${statusText} 처리 완료\n입실: ${checkInTime}\n퇴실: ${checkOutTime}`);
         } else {
             // recordId가 없으면 스케줄에서 시간 가져오기
+            console.log('[handleAttendance] recordId 없음 - 스케줄에서 시간 가져오기');
             const schedule = getStudentTodaySchedule(student);
+            console.log('[handleAttendance] 가져온 스케줄:', schedule);
             
             if (!schedule || !schedule.checkIn || !schedule.checkOut) {
+                console.log('[handleAttendance] ❌ 스케줄 없음 - schedule:', schedule);
                 alert('해당 학생의 오늘 스케줄 정보를 찾을 수 없습니다.');
                 return;
             }
@@ -1618,6 +1642,7 @@ async function handleAttendance(studentId, recordId = null) {
             checkInTime = schedule.checkIn;
             checkOutTime = schedule.checkOut;
             expectedOutTime = schedule.checkOut;
+            console.log('[handleAttendance] 스케줄에서 가져온 시간 - 입실:', checkInTime, '퇴실:', checkOutTime);
             
             const existingRecord = todayAttendanceRecords.find(r => r.student_id === student.id);
             
@@ -2142,18 +2167,29 @@ function updateDateDisplay(dateString) {
 
 // 학생의 선택된 날짜 스케줄 가져오기
 function getStudentTodaySchedule(student) {
-    if (!student || !student.schedule) return null;
+    console.log('[getStudentTodaySchedule] 시작 - 학생:', student?.name);
+    console.log('[getStudentTodaySchedule] 스케줄 (raw):', student?.schedule);
+    
+    if (!student || !student.schedule) {
+        console.log('[getStudentTodaySchedule] ❌ 학생 또는 스케줄 없음');
+        return null;
+    }
     
     // ✅ JSON 파싱 추가
     let schedule = student.schedule;
+    console.log('[getStudentTodaySchedule] 스케줄 타입:', typeof schedule);
+    
     if (typeof schedule === 'string' && schedule.trim() !== '') {
+        console.log('[getStudentTodaySchedule] 문자열 스케줄 - JSON 파싱 시도');
         try {
             schedule = JSON.parse(schedule);
+            console.log('[getStudentTodaySchedule] ✅ JSON 파싱 성공:', schedule);
         } catch (e) {
-            console.error('[getStudentTodaySchedule] JSON 파싱 실패:', student.name, e);
+            console.error('[getStudentTodaySchedule] ❌ JSON 파싱 실패:', student.name, e);
             return null;
         }
     } else if (typeof schedule !== 'object') {
+        console.log('[getStudentTodaySchedule] ❌ 스케줄이 객체가 아님:', typeof schedule);
         return null;
     }
     
@@ -2162,9 +2198,17 @@ function getStudentTodaySchedule(student) {
     const dayKeys = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
     const selectedDayKey = dayKeys[dateObj.getDay()];
     
-    const scheduleForDay = schedule[selectedDayKey];
-    if (!scheduleForDay || !scheduleForDay.enabled) return null;
+    console.log('[getStudentTodaySchedule] 선택된 날짜:', selectedDate);
+    console.log('[getStudentTodaySchedule] 요일 키:', selectedDayKey);
+    console.log('[getStudentTodaySchedule] 해당 요일 스케줄:', schedule[selectedDayKey]);
     
+    const scheduleForDay = schedule[selectedDayKey];
+    if (!scheduleForDay || !scheduleForDay.enabled) {
+        console.log('[getStudentTodaySchedule] ❌ 해당 요일 스케줄 없음 또는 비활성화');
+        return null;
+    }
+    
+    console.log('[getStudentTodaySchedule] ✅ 스케줄 반환:', scheduleForDay);
     return scheduleForDay;
 }
 
