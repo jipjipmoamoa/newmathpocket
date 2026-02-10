@@ -628,9 +628,6 @@ async function renderMonthlyScheduleCalendar(students, attendanceRecords) {
                 html += '</tr>';
             }
             
-            // 이미 렌더링된 셀 추적 (rowspan 처리용)
-            const renderedCells = {}; // key: `${timeIndex}_${dayKey}_${col}`, value: true
-            
             // 각 시간대별 행 (총 13개 시간대)
             timeSlots.forEach((time, timeIndex) => {
                 // 주차 구분선 (첫 번째 행에 굵은 위쪽 테두리)
@@ -657,151 +654,13 @@ async function renderMonthlyScheduleCalendar(students, attendanceRecords) {
                         return;
                     }
                     
-                    // 해당 날짜, 해당 시간의 학생들 찾기
-                    const dateSchedules = [];
-                    const addedStudentIds = new Set(); // 중복 방지
-                    
-                    const date = new Date(dateInfo.dateString);
-                    const dayKeysMap = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
-                    const studentDayKey = dayKeysMap[date.getDay()];
-                    
-                    // 모든 학생을 확인
-                    teacherStudents.forEach(student => {
-                        let schedule = student.schedule;
-                        if (typeof schedule === 'string') {
-                            try {
-                                schedule = JSON.parse(schedule);
-                            } catch (e) {
-                                schedule = null;
-                            }
-                        }
-                        
-                        const daySchedule = schedule ? schedule[studentDayKey] : null;
-                        const attendanceRecord = attendanceRecords.find(r => r.student_id === student.id && r.date === dateInfo.dateString);
-                        
-                        // 결석인 경우 표시하지 않음
-                        if (attendanceRecord && attendanceRecord.status === '결석') {
-                            return;
-                        }
-                        
-                        // 표시 여부 판단
-                        let shouldDisplay = false;
-                        let displaySchedule = null;
-                        
-                        // 보강/보충 여부 확인
-                        const isMakeupOrSupplement = attendanceRecord && 
-                                                     attendanceRecord.check_in_time && 
-                                                     (attendanceRecord.status === '보강' || attendanceRecord.status === '보충');
-                        
-                        if (isMakeupOrSupplement) {
-                            // 보강/보충: 등록된 입실 시간대에만 표시
-                            if (attendanceRecord.check_in_time === time) {
-                                shouldDisplay = true;
-                                displaySchedule = {
-                                    checkIn: attendanceRecord.check_in_time,
-                                    checkOut: attendanceRecord.expected_out_time
-                                };
-                            }
-                        } else {
-                            // 보강/보충이 아닌 경우: 원래 스케줄 시간대에 표시
-                            // (출석, 체크만, 출석 기록 없음 모두 포함)
-                            if (daySchedule && daySchedule.enabled && daySchedule.checkIn === time) {
-                                shouldDisplay = true;
-                                displaySchedule = daySchedule;
-                            }
-                        }
-                        
-                        if (shouldDisplay && !addedStudentIds.has(student.id)) {
-                            dateSchedules.push({
-                                student: student,
-                                schedule: displaySchedule,
-                                attendance: attendanceRecord
-                            });
-                            addedStudentIds.add(student.id);
-                        }
-                    });
-                    
-                    // 4열 고정 출력 (rowspan 없이)
+                    // 4열 고정 출력 (빈 셀만 출력)
                     for (let col = 0; col < 4; col++) {
-                        const cellKey = `${timeIndex}_${dayKey}_${col}`;
+                        // 요일 구분선 (첫 번째 열에만)
+                        const firstColBorder = col === 0 ? dayBorderStyle : '';
                         
-                        // 이미 렌더링된 셀이면 건너뛰기 (rowspan으로 병합됨)
-                        if (renderedCells[cellKey]) {
-                            continue;
-                        }
-                        
-                        if (col < dateSchedules.length) {
-                            const item = dateSchedules[col];
-                            const student = item.student;
-                            const attendance = item.attendance;
-                            const daySchedule = item.schedule;
-                            
-                            const color = getStudentColor(student.id);
-                            
-                            let textColor = '#000'; // 기본: 검정색
-                            let textDecoration = 'none';
-                            
-                            // 색상 판단 로직 개선
-                            if (attendance) {
-                                // 출석 기록이 있는 경우
-                                
-                                // 원래 스케줄 시간인지 확인
-                                const date = new Date(dateInfo.dateString);
-                                const dayKeysMap = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
-                                const studentDayKey = dayKeysMap[date.getDay()];
-                                
-                                let studentSchedule = student.schedule;
-                                if (typeof studentSchedule === 'string') {
-                                    try {
-                                        studentSchedule = JSON.parse(studentSchedule);
-                                    } catch (e) {
-                                        studentSchedule = null;
-                                    }
-                                }
-                                
-                                const originalSchedule = studentSchedule ? studentSchedule[studentDayKey] : null;
-                                const isOriginalTime = originalSchedule && originalSchedule.enabled && originalSchedule.checkIn === time;
-                                
-                                // 보강/보충 판단
-                                if (attendance.status === '보강' && !isOriginalTime) {
-                                    // 원래 스케줄 시간이 아닌데 보강인 경우만 빨간색
-                                    textColor = '#f44336'; // 빨간색
-                                } else if (attendance.status === '보충' && !isOriginalTime) {
-                                    // 원래 스케줄 시간이 아닌데 보충인 경우만 보라색
-                                    textColor = '#9C27B0'; // 보라색
-                                } else {
-                                    // 출석, 또는 원래 스케줄 시간대의 보강/보충
-                                    textColor = '#000'; // 검정색
-                                }
-                            }
-                            // attendance가 없으면 기본 검정색 (미확정 스케줄)
-                            
-                            // rowspan 계산 (수업 시간이 여러 시간대에 걸치는 경우)
-                            let rowspan = 1;
-                            if (daySchedule && daySchedule.checkIn && daySchedule.checkOut) {
-                                const checkInIndex = timeSlots.indexOf(daySchedule.checkIn);
-                                const checkOutIndex = timeSlots.indexOf(daySchedule.checkOut);
-                                if (checkInIndex >= 0 && checkOutIndex > checkInIndex) {
-                                    rowspan = checkOutIndex - checkInIndex;
-                                    
-                                    // 병합된 셀들 표시
-                                    for (let r = 1; r < rowspan; r++) {
-                                        renderedCells[`${timeIndex + r}_${dayKey}_${col}`] = true;
-                                    }
-                                }
-                            }
-                            
-                            // 요일 구분선 (첫 번째 열에만)
-                            const firstColBorder = col === 0 ? dayBorderStyle : '';
-                            
-                            html += `<td ${rowspan > 1 ? `rowspan="${rowspan}"` : ''} style="border: 1px solid #dee2e6; padding: 0.2rem; text-align: center; background: ${color}; vertical-align: middle; ${weekSeparatorStyle} ${firstColBorder}">`;
-                            html += `<span style="color: ${textColor}; text-decoration: ${textDecoration}; font-weight: 500; font-size: 0.845rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: block;">${getShortName(student.name)}</span>`;
-                            html += `</td>`;
-                        } else {
-                            // 빈 자리
-                            const firstColBorder = col === 0 ? dayBorderStyle : '';
-                            html += `<td style="border: 1px solid #dee2e6; padding: 0.2rem; background: #fff; vertical-align: middle; ${weekSeparatorStyle} ${firstColBorder}"></td>`;
-                        }
+                        // 빈 셀
+                        html += `<td style="border: 1px solid #dee2e6; padding: 0.2rem; background: #fff; vertical-align: middle; ${weekSeparatorStyle} ${firstColBorder}"></td>`;
                     }
                 });
                 
