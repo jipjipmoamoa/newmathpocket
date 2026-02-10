@@ -78,6 +78,11 @@
         -webkit-print-color-adjust: exact !important;
     }
     
+    /* 인쇄 시 선생님 이름 숨김 */
+    .teacher-name-print-hide {
+        display: none !important;
+    }
+    
     /* 테이블 설정 - 페이지 나누기 방지 */
     #monthlyScheduleCalendar table {
         width: 100% !important;
@@ -100,11 +105,12 @@
     }
     
     #monthlyScheduleCalendar th {
-        padding: 1mm 0.5mm !important;
+        padding: 0.6mm 0.5mm !important; /* 1mm → 0.6mm (40% 감소) */
         font-size: 0.75rem !important;
         font-weight: 600 !important;
         border: 0.5pt solid #dee2e6 !important;
         text-align: center !important;
+        line-height: 1.1 !important;
     }
     
     /* 데이터 행 */
@@ -123,6 +129,22 @@
     }
     
     /* 학생 이름 표시 */
+    #monthlyScheduleCalendar .student-name {
+        font-size: 0.7rem !important;
+        line-height: 1.2 !important;
+        display: block !important;
+        margin: 0.2mm 0 !important;
+    }
+    
+    /* 입실/퇴실 시간 표시 (30% 감소: 0.77rem → 0.539rem) */
+    #monthlyScheduleCalendar .student-time {
+        font-size: 0.54rem !important;
+        line-height: 1.2 !important;
+        display: block !important;
+        margin: 0.2mm 0 !important;
+    }
+    
+    /* 기존 span 스타일 (하위 호환성) */
     #monthlyScheduleCalendar td span {
         font-size: 0.7rem !important;
         line-height: 1.2 !important;
