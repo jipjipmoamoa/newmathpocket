@@ -112,7 +112,6 @@ async function showAttendanceCheckPage() {
                         <tr>
                             <th>이름 (출결번호)</th>
                             <th>출석시간</th>
-                            <th>퇴실예정시간</th>
                             <th>퇴실시간</th>
                             <th>재실시간</th>
                             <th>상태</th>
@@ -213,16 +212,12 @@ async function processCheckIn() {
         const now = new Date();
         const checkInTime = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
         
-        const schedule = getStudentTodaySchedule(student);
-        const expectedOutTime = calculateExpectedTime(checkInTime, schedule ? schedule.duration : 90);
-        
         const existingRecord = todayAttendanceRecords.find(r => r.student_id === student.id);
         
         if (existingRecord) {
             await API.update('attendance', existingRecord.id, {
                 ...existingRecord,
                 check_in_time: checkInTime,
-                expected_out_time: expectedOutTime,
                 status: '출석'
             });
             alert(`${student.name} 입실 ${checkInTime}`);
@@ -232,7 +227,6 @@ async function processCheckIn() {
                 student_name: student.name,
                 date: getSelectedDateString(),
                 check_in_time: checkInTime,
-                expected_out_time: expectedOutTime,
                 check_out_time: '',
                 status: '출석',
                 absence_reason: '',
@@ -345,10 +339,6 @@ async function processStudentAttendance(studentData, studentStatus) {
     // 현재 시간
     const now = new Date();
     const checkInTime = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
-    
-    // 퇴실 예정 시간 계산
-    const schedule = studentData.id ? getStudentTodaySchedule(studentData) : null;
-    const expectedOutTime = calculateExpectedTime(checkInTime, schedule ? schedule.duration : 90);
 
     // 출석 데이터 생성
     const attendanceData = {
@@ -356,7 +346,6 @@ async function processStudentAttendance(studentData, studentStatus) {
         student_name: studentData.name,
         date: getSelectedDateString(),
         check_in_time: checkInTime,
-        expected_out_time: expectedOutTime,
         check_out_time: '',
         status: '출석',
         absence_reason: '',
@@ -542,7 +531,6 @@ function renderAttendanceTable() {
         </td>
         <td style="background-color: #fffbf0;"><input type="text" id="registerCheckInTime" class="form-input" placeholder="14:00" 
             onblur="this.value = formatTimeInput(this.value)" /></td>
-        <td style="background-color: #fffbf0;"><input type="text" id="registerExpectedOutTime" class="form-input" placeholder="15:30" readonly /></td>
         <td style="background-color: #fffbf0;"><input type="text" id="registerCheckOutTime" class="form-input" placeholder="15:30"
             onblur="this.value = formatTimeInput(this.value)" /></td>
         <td style="background-color: #fffbf0;"></td>
@@ -677,7 +665,6 @@ function renderAttendanceTable() {
             
             // 기본값: 스케줄의 입실/퇴실 시간 (표시용)
             let checkInTime = '';
-            let expectedOutTime = daySchedule.checkOut || '';
             let checkOutTime = '';
             let status = '';
             let actualDuration = '';
@@ -691,7 +678,6 @@ function renderAttendanceTable() {
             
             if (existingRecord) {
                 checkInTime = existingRecord.check_in_time || '';
-                expectedOutTime = existingRecord.expected_out_time || expectedOutTime;
                 checkOutTime = existingRecord.check_out_time || '';
                 status = existingRecord.status || '';
                 absenceReason = existingRecord.absence_reason || '';
@@ -808,12 +794,7 @@ function renderAttendanceTable() {
             <td>
                 <span class="display-mode" id="display-checkin-${rowId}">${checkInTime || (existingRecord ? scheduleCheckIn : '') || '-'}</span>
                 <input type="text" class="form-input edit-mode" id="edit-checkin-${rowId}" value="${checkInTime || scheduleCheckIn}" placeholder="14:00" style="display: none;"
-                    oninput="autoUpdateExpectedOutTime('${rowId}', this.value, ${scheduledDuration})"
                     onblur="this.value = formatTimeInput(this.value)" />
-            </td>
-            <td>
-                <span class="display-mode" id="display-expected-${rowId}">${(existingRecord || checkInTime) ? expectedOutTime || '-' : '-'}</span>
-                <input type="text" class="form-input edit-mode" id="edit-expected-${rowId}" value="${expectedOutTime}" placeholder="15:30" readonly style="display: none;" />
             </td>
             <td>
                 <span class="display-mode" id="display-checkout-${rowId}">${checkOutTime || '-'}</span>
@@ -944,10 +925,6 @@ function renderAttendanceTable() {
                         onblur="this.value = formatTimeInput(this.value)" />
                 </td>
                 <td style="text-align: center;">
-                    <div class="display-mode" id="display-expected-${rowId}">${expectedOutTime || '-'}</div>
-                    <input type="text" class="form-input edit-mode" id="edit-expected-${rowId}" value="${expectedOutTime}" readonly style="display: none;" />
-                </td>
-                <td style="text-align: center;">
                     <div class="display-mode" id="display-checkout-${rowId}">${checkOutTime || '-'}</div>
                     <input type="text" class="form-input edit-mode" id="edit-checkout-${rowId}" value="${checkOutTime}" style="display: none;" 
                         onblur="this.value = formatTimeInput(this.value)" />
@@ -1059,10 +1036,6 @@ function renderAttendanceTable() {
                         onblur="this.value = formatTimeInput(this.value)" />
                 </td>
                 <td>
-                    <span class="display-mode" id="display-expected-${rowId}">${expectedOutTime || '-'}</span>
-                    <input type="text" class="form-input edit-mode" id="edit-expected-${rowId}" value="${expectedOutTime}" placeholder="15:30" readonly style="display: none;" />
-                </td>
-                <td>
                     <span class="display-mode" id="display-checkout-${rowId}">${checkOutTime || '-'}</span>
                     <input type="text" class="form-input edit-mode" id="edit-checkout-${rowId}" value="${checkOutTime}" placeholder="15:30" style="display: none;"
                         onblur="this.value = formatTimeInput(this.value)" />
@@ -1106,7 +1079,7 @@ function renderAttendanceTable() {
     if (allAttendanceRows.length === 0) {
         const emptyRow = document.createElement('tr');
         emptyRow.innerHTML = `
-            <td colspan="8" style="text-align: center; color: #999;">
+            <td colspan="7" style="text-align: center; color: #999;">
                 해당 날짜에 출석 기록이 없습니다.
             </td>
         `;
@@ -1412,7 +1385,6 @@ async function saveAttendance(rowId, recordId) {
     
     // 입력 필드에서 값 가져오기 (✅ 사용자가 수정한 값 우선 사용)
     let checkInTime = document.getElementById(`edit-checkin-${rowId}`)?.value || '';
-    const expectedOutTime = document.getElementById(`edit-expected-${rowId}`)?.value || '';
     let checkOutTime = document.getElementById(`edit-checkout-${rowId}`)?.value || '';
     let status = document.getElementById(`status-${rowId}`)?.value || '';
     const absenceReason = document.getElementById(`absence-reason-${rowId}`)?.value || '';
@@ -1503,7 +1475,6 @@ async function saveAttendance(rowId, recordId) {
         student_name: studentName,
         date: selectedDate,
         check_in_time: checkInTime,
-        expected_out_time: expectedOutTime,
         check_out_time: checkOutTime,
         status: status,
         absence_reason: absenceReason,
