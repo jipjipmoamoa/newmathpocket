@@ -3900,8 +3900,8 @@ function selectViewStudent(studentId, studentName, event) {
     // 진행 중인 MEMO 저장이 있으면 즉시 저장
     if (viewMemoSaveTimer) {
         clearTimeout(viewMemoSaveTimer);
-        // 이전 학생의 메모를 즉시 저장 (비동기이지만 기다리지 않음)
-        saveViewStudentMemo();
+        // 이전 월별 전체 메모를 즉시 저장 (비동기이지만 기다리지 않음)
+        saveMonthlyGeneralMemo();
     }
     
     selectedViewStudentId = studentId;
