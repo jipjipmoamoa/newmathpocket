@@ -1,8 +1,13 @@
 /* 월간 스케줄표 인쇄 전용 스타일 */
 
 @page {
-    size: A4 portrait;
-    margin: 0;
+    size: A4 portrait !important;
+    margin: 5mm 3mm !important;
+}
+
+@page :first {
+    size: A4 portrait !important;
+    margin: 5mm 3mm !important;
 }
 
 @media print {
@@ -20,59 +25,130 @@
         -webkit-print-color-adjust: exact !important;
     }
     
-    /* 헤더 숨김 */
-    .page-header {
+    /* 헤더, 버튼 숨김 */
+    .page-header,
+    button {
         display: none !important;
     }
     
     /* 컨테이너 조정 */
     .page-container {
         position: relative !important;
-        width: 210mm !important;
-        max-width: 210mm !important;
-        height: 297mm !important;
-        max-height: 297mm !important;
-        margin: 0 !important;
+        width: 204mm !important; /* 210mm - 6mm (좌우 여백) */
+        max-width: 204mm !important;
+        height: 287mm !important; /* 297mm - 10mm (상하 여백) */
+        max-height: 287mm !important;
+        margin: 0 auto !important;
         padding: 0 !important;
-        overflow: hidden !important;
+        overflow: visible !important;
     }
     
-    /* 월간 스케줄표 최적화 - 한 페이지 강제 */
+    /* 월간 스케줄표 최적화 - 6열 모두 표시, 1~21일 표시를 위한 스케일 조정 */
     #monthlyScheduleCalendar {
-        position: absolute !important;
-        top: 0 !important;
-        left: 0 !important;
-        transform: scale(0.32) !important;
-        transform-origin: top left !important;
-        width: 312.5% !important; /* 100% / 0.32 */
-        max-height: 928mm !important; /* 297mm / 0.32 */
+        position: relative !important;
+        width: 100% !important;
+        max-width: 100% !important;
+        height: auto !important;
         margin: 0 !important;
         padding: 0 !important;
-        overflow: hidden !important;
+        overflow: visible !important;
         page-break-inside: avoid !important;
         page-break-before: avoid !important;
         page-break-after: avoid !important;
+        transform: scale(0.85) !important;
+        transform-origin: top center !important;
     }
     
     #monthlyScheduleCalendar > div {
-        margin: 0 !important;
+        margin: 0 0 2mm 0 !important;
         padding: 0 !important;
         page-break-inside: avoid !important;
     }
     
+    /* 년월 제목 표시 */
+    #monthlyScheduleCalendar h3 {
+        display: block !important;
+        margin: 0 0 1mm 0 !important;
+        padding: 1mm !important;
+        font-size: 0.9rem !important;
+        font-weight: 600 !important;
+        background: #f8f9fa !important;
+        border-left: 2pt solid #FF6B35 !important;
+        print-color-adjust: exact !important;
+        -webkit-print-color-adjust: exact !important;
+    }
+    
     /* 테이블 설정 - 페이지 나누기 방지 */
-    table {
+    #monthlyScheduleCalendar table {
+        width: 100% !important;
         page-break-inside: avoid !important;
         page-break-after: avoid !important;
         margin: 0 !important;
         border-collapse: collapse !important;
+        table-layout: fixed !important;
     }
     
-    tr {
+    /* 열 너비 균등 분배 (6열) */
+    #monthlyScheduleCalendar colgroup col {
+        width: 16.666% !important; /* 100% / 6열 */
+    }
+    
+    /* 헤더 행 */
+    #monthlyScheduleCalendar thead tr {
         page-break-inside: avoid !important;
         page-break-after: avoid !important;
     }
     
+    #monthlyScheduleCalendar th {
+        padding: 1mm 0.5mm !important;
+        font-size: 0.75rem !important;
+        font-weight: 600 !important;
+        border: 0.5pt solid #dee2e6 !important;
+        text-align: center !important;
+    }
+    
+    /* 데이터 행 */
+    #monthlyScheduleCalendar tr {
+        page-break-inside: avoid !important;
+        page-break-after: avoid !important;
+    }
+    
+    #monthlyScheduleCalendar td {
+        padding: 0.5mm !important;
+        font-size: 0.65rem !important;
+        border: 0.5pt solid #dee2e6 !important;
+        vertical-align: top !important;
+        overflow: hidden !important;
+        word-wrap: break-word !important;
+    }
+    
+    /* 학생 이름 표시 */
+    #monthlyScheduleCalendar td span {
+        font-size: 0.7rem !important;
+        line-height: 1.2 !important;
+        display: block !important;
+        margin: 0.2mm 0 !important;
+    }
+    
+    /* 날짜 헤더 */
+    #monthlyScheduleCalendar .date-header {
+        font-weight: 600 !important;
+        font-size: 0.75rem !important;
+        padding: 1mm !important;
+    }
+    
+    /* 선생님 구분선 제거 (공간 절약) */
+    #monthlyScheduleCalendar > div {
+        border-top: none !important;
+        padding-top: 0 !important;
+        margin-top: 1mm !important;
+    }
+    
+    #monthlyScheduleCalendar > div:first-child {
+        margin-top: 0 !important;
+    }
+    
+    /* thead 고정 */
     thead {
         display: table-header-group !important;
     }
@@ -81,20 +157,15 @@
         display: table-row-group !important;
     }
     
-    /* 불필요한 요소 숨김 */
-    button {
-        display: none !important;
+    /* 색상 유지 */
+    #monthlyScheduleCalendar td[style*="background-color"] {
+        print-color-adjust: exact !important;
+        -webkit-print-color-adjust: exact !important;
     }
     
-    /* 선생님 구분선 여백 제거 */
-    .teacher-schedule-section {
-        margin: 0 !important;
-        padding: 0 !important;
-        page-break-inside: avoid !important;
-    }
-    
-    /* 학생 이름 폰트 크기 50% 확대 (0.845rem × 1.5 = 1.2675rem) */
-    #monthlyScheduleCalendar td span {
-        font-size: 1.2675rem !important;
+    /* 시간 슬롯 행 높이 조정 */
+    #monthlyScheduleCalendar tbody tr {
+        height: auto !important;
+        min-height: 3mm !important;
     }
 }
