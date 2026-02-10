@@ -1396,7 +1396,7 @@ async function saveAttendance(rowId, recordId) {
     // 기존 레코드 확인 (시간 유지를 위해)
     const existingRecord = recordId ? todayAttendanceRecords.find(r => r.id === recordId) : null;
     
-    // 입력 필드에서 값 가져오기
+    // 입력 필드에서 값 가져오기 (✅ 사용자가 수정한 값 우선 사용)
     let checkInTime = document.getElementById(`edit-checkin-${rowId}`)?.value || '';
     const expectedOutTime = document.getElementById(`edit-expected-${rowId}`)?.value || '';
     let checkOutTime = document.getElementById(`edit-checkout-${rowId}`)?.value || '';
@@ -1413,18 +1413,6 @@ async function saveAttendance(rowId, recordId) {
             const month = parts[0].padStart(2, '0');
             const day = parts[1].padStart(2, '0');
             makeupDate = `${currentYear}-${month}-${day}`;
-        }
-    }
-    
-    // 핵심: 기존 레코드에 시간이 있으면 무조건 유지 (덮어쓰지 않음)
-    if (existingRecord) {
-        // 기존 입실시간이 있으면 무조건 유지
-        if (existingRecord.check_in_time) {
-            checkInTime = existingRecord.check_in_time;
-        }
-        // 기존 퇴실시간이 있으면 무조건 유지
-        if (existingRecord.check_out_time) {
-            checkOutTime = existingRecord.check_out_time;
         }
     }
     
