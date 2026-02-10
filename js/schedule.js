@@ -106,7 +106,7 @@ window.showScheduleWeekly = async function() {
         schedulePrintCSS = document.createElement('link');
         schedulePrintCSS.id = 'schedulePrintCSS';
         schedulePrintCSS.rel = 'stylesheet';
-        schedulePrintCSS.href = 'css/schedule-print.css';
+        schedulePrintCSS.href = 'css/schedule-print.css?v=20260210009';
         document.head.appendChild(schedulePrintCSS);
     }
     
@@ -198,7 +198,7 @@ window.showScheduleCurrentPage = async function() {
         schedulePrintCSS = document.createElement('link');
         schedulePrintCSS.id = 'schedulePrintCSS';
         schedulePrintCSS.rel = 'stylesheet';
-        schedulePrintCSS.href = 'css/schedule-print.css';
+        schedulePrintCSS.href = 'css/schedule-print.css?v=20260210009';
         document.head.appendChild(schedulePrintCSS);
     }
     
@@ -1281,8 +1281,11 @@ function renderWeeklyScheduleTable_OLD(data) {
                     
                     html += `
                         <td rowspan="${slots}" class="student-cell ${isLastColOfDay ? 'last-col' : ''}" style="background: ${color}; vertical-align: top; padding: 0.4rem; ${borderStyle} cursor: pointer; position: relative;" onclick="toggleHighlightScheduleStudent('${student.id}', event)" data-student-id="${student.id}">
-                            <div style="font-weight: 600; color: #333; font-size: 0.85rem;">${student.name}</div>
-                            <div style="font-size: 0.7rem; color: #555; margin-top: 0.2rem;">(${checkIn}-${checkOut})</div>
+                            <div class="student-name" style="font-weight: 700; color: #333; font-size: 0.85rem;">${student.name}</div>
+                            <div class="student-time" style="font-size: 0.7rem; color: #888; margin-top: 0.3rem; line-height: 1.4;">
+                                <div style="font-size: 0.7rem; font-weight: 400; color: #888;">${checkIn}</div>
+                                <div style="font-size: 0.7rem; font-weight: 400; color: #888;">${checkOut}</div>
+                            </div>
                         </td>
                     `;
                 } else {
@@ -1640,8 +1643,11 @@ function generateScheduleTableHTML(data, globalTimeRange = null) {
                     
                     html += `
                         <td rowspan="${slots}" class="student-cell ${isLastColOfDay ? 'last-col' : ''}" style="background: ${color}; vertical-align: top; padding: 0.4rem; ${borderStyle} cursor: pointer; position: relative;" onclick="toggleHighlightScheduleStudent('${student.id}', event)" data-student-id="${student.id}">
-                            <div style="font-weight: 600; color: #333; font-size: 0.85rem;">${student.name}</div>
-                            <div style="font-size: 0.7rem; color: #555; margin-top: 0.2rem;">(${checkIn}-${checkOut})</div>
+                            <div class="student-name" style="font-weight: 700; color: #333; font-size: 0.85rem;">${student.name}</div>
+                            <div class="student-time" style="font-size: 0.7rem; color: #888; margin-top: 0.3rem; line-height: 1.4;">
+                                <div style="font-size: 0.7rem; font-weight: 400; color: #888;">${checkIn}</div>
+                                <div style="font-size: 0.7rem; font-weight: 400; color: #888;">${checkOut}</div>
+                            </div>
                         </td>
                     `;
                 } else {
