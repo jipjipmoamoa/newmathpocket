@@ -1,6 +1,7 @@
 // ============================================
 // 출석 관리 모듈
 // ============================================
+console.log('[attendance-fixed.js] 로드 시작');
 
 // 전역 변수
 let todayAttendanceRecords = [];
@@ -3212,7 +3213,7 @@ async function showAttendanceViewPage() {
                     <!-- MEMO -->
                     <div class="view-memo-section">
                         <h4>MEMO</h4>
-                        <textarea id="viewMemoTextarea" placeholder="" onblur="saveViewStudentMemo()"></textarea>
+                        <textarea id="viewMemoTextarea" placeholder="" oninput="saveViewStudentMemoDebounced()"></textarea>
                     </div>
                 </div>
             </div>
@@ -3247,6 +3248,9 @@ async function showAttendanceViewPage() {
 
     // 초기 조회
     await loadAttendanceViewData();
+    
+    // 월별 전체 메모 로드
+    await loadMonthlyGeneralMemo();
 }
 
 function generateMonthDropdownOptions() {
@@ -3350,6 +3354,9 @@ async function loadAttendanceViewData() {
         
         // 학생 목록 렌더링
         await renderViewStudentList();
+        
+        // 월별 전체 메모 로드
+        await loadMonthlyGeneralMemo();
         
     } catch (error) {
         console.error('출결조회 로드 실패:', error);
@@ -3743,14 +3750,13 @@ async function renderViewStudentList() {
             students.forEach(student => {
                 const schoolName = student.school || '-';
                 const shortSchoolName = schoolName.length > 1 ? schoolName.slice(0, -1) : schoolName;
-                const memoValue = student.memo || '';
-                const escapedMemo = memoValue.replace(/"/g, '&quot;').replace(/'/g, '&#39;');
                 
                 // 출석/보강 횟수 가져오기
                 const counts = attendanceCountMap[student.id] || { attendance: 0, makeup: 0 };
                 const totalCount = counts.attendance + counts.makeup;
                 const countText = totalCount > 0 ? `(${totalCount})` : '';
                 
+                // 월별 메모는 나중에 loadAndApplyMonthlyMemos()에서 로드됨
                 html += `
                     <div class="student-text-item" data-student-id="${student.id}">
                         <span class="student-text-name" onclick="selectViewStudent('${student.id}', '${student.name}', event)">${student.name}</span>
@@ -3760,10 +3766,9 @@ async function renderViewStudentList() {
                             type="text"
                             class="student-text-memo"
                             placeholder="" 
-                            value="${escapedMemo}"
+                            value=""
                             data-student-id="${student.id}"
-                            oninput="saveStudentItemMemo('${student.id}', this.value)"
-                            onblur="saveStudentItemMemo('${student.id}', this.value)"
+                            oninput="saveStudentMonthlyMemoDebounced('${student.id}', this.value)"
                             onclick="event.stopPropagation()"
                         />
                     </div>
@@ -3772,6 +3777,9 @@ async function renderViewStudentList() {
         });
         
         container.innerHTML = html;
+        
+        // 학생별 월별 메모 로드 및 반영
+        await loadAndApplyStudentMonthlyMemos(activeStudents);
         
     } catch (error) {
         console.error('학생 목록 로드 실패:', error);
@@ -3782,23 +3790,95 @@ async function renderViewStudentList() {
 // 학생 선택
 let selectedViewStudentId = null;
 
+// 학생별 월별 메모 로드 및 입력칸에 적용
+async function loadAndApplyStudentMonthlyMemos(students) {
+    try {
+        const year = displayedYear || currentYear;
+        const month = (displayedMonth !== undefined ? displayedMonth : currentMonth) + 1; // 1-based (1-12)
+        
+        console.log(`[학생별 월별 메모 로드] ${year}년 ${month}월`);
+        
+        // 해당 월의 모든 메모 가져오기
+        const response = await API.getList('student_monthly_memos', { limit: 1000 });
+        const allMemos = Array.isArray(response) ? response : (response.data || []);
+        
+        // 현재 연월에 해당하는 메모만 필터링
+        const currentMonthMemos = allMemos.filter(memo => 
+            memo.year === year && memo.month === month
+        );
+        
+        console.log(`[학생별 월별 메모 로드] ${currentMonthMemos.length}개 발견`);
+        
+        // 학생 ID별로 메모 매핑
+        const memoMap = {};
+        currentMonthMemos.forEach(memo => {
+            if (memo.student_id) {
+                memoMap[memo.student_id] = memo.memo || '';
+            }
+        });
+        
+        // 각 학생의 입력칸에 해당 월 메모 설정
+        students.forEach(student => {
+            const inputElement = document.querySelector(`.student-text-memo[data-student-id="${student.id}"]`);
+            if (inputElement) {
+                const monthlyMemo = memoMap[student.id] || '';
+                inputElement.value = monthlyMemo;
+                
+                if (monthlyMemo) {
+                    console.log(`  - ${student.name}: "${monthlyMemo}"`);
+                }
+            }
+        });
+        
+    } catch (error) {
+        console.error('[학생별 월별 메모 로드 실패]', error);
+    }
+}
+
 // 디바운스 타이머
 let memoSaveTimers = {};
 
-// 학생 아이템 메모 저장 (실시간 저장용)
-async function saveStudentItemMemo(studentId, memoValue) {
+// 학생별 월별 메모 저장 (디바운싱)
+function saveStudentMonthlyMemoDebounced(studentId, memoValue) {
     // 기존 타이머 취소
     if (memoSaveTimers[studentId]) {
         clearTimeout(memoSaveTimers[studentId]);
     }
     
-    // 500ms 후 저장 (디바운싱)
+    // 500ms 후 저장
     memoSaveTimers[studentId] = setTimeout(async () => {
         try {
-            await API.update('students', studentId, { memo: memoValue });
-            console.log(`✅ 메모 저장 완료: 학생 ID ${studentId}, 메모: "${memoValue}"`);
+            const year = displayedYear || currentYear;
+            const month = (displayedMonth !== undefined ? displayedMonth : currentMonth) + 1; // 1-based
             
-            // 입력 필드에 시각적 피드백 (선택사항)
+            console.log(`[학생별 월별 메모 저장] ${year}년 ${month}월, 학생 ID: ${studentId}, 내용: "${memoValue}"`);
+            
+            // 기존 메모 찾기
+            const response = await API.getList('student_monthly_memos', { limit: 1000 });
+            const allMemos = Array.isArray(response) ? response : (response.data || []);
+            
+            const existingMemo = allMemos.find(memo => 
+                memo.student_id === studentId && 
+                memo.year === year && 
+                memo.month === month
+            );
+            
+            if (existingMemo) {
+                // 업데이트
+                await API.update('student_monthly_memos', existingMemo.id, { memo: memoValue });
+                console.log(`✅ 학생 메모 업데이트 완료`);
+            } else {
+                // 신규 생성
+                await API.create('student_monthly_memos', {
+                    student_id: studentId,
+                    year: year,
+                    month: month,
+                    memo: memoValue
+                });
+                console.log(`✅ 학생 메모 신규 생성 완료`);
+            }
+            
+            // 시각적 피드백
             const inputElement = document.querySelector(`.student-text-memo[data-student-id="${studentId}"]`);
             if (inputElement) {
                 inputElement.style.borderColor = '#28a745';
@@ -3807,8 +3887,7 @@ async function saveStudentItemMemo(studentId, memoValue) {
                 }, 300);
             }
         } catch (error) {
-            console.error('❌ 메모 저장 실패:', error);
-            alert(`메모 저장에 실패했습니다: ${error.message}`);
+            console.error('❌ 학생별 월별 메모 저장 실패:', error);
         }
     }, 500);
 }
@@ -3816,6 +3895,13 @@ async function saveStudentItemMemo(studentId, memoValue) {
 function selectViewStudent(studentId, studentName, event) {
     if (event) {
         event.stopPropagation();
+    }
+    
+    // 진행 중인 MEMO 저장이 있으면 즉시 저장
+    if (viewMemoSaveTimer) {
+        clearTimeout(viewMemoSaveTimer);
+        // 이전 학생의 메모를 즉시 저장 (비동기이지만 기다리지 않음)
+        saveViewStudentMemo();
     }
     
     selectedViewStudentId = studentId;
@@ -3838,17 +3924,6 @@ function selectViewStudent(studentId, studentName, event) {
     loadViewStudentMemo(studentId);
 }
 
-// 학생 아이템 메모 저장
-async function saveStudentItemMemo(studentId, memo) {
-    try {
-        await API.update('students', studentId, { memo });
-        console.log('학생 메모 저장 완료:', studentId);
-    } catch (error) {
-        console.error('학생 메모 저장 실패:', error);
-        alert('메모 저장에 실패했습니다.');
-    }
-}
-
 // 학생 메모 textarea 키 이벤트 처리
 function handleStudentMemoKeydown(event) {
     if (event.key === 'Enter' && !event.shiftKey) {
@@ -3858,16 +3933,41 @@ function handleStudentMemoKeydown(event) {
     // textarea 클릭 시 이벤트 전파 방지는 onclick에서 처리
 }
 
-// 학생 MEMO 불러오기
-async function loadViewStudentMemo(studentId) {
+// 월별 전체 메모 로드 (학생 무관)
+async function loadMonthlyGeneralMemo() {
     const textarea = document.getElementById('viewMemoTextarea');
     if (!textarea) return;
     
-    // 항상 빈 상태로 표시
-    textarea.value = '';
+    try {
+        const year = displayedYear || currentYear;
+        const month = (displayedMonth !== undefined ? displayedMonth : currentMonth) + 1; // 1-based
+        
+        console.log(`[월별 전체 메모 로드] ${year}년 ${month}월`);
+        
+        // 해당 연월의 메모 찾기
+        const response = await API.getList('monthly_general_memos', { limit: 1000 });
+        const allMemos = Array.isArray(response) ? response : (response.data || []);
+        
+        const monthMemo = allMemos.find(memo => 
+            memo.year === year && memo.month === month
+        );
+        
+        textarea.value = monthMemo ? (monthMemo.memo || '') : '';
+        console.log(`[월별 전체 메모 로드] 내용: "${textarea.value}"`);
+        
+    } catch (error) {
+        console.error('[월별 전체 메모 로드 실패]', error);
+        textarea.value = '';
+    }
     
     // 빈 내용 체크 (인쇄 시 숨김 처리)
     checkViewMemoEmpty();
+}
+
+// 학생 MEMO 불러오기 → 이제 사용 안 함 (월별 전체 메모로 대체)
+async function loadViewStudentMemo(studentId) {
+    // 학생 선택 시 아무 동작 안 함 (MEMO는 월별 전체 메모)
+    console.log(`[학생 선택] ${studentId} - MEMO는 월별 전체 메모`);
 }
 
 // 학생 MEMO 저장
@@ -3886,25 +3986,69 @@ function checkViewMemoEmpty() {
     }
 }
 
-async function saveViewStudentMemo() {
-    if (!selectedViewStudentId) {
-        alert('학생을 먼저 선택해주세요.');
-        return;
+// MEMO 저장 타이머
+let viewMemoSaveTimer = null;
+
+// MEMO 실시간 저장 (디바운싱)
+function saveViewStudentMemoDebounced() {
+    // 기존 타이머 취소
+    if (viewMemoSaveTimer) {
+        clearTimeout(viewMemoSaveTimer);
     }
     
+    // 500ms 후 저장
+    viewMemoSaveTimer = setTimeout(() => {
+        saveMonthlyGeneralMemo();
+    }, 500);
+}
+
+// 월별 전체 메모 저장 (학생 무관)
+async function saveMonthlyGeneralMemo() {
     const textarea = document.getElementById('viewMemoTextarea');
     if (!textarea) return;
     
     const memo = textarea.value;
     
     try {
-        await API.update('students', selectedViewStudentId, { memo });
-        console.log('메모 저장 완료');
+        const year = displayedYear || currentYear;
+        const month = (displayedMonth !== undefined ? displayedMonth : currentMonth) + 1; // 1-based
+        
+        console.log(`[월별 전체 메모 저장] ${year}년 ${month}월, 내용: "${memo}"`);
+        
+        // 기존 메모 찾기
+        const response = await API.getList('monthly_general_memos', { limit: 1000 });
+        const allMemos = Array.isArray(response) ? response : (response.data || []);
+        
+        const existingMemo = allMemos.find(m => 
+            m.year === year && m.month === month
+        );
+        
+        if (existingMemo) {
+            // 업데이트
+            await API.update('monthly_general_memos', existingMemo.id, { memo });
+            console.log('✅ 월별 전체 메모 업데이트 완료');
+        } else {
+            // 신규 생성
+            await API.create('monthly_general_memos', {
+                year: year,
+                month: month,
+                memo: memo
+            });
+            console.log('✅ 월별 전체 메모 신규 생성 완료');
+        }
+        
+        // 시각적 피드백
+        if (textarea) {
+            textarea.style.borderColor = '#28a745';
+            setTimeout(() => {
+                textarea.style.borderColor = '';
+            }, 300);
+        }
+        
         // 메모 저장 후 빈 내용 체크
         checkViewMemoEmpty();
     } catch (error) {
-        console.error('메모 저장 실패:', error);
-        alert('메모 저장에 실패했습니다.');
+        console.error('❌ 월별 전체 메모 저장 실패:', error);
     }
 }
 
@@ -4837,3 +4981,7 @@ window.toggleScheduleDate = toggleScheduleDate;
 window.toggleScheduleStudent = toggleScheduleStudent;
 window.handleScheduleStatusChange = handleScheduleStatusChange;
 window.registerSchedule = registerSchedule;
+
+console.log('[attendance-fixed.js] 로드 완료');
+console.log('[attendance-fixed.js] showAttendanceCheckPage:', typeof window.showAttendanceCheckPage);
+console.log('[attendance-fixed.js] showAttendanceViewPage:', typeof window.showAttendanceViewPage);
