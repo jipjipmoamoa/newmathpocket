@@ -144,7 +144,47 @@
 }
 
 /* ============================================
-   빠른 입실/퇴실 버튼 (테이블 내부)
+   출석/결석 버튼 (테이블 내부)
+   ============================================ */
+.btn-attendance,
+.btn-absence {
+    padding: 0.4rem 0.8rem;
+    font-size: 0.85rem;
+    font-weight: 600;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.2s;
+    white-space: nowrap;
+    margin: 0 0.2rem;
+}
+
+/* 출석 버튼 (초록색) */
+.btn-attendance {
+    background-color: #28a745;
+    color: white;
+}
+
+.btn-attendance:hover {
+    background-color: #218838;
+    transform: translateY(-1px);
+    box-shadow: 0 2px 4px rgba(40, 167, 69, 0.3);
+}
+
+/* 결석 버튼 (회색) */
+.btn-absence {
+    background-color: #6c757d;
+    color: white;
+}
+
+.btn-absence:hover {
+    background-color: #5a6268;
+    transform: translateY(-1px);
+    box-shadow: 0 2px 4px rgba(108, 117, 125, 0.3);
+}
+
+/* ============================================
+   빠른 입실/퇴실 버튼 (구버전 - 제거 예정)
    ============================================ */
 .btn-quick-checkin,
 .btn-quick-checkout {
