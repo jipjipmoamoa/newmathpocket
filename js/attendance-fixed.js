@@ -824,8 +824,8 @@ function renderAttendanceTable() {
                 </div>
             </td>
             <td>
-                <button class="btn-quick-checkin" onclick="quickCheckIn('${student.id}', '${existingRecord ? existingRecord.id : ''}')" title="입실">입실</button>
-                <button class="btn-quick-checkout" onclick="quickCheckOut('${student.id}', '${existingRecord ? existingRecord.id : ''}')" title="퇴실">퇴실</button>
+                <button class="btn-attendance" onclick="handleAttendance('${student.id}', '${existingRecord ? existingRecord.id : ''}')" title="출석">출석</button>
+                <button class="btn-absence" onclick="handleAbsence('${student.id}', '${existingRecord ? existingRecord.id : ''}')" title="결석">결석</button>
             </td>
             <td>
                 <button class="btn-icon btn-edit display-mode" id="btn-edit-${rowId}" onclick="enterEditMode('${rowId}')" title="수정"></button>
@@ -956,8 +956,8 @@ function renderAttendanceTable() {
                     </div>
                 </td>
                 <td style="text-align: center;">
-                    <button class="btn-quick-checkin" onclick="quickCheckIn('${record.student_id}', '${record.id}')" title="입실">입실</button>
-                    <button class="btn-quick-checkout" onclick="quickCheckOut('${record.student_id}', '${record.id}')" title="퇴실">퇴실</button>
+                    <button class="btn-attendance" onclick="handleAttendance('${record.student_id}', '${record.id}')" title="출석">출석</button>
+                    <button class="btn-absence" onclick="handleAbsence('${record.student_id}', '${record.id}')" title="결석">결석</button>
                 </td>
                 <td style="text-align: center;">
                     <button class="btn-icon btn-edit display-mode" id="btn-edit-${rowId}" onclick="enterEditMode('${rowId}')" title="수정"></button>
@@ -1071,8 +1071,8 @@ function renderAttendanceTable() {
                     </div>
                 </td>
                 <td>
-                    <button class="btn-quick-checkin" onclick="quickCheckIn('${student.id}', '${record.id}')" title="입실">입실</button>
-                    <button class="btn-quick-checkout" onclick="quickCheckOut('${student.id}', '${record.id}')" title="퇴실">퇴실</button>
+                    <button class="btn-attendance" onclick="handleAttendance('${student.id}', '${record.id}')" title="출석">출석</button>
+                    <button class="btn-absence" onclick="handleAbsence('${student.id}', '${record.id}')" title="결석">결석</button>
                 </td>
                 <td>
                     <button class="btn-icon btn-edit display-mode" id="btn-edit-${rowId}" onclick="enterEditMode('${rowId}')" title="수정"></button>
@@ -1533,7 +1533,185 @@ async function saveAttendance(rowId, recordId) {
 }
 
 // ============================================
-// 빠른 입실/퇴실 버튼 함수
+// 출석/결석 버튼 함수
+// ============================================
+
+// 출석 처리 (스케줄 시간대로 입실/퇴실 자동 저장)
+async function handleAttendance(studentId, recordId = null) {
+    try {
+        if (!Auth.isLoggedIn()) {
+            alert('로그인이 필요합니다.');
+            return;
+        }
+        
+        const student = attendanceStudents.find(s => s.id === studentId);
+        
+        if (!student) {
+            alert('학생 정보를 찾을 수 없습니다.');
+            return;
+        }
+        
+        const schedule = getStudentTodaySchedule(student);
+        
+        if (!schedule || !schedule.checkIn || !schedule.checkOut) {
+            alert('해당 학생의 오늘 스케줄 정보를 찾을 수 없습니다.');
+            return;
+        }
+        
+        const checkInTime = schedule.checkIn;
+        const checkOutTime = schedule.checkOut;
+        const expectedOutTime = schedule.checkOut;
+        
+        // recordId가 있으면 해당 기록만 업데이트 (2행 등록된 보강/보충 유지)
+        if (recordId) {
+            const existingRecord = todayAttendanceRecords.find(r => r.id === recordId);
+            if (existingRecord) {
+                // ✅ 기존 상태가 보강/보충이면 유지, 그렇지 않으면 출석으로 변경
+                const status = (existingRecord.status === '보강' || existingRecord.status === '보충') 
+                    ? existingRecord.status 
+                    : '출석';
+                
+                await API.update('attendance', existingRecord.id, {
+                    ...existingRecord,
+                    check_in_time: checkInTime,
+                    expected_out_time: expectedOutTime,
+                    check_out_time: checkOutTime,
+                    status: status
+                });
+                
+                const statusText = status === '보강' ? '보강' : status === '보충' ? '보충' : '출석';
+                alert(`${student.name} ${statusText} 처리 완료\n입실: ${checkInTime}\n퇴실: ${checkOutTime}`);
+            }
+        } else {
+            // recordId가 없으면 새 레코드 생성
+            const existingRecord = todayAttendanceRecords.find(r => r.student_id === student.id);
+            
+            if (existingRecord) {
+                // 기존 레코드가 있으면 업데이트
+                const status = (existingRecord.status === '보강' || existingRecord.status === '보충') 
+                    ? existingRecord.status 
+                    : '출석';
+                
+                await API.update('attendance', existingRecord.id, {
+                    ...existingRecord,
+                    check_in_time: checkInTime,
+                    expected_out_time: expectedOutTime,
+                    check_out_time: checkOutTime,
+                    status: status
+                });
+                
+                const statusText = status === '보강' ? '보강' : status === '보충' ? '보충' : '출석';
+                alert(`${student.name} ${statusText} 처리 완료\n입실: ${checkInTime}\n퇴실: ${checkOutTime}`);
+            } else {
+                // 새 레코드 생성
+                const attendanceData = {
+                    student_id: student.id,
+                    student_name: student.name,
+                    date: getSelectedDateString(),
+                    check_in_time: checkInTime,
+                    expected_out_time: expectedOutTime,
+                    check_out_time: checkOutTime,
+                    status: '출석',
+                    absence_reason: '',
+                    makeup_date: ''
+                };
+                
+                await API.create('attendance', attendanceData);
+                alert(`${student.name} 출석 처리 완료\n입실: ${checkInTime}\n퇴실: ${checkOutTime}`);
+            }
+        }
+        
+        await loadAttendanceData();
+        await renderMonthlyCalendar();
+        
+    } catch (error) {
+        console.error('출석 처리 실패:', error);
+        alert('출석 처리에 실패했습니다.');
+    }
+}
+
+// 결석 처리
+async function handleAbsence(studentId, recordId = null) {
+    try {
+        if (!Auth.isLoggedIn()) {
+            alert('로그인이 필요합니다.');
+            return;
+        }
+        
+        const student = attendanceStudents.find(s => s.id === studentId);
+        
+        if (!student) {
+            alert('학생 정보를 찾을 수 없습니다.');
+            return;
+        }
+        
+        const absenceReason = prompt('결석 사유를 입력하세요 (예: 병결, 학교, 여행, 기타):', '');
+        
+        if (absenceReason === null) {
+            return; // 취소
+        }
+        
+        // recordId가 있으면 해당 기록만 업데이트
+        if (recordId) {
+            const existingRecord = todayAttendanceRecords.find(r => r.id === recordId);
+            if (existingRecord) {
+                await API.update('attendance', existingRecord.id, {
+                    ...existingRecord,
+                    check_in_time: '',
+                    expected_out_time: '',
+                    check_out_time: '',
+                    status: '결석',
+                    absence_reason: absenceReason || ''
+                });
+                
+                alert(`${student.name} 결석 처리 완료`);
+            }
+        } else {
+            // recordId가 없으면 기존 레코드 찾기
+            const existingRecord = todayAttendanceRecords.find(r => r.student_id === student.id);
+            
+            if (existingRecord) {
+                // 기존 레코드가 있으면 업데이트
+                await API.update('attendance', existingRecord.id, {
+                    ...existingRecord,
+                    check_in_time: '',
+                    expected_out_time: '',
+                    check_out_time: '',
+                    status: '결석',
+                    absence_reason: absenceReason || ''
+                });
+                
+                alert(`${student.name} 결석 처리 완료`);
+            } else {
+                // 새 레코드 생성
+                const attendanceData = {
+                    student_id: student.id,
+                    student_name: student.name,
+                    date: getSelectedDateString(),
+                    check_in_time: '',
+                    expected_out_time: '',
+                    check_out_time: '',
+                    status: '결석',
+                    absence_reason: absenceReason || '',
+                    makeup_date: ''
+                };
+                
+                await API.create('attendance', attendanceData);
+                alert(`${student.name} 결석 처리 완료`);
+            }
+        }
+        
+        await loadAttendanceData();
+        await renderMonthlyCalendar();
+        
+    } catch (error) {
+        console.error('결석 처리 실패:', error);
+        alert('결석 처리에 실패했습니다.');
+    }
+}
+
+// ============================================
+// 빠른 입실/퇴실 버튼 함수 (구버전 - 제거 예정)
 // ============================================
 
 // 빠른 입실 처리
