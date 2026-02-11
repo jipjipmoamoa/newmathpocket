@@ -162,6 +162,10 @@ window.loadAnnualCalendar = async function() {
         
         console.log('[loadAnnualCalendar] 학교 목록:', schoolList);
         
+        // 일정 데이터 로드
+        const allEvents = await loadSchoolEventsInAcademy();
+        console.log('[loadAnnualCalendar] 일정 데이터 로드 완료:', allEvents.length);
+        
         // 기존 달력 데이터 로드 (로컬 스토리지)
         const calendarData = JSON.parse(localStorage.getItem('annualCalendar') || '[]');
         const calendarMap = {};
@@ -207,9 +211,38 @@ window.loadAnnualCalendar = async function() {
                                             const key = `${month}_${school}_${day}`;
                                             const isHoliday = calendarMap[key] && calendarMap[key].is_holiday;
                                             const date = new Date(year, month - 1, day);
+                                            const dateString = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
                                             const isSunday = date.getDay() === 0;
                                             const isSaturday = date.getDay() === 6;
-                                            const bgColor = isSunday || isSaturday ? '#e8e8e8' : '#fff';
+                                            let bgColor = isSunday || isSaturday ? '#e8e8e8' : '#fff';
+                                            
+                                            // 해당 날짜의 일정 확인
+                                            let eventHTML = '';
+                                            const dayEvents = allEvents.filter(event => {
+                                                const startDate = new Date(event.start_date.replace(/\./g, '-'));
+                                                const endDate = new Date(event.end_date.replace(/\./g, '-'));
+                                                const currentDate = new Date(dateString);
+                                                // 학교 필터링
+                                                const matchSchool = event.school === '전체' || event.school === school;
+                                                return currentDate >= startDate && currentDate <= endDate && matchSchool;
+                                            });
+                                            
+                                            if (dayEvents.length > 0) {
+                                                const event = dayEvents[0];
+                                                const EVENT_COLORS_MAP = {
+                                                    'red': '#FFCDD2',
+                                                    'blue': '#BBDEFB',
+                                                    'yellow': '#FFF9C4',
+                                                    'green': '#C8E6C9',
+                                                    'purple': '#E1BEE7',
+                                                    'orange': '#FFE0B2',
+                                                    'pink': '#F8BBD0',
+                                                    'gray': '#E0E0E0'
+                                                };
+                                                bgColor = EVENT_COLORS_MAP[event.background_color] || EVENT_COLORS_MAP.red;
+                                                eventHTML = `<div style="font-size: 0.6rem; font-weight: 600; color: #333; cursor: pointer;" onclick="event.stopPropagation(); addScheduleEvent('${event.id}');">${event.title}</div>`;
+                                            }
+                                            
                                             return `
                                                 <td style="border: 1px solid #dee2e6; padding: 0.2rem; text-align: center; background: ${bgColor}; cursor: pointer;" 
                                                     onclick="toggleHoliday(this, ${month}, '${school}', ${day})"
@@ -217,7 +250,7 @@ window.loadAnnualCalendar = async function() {
                                                     data-school="${school}" 
                                                     data-day="${day}"
                                                     data-holiday="${isHoliday ? 'true' : 'false'}">
-                                                    ${isHoliday ? '✓' : ''}
+                                                    ${eventHTML}${isHoliday ? '✓' : ''}
                                                 </td>
                                             `;
                                         }).join('')}
@@ -285,7 +318,281 @@ window.saveAnnualCalendar = async function() {
     }
 }
 
-// 일정 등록 (추후 구현)
-window.addScheduleEvent = function() {
-    alert('일정 등록 기능은 추후 구현 예정입니다.');
+// 전역 변수
+let currentEditingEventId = null;
+let allSchoolEvents = [];
+
+// 배경색 옵션
+const EVENT_COLORS_ACADEMY = {
+    'red': { name: '연빨강', color: '#FFCDD2' },
+    'blue': { name: '연하늘', color: '#BBDEFB' },
+    'yellow': { name: '연노랑', color: '#FFF9C4' },
+    'green': { name: '연두색', color: '#C8E6C9' },
+    'purple': { name: '연보라', color: '#E1BEE7' },
+    'orange': { name: '연주황', color: '#FFE0B2' },
+    'pink': { name: '연분홍', color: '#F8BBD0' },
+    'gray': { name: '연회색', color: '#E0E0E0' }
+};
+
+// 일정 등록 모달 열기
+window.addScheduleEvent = function(eventId) {
+    console.log('[일정 모달] 열기:', eventId);
+    
+    if (eventId === undefined) {
+        eventId = null;
+    }
+    
+    currentEditingEventId = eventId;
+    
+    // 기존 모달 제거
+    const existingModal = document.getElementById('eventModal');
+    if (existingModal) {
+        existingModal.remove();
+    }
+    
+    // 색상 드롭다운 옵션 생성
+    let colorOptions = '';
+    for (const key in EVENT_COLORS_ACADEMY) {
+        colorOptions += '<option value="' + key + '">' + EVENT_COLORS_ACADEMY[key].name + '</option>';
+    }
+    
+    // 모달 HTML
+    const modalHTML = '<div id="eventModal" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 10000; display: flex; align-items: center; justify-content: center;">' +
+        '<div style="background: white; border-radius: 12px; padding: 2rem; width: 90%; max-width: 500px; box-shadow: 0 4px 20px rgba(0,0,0,0.3);">' +
+            '<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">' +
+                '<h3 style="margin: 0; font-size: 1.5rem; font-weight: 700; color: #333;">' + (eventId ? '일정 수정' : '일정 등록') + '</h3>' +
+                '<button onclick="closeEventModal()" style="background: none; border: none; font-size: 1.5rem; cursor: pointer; color: #999;">✕</button>' +
+            '</div>' +
+            '<div style="display: flex; flex-direction: column; gap: 1.2rem;">' +
+                '<div>' +
+                    '<label style="display: block; margin-bottom: 0.5rem; font-weight: 600; color: #555;">제목</label>' +
+                    '<input type="text" id="eventTitle" placeholder="일정 제목을 입력하세요" style="width: 100%; padding: 0.75rem; border: 1px solid #ddd; border-radius: 6px; font-size: 1rem;">' +
+                '</div>' +
+                '<div>' +
+                    '<label style="display: block; margin-bottom: 0.5rem; font-weight: 600; color: #555;">배경색</label>' +
+                    '<select id="eventColor" style="width: 100%; padding: 0.75rem; border: 1px solid #ddd; border-radius: 6px; font-size: 1rem;">' +
+                        colorOptions +
+                    '</select>' +
+                '</div>' +
+                '<div>' +
+                    '<label style="display: block; margin-bottom: 0.5rem; font-weight: 600; color: #555;">학교</label>' +
+                    '<select id="eventSchool" style="width: 100%; padding: 0.75rem; border: 1px solid #ddd; border-radius: 6px; font-size: 1rem;">' +
+                        '<option value="전체">전체</option>' +
+                    '</select>' +
+                '</div>' +
+                '<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">' +
+                    '<div>' +
+                        '<label style="display: block; margin-bottom: 0.5rem; font-weight: 600; color: #555;">시작일</label>' +
+                        '<input type="date" id="eventStartDate" style="width: 100%; padding: 0.75rem; border: 1px solid #ddd; border-radius: 6px; font-size: 1rem;">' +
+                    '</div>' +
+                    '<div>' +
+                        '<label style="display: block; margin-bottom: 0.5rem; font-weight: 600; color: #555;">종료일</label>' +
+                        '<input type="date" id="eventEndDate" style="width: 100%; padding: 0.75rem; border: 1px solid #ddd; border-radius: 6px; font-size: 1rem;">' +
+                    '</div>' +
+                '</div>' +
+                '<div style="display: flex; align-items: center; gap: 0.5rem;">' +
+                    '<input type="checkbox" id="eventMarkAbsent" style="width: 18px; height: 18px; cursor: pointer;">' +
+                    '<label for="eventMarkAbsent" style="font-weight: 600; color: #555; cursor: pointer;">해당 날짜에 결석 처리</label>' +
+                '</div>' +
+                '<div style="display: flex; gap: 1rem; margin-top: 1rem;">' +
+                    (eventId ? '<button onclick="deleteEventInAcademy()" class="btn-danger" style="flex: 1; padding: 0.75rem; background: #f44336; color: white; border: none; border-radius: 6px; font-size: 1rem; font-weight: 600; cursor: pointer;">삭제</button>' : '') +
+                    '<button onclick="saveEventInAcademy()" class="btn-primary" style="flex: 1; padding: 0.75rem; background: #FF6B35; color: white; border: none; border-radius: 6px; font-size: 1rem; font-weight: 600; cursor: pointer;">' + (eventId ? '수정' : '등록') + '</button>' +
+                    '<button onclick="closeEventModal()" class="btn-secondary" style="flex: 1; padding: 0.75rem; background: #999; color: white; border: none; border-radius: 6px; font-size: 1rem; font-weight: 600; cursor: pointer;">취소</button>' +
+                '</div>' +
+            '</div>' +
+        '</div>' +
+    '</div>';
+    
+    document.body.insertAdjacentHTML('beforeend', modalHTML);
+    
+    // 학교 드롭다운 로드
+    loadSchoolsForEventModalInAcademy();
+    
+    // 수정 모드인 경우 데이터 로드
+    if (eventId) {
+        loadEventDataInAcademy(eventId);
+    }
+    
+    console.log('[일정 모달] 렌더링 완료');
+};
+
+// 학교 목록 로드
+async function loadSchoolsForEventModalInAcademy() {
+    try {
+        const students = await API.getList('students', { limit: 10000 });
+        const studentList = Array.isArray(students) ? students : (students.data || []);
+        
+        const activeStudents = studentList.filter(function(s) { return s.status === '재원'; });
+        
+        const schools = new Set();
+        activeStudents.forEach(function(student) {
+            if (student.school) {
+                schools.add(student.school);
+            }
+        });
+        
+        const sortedSchools = Array.from(schools).sort(function(a, b) {
+            const getOrder = function(school) {
+                if (school.includes('초')) return 0;
+                if (school.includes('중')) return 1;
+                if (school.includes('고')) return 2;
+                return 3;
+            };
+            return getOrder(a) - getOrder(b);
+        });
+        
+        const schoolSelect = document.getElementById('eventSchool');
+        if (schoolSelect) {
+            schoolSelect.innerHTML = '<option value="전체">전체</option>';
+            sortedSchools.forEach(function(school) {
+                schoolSelect.innerHTML += '<option value="' + school + '">' + school + '</option>';
+            });
+        }
+        
+        console.log('[일정 모달] 학교 목록 로드 완료:', sortedSchools.length);
+        
+    } catch (error) {
+        console.error('[일정 모달] 학교 목록 로드 실패:', error);
+    }
+}
+
+// 일정 데이터 로드 (수정 모드)
+async function loadEventDataInAcademy(eventId) {
+    try {
+        const event = allSchoolEvents.find(function(e) { return e.id === eventId; });
+        if (!event) {
+            console.error('[일정 로드] 일정을 찾을 수 없습니다:', eventId);
+            return;
+        }
+        
+        document.getElementById('eventTitle').value = event.title || '';
+        document.getElementById('eventColor').value = event.background_color || 'red';
+        document.getElementById('eventSchool').value = event.school || '전체';
+        
+        if (event.start_date) {
+            const startDate = event.start_date.replace(/\./g, '-');
+            document.getElementById('eventStartDate').value = startDate;
+        }
+        if (event.end_date) {
+            const endDate = event.end_date.replace(/\./g, '-');
+            document.getElementById('eventEndDate').value = endDate;
+        }
+        
+        document.getElementById('eventMarkAbsent').checked = event.mark_absent || false;
+        
+        console.log('[일정 로드] 데이터 로드 완료:', event);
+        
+    } catch (error) {
+        console.error('[일정 로드] 실패:', error);
+        alert('일정 데이터를 불러오는데 실패했습니다.');
+    }
+}
+
+// 일정 저장
+window.saveEventInAcademy = async function() {
+    try {
+        const title = document.getElementById('eventTitle').value.trim();
+        const color = document.getElementById('eventColor').value;
+        const school = document.getElementById('eventSchool').value;
+        const startDate = document.getElementById('eventStartDate').value;
+        const endDate = document.getElementById('eventEndDate').value;
+        const markAbsent = document.getElementById('eventMarkAbsent').checked;
+        
+        if (!title) {
+            alert('제목을 입력해주세요.');
+            return;
+        }
+        if (!startDate) {
+            alert('시작일을 선택해주세요.');
+            return;
+        }
+        if (!endDate) {
+            alert('종료일을 선택해주세요.');
+            return;
+        }
+        if (new Date(startDate) > new Date(endDate)) {
+            alert('종료일은 시작일 이후여야 합니다.');
+            return;
+        }
+        
+        const formattedStartDate = startDate.replace(/-/g, '.');
+        const formattedEndDate = endDate.replace(/-/g, '.');
+        
+        const eventData = {
+            title: title,
+            background_color: color,
+            school: school,
+            start_date: formattedStartDate,
+            end_date: formattedEndDate,
+            mark_absent: markAbsent
+        };
+        
+        console.log('[일정 저장] 시도:', eventData);
+        
+        if (currentEditingEventId) {
+            await API.update('school_events', currentEditingEventId, eventData);
+            console.log('[일정 수정] 완료:', currentEditingEventId);
+        } else {
+            await API.create('school_events', eventData);
+            console.log('[일정 등록] 완료');
+        }
+        
+        alert(currentEditingEventId ? '일정이 수정되었습니다.' : '일정이 등록되었습니다.');
+        closeEventModal();
+        
+        // 연간 달력 새로고침
+        await loadAnnualCalendar();
+        
+    } catch (error) {
+        console.error('[일정 저장] 실패:', error);
+        alert('일정 저장에 실패했습니다.');
+    }
+};
+
+// 일정 삭제
+window.deleteEventInAcademy = async function() {
+    if (!currentEditingEventId) return;
+    
+    if (!confirm('이 일정을 삭제하시겠습니까?')) {
+        return;
+    }
+    
+    try {
+        await API.delete('school_events', currentEditingEventId);
+        console.log('[일정 삭제] 완료:', currentEditingEventId);
+        
+        alert('일정이 삭제되었습니다.');
+        closeEventModal();
+        
+        // 연간 달력 새로고침
+        await loadAnnualCalendar();
+        
+    } catch (error) {
+        console.error('[일정 삭제] 실패:', error);
+        alert('일정 삭제에 실패했습니다.');
+    }
+};
+
+// 모달 닫기
+window.closeEventModal = function() {
+    const modal = document.getElementById('eventModal');
+    if (modal) {
+        modal.remove();
+    }
+    currentEditingEventId = null;
+};
+
+// 일정 데이터 로드
+async function loadSchoolEventsInAcademy() {
+    try {
+        const response = await API.getList('school_events', { limit: 10000 });
+        allSchoolEvents = Array.isArray(response) ? response : (response.data || []);
+        
+        console.log('[일정 로드] 완료:', allSchoolEvents.length);
+        return allSchoolEvents;
+        
+    } catch (error) {
+        console.error('[일정 로드] 실패:', error);
+        return [];
+    }
 }
