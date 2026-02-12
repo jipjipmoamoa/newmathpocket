@@ -110,6 +110,9 @@ window.showAnnualCalendarPage = async function() {
                     <button class="btn btn-primary" onclick="saveAnnualCalendar()">
                         <i class="fas fa-save"></i> 저장
                     </button>
+                    <button class="btn btn-secondary" onclick="printAnnualCalendar()">
+                        <i class="fas fa-print"></i> 인쇄
+                    </button>
                 </div>
             </div>
             
@@ -693,3 +696,165 @@ async function loadSchoolEventsInAcademy() {
         return [];
     }
 }
+
+// 연간 달력 인쇄
+window.printAnnualCalendar = function() {
+    console.log('[연간 달력 인쇄] 시작');
+    
+    // 인쇄용 스타일이 없으면 추가
+    let printStyle = document.getElementById('annualCalendarPrintStyle');
+    if (!printStyle) {
+        printStyle = document.createElement('style');
+        printStyle.id = 'annualCalendarPrintStyle';
+        printStyle.innerHTML = `
+            @media print {
+                /* 기본 요소 숨기기 */
+                header, 
+                nav, 
+                .sub-menu-container,
+                .page-header {
+                    display: none !important;
+                }
+                
+                /* body 설정 */
+                body {
+                    margin: 0 !important;
+                    padding: 0 !important;
+                }
+                
+                /* 메인 컨텐츠 */
+                #mainContent {
+                    padding: 0 !important;
+                    margin: 0 !important;
+                }
+                
+                /* 페이지 컨테이너 */
+                .page-container {
+                    max-width: 100% !important;
+                    padding: 0 !important;
+                    margin: 0 !important;
+                }
+                
+                /* 캘린더 컨테이너 */
+                #annualCalendarContainer {
+                    display: block !important;
+                    margin: 0 !important;
+                    padding: 0 !important;
+                }
+                
+                /* 페이지 설정 */
+                @page {
+                    size: A4 portrait;
+                    margin: 6mm; /* 10mm * 0.6 */
+                }
+                
+                /* 각 월 컨테이너 - 간격 40% 축소 */
+                #annualCalendarContainer > div {
+                    margin-bottom: 3mm !important; /* 5mm * 0.6 */
+                    page-break-inside: avoid;
+                }
+                
+                /* 1~6월을 첫 페이지에 */
+                #annualCalendarContainer > div:nth-child(6) {
+                    page-break-after: always;
+                    margin-bottom: 0 !important;
+                }
+                
+                /* 월 헤더 - 40% 축소 (60% 크기) */
+                #annualCalendarContainer h3 {
+                    font-size: 7.8pt !important; /* 13pt * 0.6 */
+                    padding: 2.4px 4.8px !important; /* 4px 8px * 0.6 */
+                    margin: 0 0 1.8mm 0 !important; /* 3mm * 0.6 */
+                    background: #e9ecef !important;
+                    color: #5D4037 !important;
+                    font-weight: 700 !important;
+                    border-radius: 2.4px !important; /* 4px * 0.6 */
+                }
+                
+                /* 테이블 외부 div (스크롤 컨테이너) */
+                #annualCalendarContainer > div > div {
+                    overflow-x: visible !important;
+                    min-width: auto !important;
+                }
+                
+                /* 테이블 - 40% 축소 (60% 크기) */
+                #annualCalendarContainer table {
+                    width: 100% !important;
+                    border-collapse: collapse !important;
+                    font-size: 4.2pt !important; /* 7pt * 0.6 */
+                    table-layout: fixed !important;
+                }
+                
+                /* 테이블 헤더 - 40% 축소 (60% 크기) */
+                #annualCalendarContainer table thead th {
+                    border: 0.3px solid #ddd !important; /* 0.5px * 0.6 */
+                    padding: 1.2px !important; /* 2px * 0.6 */
+                    font-size: 4.2pt !important; /* 7pt * 0.6 */
+                    line-height: 1.1 !important;
+                    background: #f8f9fa !important;
+                    height: 12px !important; /* 20px * 0.6 */
+                }
+                
+                /* 테이블 셀 - 40% 축소 (60% 크기) */
+                #annualCalendarContainer table tbody th,
+                #annualCalendarContainer table tbody td {
+                    border: 0.3px solid #ddd !important; /* 0.5px * 0.6 */
+                    padding: 1.2px !important; /* 2px * 0.6 */
+                    font-size: 3.6pt !important; /* 6pt * 0.6 */
+                    line-height: 1.1 !important;
+                    vertical-align: top !important;
+                    height: 15px !important; /* 25px * 0.6 */
+                    max-height: 15px !important;
+                }
+                
+                /* 학교명 열 (첫 번째 열) - 40% 축소 (60% 크기) */
+                #annualCalendarContainer table tbody td:first-child {
+                    background: #f8f9fa !important;
+                    font-weight: 600 !important;
+                    width: 30px !important; /* 50px * 0.6 */
+                    font-size: 4.2pt !important; /* 7pt * 0.6 */
+                }
+                
+                /* 일정 텍스트 div - 40% 축소 (60% 크기) */
+                #annualCalendarContainer table td > div {
+                    font-size: 3pt !important; /* 5pt * 0.6 */
+                    padding: 0.6px 1.2px !important; /* 1px 2px * 0.6 */
+                    white-space: nowrap !important;
+                    overflow: visible !important;
+                    position: relative !important;
+                    z-index: 1 !important;
+                    line-height: 1.2 !important;
+                }
+                
+                /* 주말 배경색 유지 */
+                #annualCalendarContainer table th[style*="background"],
+                #annualCalendarContainer table td[style*="background"] {
+                    -webkit-print-color-adjust: exact !important;
+                    print-color-adjust: exact !important;
+                }
+                
+                /* 휴일 체크박스 숨기기 */
+                #annualCalendarContainer input[type="checkbox"] {
+                    display: none !important;
+                }
+                
+                /* colgroup 유지 */
+                #annualCalendarContainer colgroup {
+                    display: table-column-group !important;
+                }
+                
+                #annualCalendarContainer col {
+                    display: table-column !important;
+                }
+            }
+        `;
+        document.head.appendChild(printStyle);
+    }
+    
+    console.log('[연간 달력 인쇄] 스타일 적용 완료');
+    
+    // 인쇄
+    setTimeout(() => {
+        window.print();
+    }, 100);
+};
