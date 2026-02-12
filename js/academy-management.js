@@ -185,12 +185,16 @@ window.loadAnnualCalendar = async function() {
             
             html += `
                 <div style="margin-bottom: 3rem;">
-                    <h3 style="margin-bottom: 1rem; padding: 0.5rem; background: #FFB380; color: white; border-radius: 4px;">${month}월</h3>
-                    <div style="overflow-x: auto;">
-                        <table style="width: 100%; border-collapse: collapse; font-size: 0.75rem; min-width: 1200px;">
+                    <h3 style="margin-bottom: 1rem; padding: 0.75rem; background: #e9ecef; color: #5D4037; border-radius: 4px; font-weight: 700; font-size: 1.1rem;">${month}월</h3>
+                    <div>
+                        <table style="width: 100%; border-collapse: collapse; font-size: 0.75rem; table-layout: fixed;">
+                            <colgroup>
+                                <col style="width: 60px;">
+                                ${Array.from({length: daysInMonth}, () => '<col>').join('')}
+                            </colgroup>
                             <thead>
                                 <tr>
-                                    <th style="border: 1px solid #333; padding: 0.5rem; background: #495057; color: #fff; width: 120px; position: sticky; left: 0; z-index: 10;">학교</th>
+                                    <th style="border: 1px solid #ddd; padding: 0.5rem; background: #e9ecef; color: #333; position: sticky; left: 0; z-index: 10; font-weight: 600;">학교</th>
                                     ${Array.from({length: daysInMonth}, (_, i) => {
                                         const day = i + 1;
                                         const date = new Date(year, month - 1, day);
@@ -198,64 +202,157 @@ window.loadAnnualCalendar = async function() {
                                         const isSunday = date.getDay() === 0;
                                         const isSaturday = date.getDay() === 6;
                                         const bgColor = isSunday || isSaturday ? '#e8e8e8' : '#fff';
-                                        return `<th style="border: 1px solid #333; padding: 0.3rem; background: ${bgColor}; font-size: 0.7rem;">${day}<br/>${dayOfWeek}</th>`;
+                                        return `<th style="border: 1px solid #ddd; padding: 0.3rem; background: ${bgColor}; font-size: 0.7rem;">${day}<br/>${dayOfWeek}</th>`;
                                     }).join('')}
                                 </tr>
                             </thead>
                             <tbody>
-                                ${schoolList.map(school => `
-                                    <tr>
-                                        <td style="border: 1px solid #333; padding: 0.5rem; font-weight: 600; background: #f8f9fa; position: sticky; left: 0; z-index: 5;">${school}</td>
-                                        ${Array.from({length: daysInMonth}, (_, i) => {
-                                            const day = i + 1;
-                                            const key = `${month}_${school}_${day}`;
-                                            const isHoliday = calendarMap[key] && calendarMap[key].is_holiday;
-                                            const date = new Date(year, month - 1, day);
-                                            const dateString = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-                                            const isSunday = date.getDay() === 0;
-                                            const isSaturday = date.getDay() === 6;
-                                            let bgColor = isSunday || isSaturday ? '#e8e8e8' : '#fff';
+                                ${schoolList.map(school => {
+                                    // 이 학교의 이번 달에 걸쳐있는 모든 일정 찾기
+                                    const schoolEvents = allEvents.filter(event => {
+                                        const startDate = new Date(event.start_date.replace(/\./g, '-'));
+                                        const endDate = new Date(event.end_date.replace(/\./g, '-'));
+                                        const monthStart = new Date(year, month - 1, 1);
+                                        const monthEnd = new Date(year, month, 0);
+                                        const matchSchool = event.school === '전체' || event.school === school;
+                                        
+                                        // 일정이 이번 달과 겹치는지 확인
+                                        return matchSchool && !(endDate < monthStart || startDate > monthEnd);
+                                    });
+                                    
+                                    // 이미 렌더링된 날짜 추적
+                                    const renderedDays = new Set();
+                                    
+                                    let rowHTML = '<tr style="position: relative;">';
+                                    rowHTML += `<td style="border: 1px solid #ddd; padding: 0.5rem; font-weight: 600; background: #f8f9fa; position: sticky; left: 0; z-index: 5;">${school}</td>`;
+                                    
+                                    for (let i = 0; i < daysInMonth; i++) {
+                                        const day = i + 1;
+                                        
+                                        // 이미 렌더링된 날짜는 건너뛰기
+                                        if (renderedDays.has(day)) {
+                                            continue;
+                                        }
+                                        
+                                        const key = `${month}_${school}_${day}`;
+                                        const isHoliday = calendarMap[key] && calendarMap[key].is_holiday;
+                                        const date = new Date(year, month - 1, day);
+                                        const dateString = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+                                        const currentDate = new Date(dateString);
+                                        const isSunday = date.getDay() === 0;
+                                        const isSaturday = date.getDay() === 6;
+                                        let bgColor = isSunday || isSaturday ? '#e8e8e8' : '#fff';
+                                        
+                                        // 이 날짜에 시작하거나 걸쳐있는 일정 찾기
+                                        let eventForThisDay = null;
+                                        let isEventStart = false;
+                                        
+                                        for (const event of schoolEvents) {
+                                            const startDate = new Date(event.start_date.replace(/\./g, '-'));
+                                            const endDate = new Date(event.end_date.replace(/\./g, '-'));
                                             
-                                            // 해당 날짜의 일정 확인
-                                            let eventHTML = '';
-                                            const dayEvents = allEvents.filter(event => {
-                                                const startDate = new Date(event.start_date.replace(/\./g, '-'));
-                                                const endDate = new Date(event.end_date.replace(/\./g, '-'));
-                                                const currentDate = new Date(dateString);
-                                                // 학교 필터링
-                                                const matchSchool = event.school === '전체' || event.school === school;
-                                                return currentDate >= startDate && currentDate <= endDate && matchSchool;
-                                            });
+                                            // 이 날짜가 일정 기간에 포함되는지 확인
+                                            if (currentDate >= startDate && currentDate <= endDate) {
+                                                eventForThisDay = event;
+                                                
+                                                // 이번 달에서 일정이 시작하는 날인지 확인
+                                                const eventStartMonth = startDate.getMonth() + 1;
+                                                const eventStartDay = startDate.getDate();
+                                                
+                                                if (eventStartMonth === month && eventStartDay === day) {
+                                                    isEventStart = true;
+                                                } else if (eventStartMonth < month && day === 1) {
+                                                    // 이전 달에 시작된 일정이 이번 달까지 이어지는 경우, 1일부터 시작
+                                                    isEventStart = true;
+                                                }
+                                                break;
+                                            }
+                                        }
+                                        
+                                        if (eventForThisDay && isEventStart) {
+                                            // 일정이 시작하거나 이어지는 날짜
+                                            const startDate = new Date(eventForThisDay.start_date.replace(/\./g, '-'));
+                                            const endDate = new Date(eventForThisDay.end_date.replace(/\./g, '-'));
                                             
-                                            if (dayEvents.length > 0) {
-                                                const event = dayEvents[0];
-                                                const EVENT_COLORS_MAP = {
-                                                    'red': '#FFCDD2',
-                                                    'blue': '#BBDEFB',
-                                                    'yellow': '#FFF9C4',
-                                                    'green': '#C8E6C9',
-                                                    'purple': '#E1BEE7',
-                                                    'orange': '#FFE0B2',
-                                                    'pink': '#F8BBD0',
-                                                    'gray': '#E0E0E0'
-                                                };
-                                                bgColor = EVENT_COLORS_MAP[event.background_color] || EVENT_COLORS_MAP.red;
-                                                eventHTML = `<div style="font-size: 0.6rem; font-weight: 600; color: #333; cursor: pointer;" onclick="event.stopPropagation(); addScheduleEvent('${event.id}');">${event.title}</div>`;
+                                            // 이번 달에서 일정이 차지하는 일수 계산
+                                            let colspan = 1;
+                                            let currentDay = day;
+                                            const lastDayOfMonth = daysInMonth;
+                                            
+                                            while (currentDay < lastDayOfMonth) {
+                                                const nextDay = currentDay + 1;
+                                                const nextDateString = `${year}-${String(month).padStart(2, '0')}-${String(nextDay).padStart(2, '0')}`;
+                                                const nextDate = new Date(nextDateString);
+                                                
+                                                if (nextDate <= endDate) {
+                                                    colspan++;
+                                                    renderedDays.add(nextDay);
+                                                    currentDay++;
+                                                } else {
+                                                    break;
+                                                }
                                             }
                                             
-                                            return `
+                                            const EVENT_COLORS_MAP = {
+                                                'red': '#FFE5E5',
+                                                'blue': '#E3F2FD',
+                                                'yellow': '#FFFDE7',
+                                                'green': '#E8F5E9',
+                                                'purple': '#F3E5F5',
+                                                'orange': '#FFF3E0',
+                                                'pink': '#FCE4EC',
+                                                'gray': '#F5F5F5'
+                                            };
+                                            bgColor = EVENT_COLORS_MAP[eventForThisDay.background_color] || EVENT_COLORS_MAP.red;
+                                            
+                                            // 이번 달에서의 기간 표시 (mm/dd 형식)
+                                            let displayStartDate, displayEndDate;
+                                            
+                                            if (day === 1 && startDate.getMonth() + 1 < month) {
+                                                // 이전 달에 시작된 일정
+                                                displayStartDate = `${String(month).padStart(2, '0')}/01`;
+                                            } else {
+                                                const startMonth = eventForThisDay.start_date.split('.')[1];
+                                                const startDay = eventForThisDay.start_date.split('.')[2];
+                                                displayStartDate = `${startMonth}/${startDay}`;
+                                            }
+                                            
+                                            if (currentDay === lastDayOfMonth && endDate.getMonth() + 1 > month) {
+                                                // 다음 달까지 이어지는 일정
+                                                displayEndDate = `${String(month).padStart(2, '0')}/${String(lastDayOfMonth).padStart(2, '0')}`;
+                                            } else {
+                                                const endMonth = eventForThisDay.end_date.split('.')[1];
+                                                const endDay = eventForThisDay.end_date.split('.')[2];
+                                                displayEndDate = `${endMonth}/${endDay}`;
+                                            }
+                                            
+                                            rowHTML += `
+                                                <td colspan="${colspan}" style="border: 1px solid #ddd; padding: 0; text-align: left; background: ${bgColor}; cursor: pointer; vertical-align: middle; position: relative; overflow: visible;" 
+                                                    onclick="addScheduleEvent('${eventForThisDay.id}')">
+                                                    <div style="position: absolute; left: 0.5rem; top: 50%; transform: translateY(-50%); z-index: 2; white-space: nowrap; font-weight: 600;">
+                                                        <span style="font-size: 0.75rem; color: #333;">${eventForThisDay.title}</span>
+                                                        <span style="font-size: 0.65rem; color: #666; margin-left: 0.3rem;">(${displayStartDate} ~ ${displayEndDate})</span>
+                                                    </div>
+                                                </td>
+                                            `;
+                                        } else {
+                                            // 일정이 없는 날짜 - 일반 셀
+                                            rowHTML += `
                                                 <td style="border: 1px solid #dee2e6; padding: 0.2rem; text-align: center; background: ${bgColor}; cursor: pointer;" 
                                                     onclick="toggleHoliday(this, ${month}, '${school}', ${day})"
                                                     data-month="${month}" 
                                                     data-school="${school}" 
                                                     data-day="${day}"
                                                     data-holiday="${isHoliday ? 'true' : 'false'}">
-                                                    ${eventHTML}${isHoliday ? '✓' : ''}
+                                                    ${isHoliday ? '✓' : ''}
                                                 </td>
                                             `;
-                                        }).join('')}
-                                    </tr>
-                                `).join('')}
+                                        }
+                                    }
+                                    
+                                    rowHTML += '</tr>';
+                                    return rowHTML;
+                                }).join('')}
                             </tbody>
                         </table>
                     </div>
@@ -322,16 +419,16 @@ window.saveAnnualCalendar = async function() {
 let currentEditingEventId = null;
 let allSchoolEvents = [];
 
-// 배경색 옵션
+// 배경색 옵션 (채도 낮은 파스텔톤)
 const EVENT_COLORS_ACADEMY = {
-    'red': { name: '연빨강', color: '#FFCDD2' },
-    'blue': { name: '연하늘', color: '#BBDEFB' },
-    'yellow': { name: '연노랑', color: '#FFF9C4' },
-    'green': { name: '연두색', color: '#C8E6C9' },
-    'purple': { name: '연보라', color: '#E1BEE7' },
-    'orange': { name: '연주황', color: '#FFE0B2' },
-    'pink': { name: '연분홍', color: '#F8BBD0' },
-    'gray': { name: '연회색', color: '#E0E0E0' }
+    'red': { name: '연빨강', color: '#FFE5E5' },
+    'blue': { name: '연하늘', color: '#E3F2FD' },
+    'yellow': { name: '연노랑', color: '#FFFDE7' },
+    'green': { name: '연두색', color: '#E8F5E9' },
+    'purple': { name: '연보라', color: '#F3E5F5' },
+    'orange': { name: '연주황', color: '#FFF3E0' },
+    'pink': { name: '연분홍', color: '#FCE4EC' },
+    'gray': { name: '연회색', color: '#F5F5F5' }
 };
 
 // 일정 등록 모달 열기
