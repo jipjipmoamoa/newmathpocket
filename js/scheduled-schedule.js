@@ -32,6 +32,56 @@ window.openScheduledScheduleModal = async function(studentId) {
         currentSchedule = student.schedule;
     }
     
+    console.log('[예정 스케줄] 학생 정보:', student);
+    console.log('[예정 스케줄] 현재 스케줄:', currentSchedule);
+    
+    // 주간 스케줄 테이블 HTML 생성 (현재 스케줄 반영)
+    const dayLabels = ['월요일', '화요일', '수요일', '목요일', '금요일', '토요일'];
+    const dayKeys = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+    
+    let scheduleTableRows = '';
+    dayLabels.forEach((dayLabel, idx) => {
+        const dayKey = dayKeys[idx];
+        
+        // 현재 스케줄에서 해당 요일 데이터 가져오기
+        let isEnabled = false;
+        let checkIn = '';
+        let checkOut = '';
+        let duration = 90;
+        
+        if (currentSchedule && currentSchedule[dayKey]) {
+            const daySchedule = currentSchedule[dayKey];
+            isEnabled = daySchedule.enabled || false;
+            checkIn = daySchedule.checkIn || '';
+            checkOut = daySchedule.checkOut || '';
+            duration = daySchedule.duration || 90;
+        }
+        
+        console.log(`[${dayKey}] enabled:${isEnabled}, checkIn:${checkIn}, checkOut:${checkOut}, duration:${duration}`);
+        
+        scheduleTableRows += `
+            <tr>
+                <td style="border: 1px solid #ddd; padding: 0.5rem; font-weight: 600;">${dayLabel}</td>
+                <td style="border: 1px solid #ddd; padding: 0.5rem; text-align: center;">
+                    <input type="checkbox" id="newSch-${dayKey}-enabled" ${isEnabled ? 'checked' : ''}>
+                </td>
+                <td style="border: 1px solid #ddd; padding: 0.5rem;">
+                    <input type="text" class="time-input" id="newSch-${dayKey}-checkin" 
+                           value="${checkIn}" placeholder="14:00" style="width: 100%; padding: 0.5rem; border: 1px solid #ddd; border-radius: 4px;"
+                           onchange="calculateNewSchCheckout('${dayKey}')">
+                </td>
+                <td style="border: 1px solid #ddd; padding: 0.5rem;">
+                    <input type="text" class="time-input" id="newSch-${dayKey}-checkout" value="${checkOut}" readonly style="width: 100%; padding: 0.5rem; border: 1px solid #ddd; border-radius: 4px; background: #f8f9fa;">
+                </td>
+                <td style="border: 1px solid #ddd; padding: 0.5rem;">
+                    <input type="number" id="newSch-${dayKey}-duration" 
+                           value="${duration}" min="30" max="300" step="10" style="width: 100%; padding: 0.5rem; border: 1px solid #ddd; border-radius: 4px;"
+                           onchange="calculateNewSchCheckout('${dayKey}')">
+                </td>
+            </tr>
+        `;
+    });
+    
     // 모달 HTML
     const modalHTML = `
         <div id="scheduledScheduleModal" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 10000; display: flex; align-items: center; justify-content: center; overflow-y: auto;">
@@ -82,39 +132,7 @@ window.openScheduledScheduleModal = async function(studentId) {
                             </tr>
                         </thead>
                         <tbody>
-                            ${['월요일', '화요일', '수요일', '목요일', '금요일', '토요일'].map((dayLabel, idx) => {
-                                const dayKeys = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
-                                const dayKey = dayKeys[idx];
-                                
-                                // 현재 스케줄에서 해당 요일 데이터 가져오기
-                                const daySchedule = currentSchedule && currentSchedule[dayKey] ? currentSchedule[dayKey] : null;
-                                const isEnabled = daySchedule ? daySchedule.enabled : false;
-                                const checkIn = daySchedule && daySchedule.checkIn ? daySchedule.checkIn : '';
-                                const checkOut = daySchedule && daySchedule.checkOut ? daySchedule.checkOut : '';
-                                const duration = daySchedule && daySchedule.duration ? daySchedule.duration : 90;
-                                
-                                return `
-                                    <tr>
-                                        <td style="border: 1px solid #ddd; padding: 0.5rem; font-weight: 600;">${dayLabel}</td>
-                                        <td style="border: 1px solid #ddd; padding: 0.5rem; text-align: center;">
-                                            <input type="checkbox" id="newSch-${dayKey}-enabled" ${isEnabled ? 'checked' : ''}>
-                                        </td>
-                                        <td style="border: 1px solid #ddd; padding: 0.5rem;">
-                                            <input type="text" class="time-input" id="newSch-${dayKey}-checkin" 
-                                                   value="${checkIn}" placeholder="14:00" style="width: 100%; padding: 0.5rem; border: 1px solid #ddd; border-radius: 4px;"
-                                                   onchange="calculateNewSchCheckout('${dayKey}')">
-                                        </td>
-                                        <td style="border: 1px solid #ddd; padding: 0.5rem;">
-                                            <input type="text" class="time-input" id="newSch-${dayKey}-checkout" value="${checkOut}" readonly style="width: 100%; padding: 0.5rem; border: 1px solid #ddd; border-radius: 4px; background: #f8f9fa;">
-                                        </td>
-                                        <td style="border: 1px solid #ddd; padding: 0.5rem;">
-                                            <input type="number" id="newSch-${dayKey}-duration" 
-                                                   value="${duration}" min="30" max="300" step="10" style="width: 100%; padding: 0.5rem; border: 1px solid #ddd; border-radius: 4px;"
-                                                   onchange="calculateNewSchCheckout('${dayKey}')">
-                                        </td>
-                                    </tr>
-                                `;
-                            }).join('')}
+                            ${scheduleTableRows}
                         </tbody>
                     </table>
                     
