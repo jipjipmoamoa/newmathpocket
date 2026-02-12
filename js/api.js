@@ -223,3 +223,7 @@ const Utils = {
         return Date.now().toString(36) + Math.random().toString(36).substr(2);
     }
 };
+
+// API와 Utils를 전역으로 export
+window.API = API;
+window.Utils = Utils;
