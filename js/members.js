@@ -608,7 +608,12 @@ async function showStudentForm(studentId = null) {
                 
                 <!-- 스케줄 섹션 -->
                 <div style="margin-top: 2rem; padding-top: 2rem; border-top: 2px solid #E1E8ED;">
-                    <h3 style="margin-bottom: 1rem; color: #333;">주간 스케줄</h3>
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                        <h3 style="margin: 0; color: #333;">주간 스케줄</h3>
+                        <button type="button" class="btn btn-secondary" onclick="openScheduledScheduleModal('${studentData.id}')" style="padding: 0.5rem 1rem;">
+                            <i class="fas fa-calendar-plus"></i> 예정 스케줄
+                        </button>
+                    </div>
                     <table class="schedule-table">
                         <thead>
                             <tr>
@@ -967,7 +972,12 @@ function renderScheduleSection(student) {
 
     return `
         <div style="margin-top: 2rem; padding-top: 2rem; border-top: 2px solid #E1E8ED;">
-            <h3 style="margin-bottom: 1rem; color: #333;">주간 스케줄</h3>
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                <h3 style="margin: 0; color: #333;">주간 스케줄</h3>
+                <button type="button" class="btn btn-secondary" onclick="openScheduledScheduleModal('${student.id}')" style="padding: 0.5rem 1rem;">
+                    <i class="fas fa-calendar-plus"></i> 예정 스케줄
+                </button>
+            </div>
             <table class="schedule-table">
                 <thead>
                     <tr>
