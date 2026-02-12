@@ -254,7 +254,7 @@ function showPage(pageId) {
         }
     }
     // 중카테고리가 없는 페이지인 경우 서브메뉴 닫기
-    else if (pageId === 'curriculum' || pageId === 'settings') {
+    else if (pageId === 'curriculum' || pageId === 'settings' || pageId === 'academyManagement' || pageId === 'classManagement') {
         const subMenuContainer = document.getElementById('subMenuContainer');
         subMenuContainer.style.display = 'none';
         Navigation.currentMenu = null;
