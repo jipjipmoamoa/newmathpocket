@@ -17,7 +17,7 @@ window.openScheduledScheduleModal = async function(studentId) {
     }
     
     // 학생 정보 가져오기
-    const student = await API.get('students', studentId);
+    const student = await API.getOne('students', studentId);
     if (!student) {
         alert('학생 정보를 찾을 수 없습니다.');
         return;
