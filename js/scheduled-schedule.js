@@ -26,6 +26,12 @@ window.openScheduledScheduleModal = async function(studentId) {
     // 예정 스케줄 목록 로드
     await loadScheduledSchedules(studentId);
     
+    // 현재 스케줄 데이터 미리 로드
+    let currentSchedule = null;
+    if (student.schedule) {
+        currentSchedule = student.schedule;
+    }
+    
     // 모달 HTML
     const modalHTML = `
         <div id="scheduledScheduleModal" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 10000; display: flex; align-items: center; justify-content: center; overflow-y: auto;">
@@ -59,12 +65,10 @@ window.openScheduledScheduleModal = async function(studentId) {
                         </div>
                     </div>
                     
-                    <!-- 기존 스케줄 불러오기 -->
-                    <div style="margin-bottom: 1rem;">
-                        <button type="button" onclick="loadCurrentScheduleToNew()" class="btn btn-secondary" style="padding: 0.5rem 1rem;">
-                            <i class="fas fa-copy"></i> 현재 스케줄 불러오기
-                        </button>
-                    </div>
+                    <!-- 주간 스케줄 테이블 (현재 스케줄이 기본으로 표시됨) -->
+                    <p style="color: #666; font-size: 0.9rem; margin-bottom: 1rem;">
+                        * 현재 스케줄이 기본으로 표시됩니다. 수정하여 저장하세요.
+                    </p>
                     
                     <!-- 주간 스케줄 테이블 -->
                     <table class="schedule-table" style="width: 100%; border-collapse: collapse;">
@@ -81,23 +85,31 @@ window.openScheduledScheduleModal = async function(studentId) {
                             ${['월요일', '화요일', '수요일', '목요일', '금요일', '토요일'].map((dayLabel, idx) => {
                                 const dayKeys = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
                                 const dayKey = dayKeys[idx];
+                                
+                                // 현재 스케줄에서 해당 요일 데이터 가져오기
+                                const daySchedule = currentSchedule && currentSchedule[dayKey] ? currentSchedule[dayKey] : null;
+                                const isEnabled = daySchedule ? daySchedule.enabled : false;
+                                const checkIn = daySchedule && daySchedule.checkIn ? daySchedule.checkIn : '';
+                                const checkOut = daySchedule && daySchedule.checkOut ? daySchedule.checkOut : '';
+                                const duration = daySchedule && daySchedule.duration ? daySchedule.duration : 90;
+                                
                                 return `
                                     <tr>
                                         <td style="border: 1px solid #ddd; padding: 0.5rem; font-weight: 600;">${dayLabel}</td>
                                         <td style="border: 1px solid #ddd; padding: 0.5rem; text-align: center;">
-                                            <input type="checkbox" id="newSch-${dayKey}-enabled">
+                                            <input type="checkbox" id="newSch-${dayKey}-enabled" ${isEnabled ? 'checked' : ''}>
                                         </td>
                                         <td style="border: 1px solid #ddd; padding: 0.5rem;">
                                             <input type="text" class="time-input" id="newSch-${dayKey}-checkin" 
-                                                   placeholder="14:00" style="width: 100%; padding: 0.5rem; border: 1px solid #ddd; border-radius: 4px;"
+                                                   value="${checkIn}" placeholder="14:00" style="width: 100%; padding: 0.5rem; border: 1px solid #ddd; border-radius: 4px;"
                                                    onchange="calculateNewSchCheckout('${dayKey}')">
                                         </td>
                                         <td style="border: 1px solid #ddd; padding: 0.5rem;">
-                                            <input type="text" class="time-input" id="newSch-${dayKey}-checkout" readonly style="width: 100%; padding: 0.5rem; border: 1px solid #ddd; border-radius: 4px; background: #f8f9fa;">
+                                            <input type="text" class="time-input" id="newSch-${dayKey}-checkout" value="${checkOut}" readonly style="width: 100%; padding: 0.5rem; border: 1px solid #ddd; border-radius: 4px; background: #f8f9fa;">
                                         </td>
                                         <td style="border: 1px solid #ddd; padding: 0.5rem;">
                                             <input type="number" id="newSch-${dayKey}-duration" 
-                                                   value="90" min="30" max="300" step="10" style="width: 100%; padding: 0.5rem; border: 1px solid #ddd; border-radius: 4px;"
+                                                   value="${duration}" min="30" max="300" step="10" style="width: 100%; padding: 0.5rem; border: 1px solid #ddd; border-radius: 4px;"
                                                    onchange="calculateNewSchCheckout('${dayKey}')">
                                         </td>
                                     </tr>
@@ -198,10 +210,10 @@ function renderScheduledScheduleList() {
     container.innerHTML = html;
 }
 
-// 현재 스케줄 불러오기
+// 현재 스케줄 다시 불러오기 (필요시 사용)
 window.loadCurrentScheduleToNew = async function() {
     try {
-        const student = await API.get('students', currentScheduledStudentId);
+        const student = await API.getOne('students', currentScheduledStudentId);
         if (!student || !student.schedule) {
             alert('현재 스케줄이 없습니다.');
             return;
@@ -217,6 +229,11 @@ window.loadCurrentScheduleToNew = async function() {
                 document.getElementById(`newSch-${day}-checkin`).value = daySchedule.checkIn || '';
                 document.getElementById(`newSch-${day}-checkout`).value = daySchedule.checkOut || '';
                 document.getElementById(`newSch-${day}-duration`).value = daySchedule.duration || 90;
+            } else {
+                document.getElementById(`newSch-${day}-enabled`).checked = false;
+                document.getElementById(`newSch-${day}-checkin`).value = '';
+                document.getElementById(`newSch-${day}-checkout`).value = '';
+                document.getElementById(`newSch-${day}-duration`).value = '90';
             }
         });
         
