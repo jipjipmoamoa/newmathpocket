@@ -1,8 +1,11 @@
 <!DOCTYPE html>
-<!-- v20260127001: CSS 버전 업데이트로 인쇄 스타일 적용 -->
+<!-- v20260211004: 일정 등록 기능 추가 -->
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>매쓰포켓 - 학원 관리 시스템</title>
     <link rel="stylesheet" href="css/style.css?t=1737276500">
@@ -88,7 +91,7 @@
             </li>
             <li class="menu-item" data-menu="academyManagement">
                 <a href="#" onclick="showPage('academyManagement')">
-                    <i class="fas fa-building"></i> 학원 관리
+                    <i class="fas fa-calendar-alt"></i> 연간 일정
                 </a>
             </li>
             <li class="menu-item" data-menu="settings">
@@ -173,32 +176,38 @@
     <script src="js/upgrade-students.js?t=1737276500"></script>
     <script src="js/attendance-fixed.js?v=20260210033"></script>
     <script src="js/tuition.js?t=1737276500"></script>
-    <script src="js/schedule.js?v=20260210071"></script>
+    <script src="js/schedule.js?v=20260211004"></script>
+    <script src="js/events.js?v=20260211004"></script>
     <script src="js/curriculum.js?t=1737276500"></script>
     <script src="js/class-management.js"></script>
-    <script src="js/academy-management.js"></script>
+    <script src="js/academy-management.js?v=20260211013"></script>
     <script src="js/settings.js?t=1737276500"></script>
     <script src="js/prints.js?t=1737280200"></script>
-    <script src="js/navigation.js?v=20260123001"></script>
+    <script src="js/navigation.js?v=20260211001"></script>
     <script src="js/main.js?t=1737276500"></script>
     <script>
-    // schedule.js 로드 확인
+    // 스크립트 로드 확인
     document.addEventListener('DOMContentLoaded', function() {
-        console.log('=== schedule.js 로드 확인 ===');
+        console.log('=== 스크립트 로드 확인 ===');
+        
+        // schedule.js
         console.log('showScheduleWeekly:', typeof window.showScheduleWeekly);
         console.log('showScheduleMonthly:', typeof window.showScheduleMonthly);
         console.log('printMonthlySchedule:', typeof window.printMonthlySchedule);
         
-        if (typeof window.showScheduleWeekly === 'undefined') {
-            console.error('❌ showScheduleWeekly 함수 없음');
-        } else {
-            console.log('✅ showScheduleWeekly 함수 있음');
-        }
+        // events.js
+        console.log('openEventModal:', typeof window.openEventModal);
+        console.log('loadSchoolEvents:', typeof window.loadSchoolEvents);
+        console.log('getEventsForDate:', typeof window.getEventsForDate);
         
-        if (typeof window.showScheduleMonthly === 'undefined') {
-            console.error('❌ showScheduleMonthly 함수 없음');
+        // academy-management.js
+        console.log('addScheduleEvent:', typeof window.addScheduleEvent);
+        console.log('loadAnnualCalendar:', typeof window.loadAnnualCalendar);
+        
+        if (typeof window.openEventModal === 'undefined') {
+            console.error('❌ openEventModal 함수 없음 - events.js 로드 실패');
         } else {
-            console.log('✅ showScheduleMonthly 함수 있음');
+            console.log('✅ openEventModal 함수 있음');
         }
     });
     </script>
