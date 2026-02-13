@@ -34,6 +34,18 @@ window.openScheduledScheduleModal = async function(studentId) {
     
     console.log('[예정 스케줄] 학생 정보:', student);
     console.log('[예정 스케줄] 현재 스케줄:', currentSchedule);
+    console.log('[예정 스케줄] schedule 타입:', typeof currentSchedule);
+    
+    // schedule이 문자열인 경우 파싱 시도
+    if (typeof currentSchedule === 'string') {
+        try {
+            currentSchedule = JSON.parse(currentSchedule);
+            console.log('[예정 스케줄] JSON 파싱 후:', currentSchedule);
+        } catch (e) {
+            console.error('[예정 스케줄] JSON 파싱 실패:', e);
+            currentSchedule = null;
+        }
+    }
     
     // 주간 스케줄 테이블 HTML 생성 (현재 스케줄 반영)
     const dayLabels = ['월요일', '화요일', '수요일', '목요일', '금요일', '토요일'];
@@ -67,7 +79,8 @@ window.openScheduledScheduleModal = async function(studentId) {
                 </td>
                 <td style="border: 1px solid #ddd; padding: 0.5rem;">
                     <input type="text" class="time-input" id="newSch-${dayKey}-checkin" 
-                           value="${checkIn}" placeholder="14:00" style="width: 100%; padding: 0.5rem; border: 1px solid #ddd; border-radius: 4px;"
+                           value="${checkIn}" placeholder="1400 또는 14:00" style="width: 100%; padding: 0.5rem; border: 1px solid #ddd; border-radius: 4px;"
+                           oninput="formatAndCalculateTime('${dayKey}')"
                            onchange="calculateNewSchCheckout('${dayKey}')">
                 </td>
                 <td style="border: 1px solid #ddd; padding: 0.5rem;">
@@ -263,6 +276,30 @@ window.loadCurrentScheduleToNew = async function() {
     }
 };
 
+// 시간 입력 포맷팅 및 퇴실시간 자동 계산 (실시간)
+window.formatAndCalculateTime = function(dayKey) {
+    const checkinInput = document.getElementById(`newSch-${dayKey}-checkin`);
+    const checkoutInput = document.getElementById(`newSch-${dayKey}-checkout`);
+    const durationInput = document.getElementById(`newSch-${dayKey}-duration`);
+    
+    let value = checkinInput.value.replace(/[^0-9]/g, ''); // 숫자만 추출
+    
+    if (value.length === 0) {
+        checkoutInput.value = '';
+        return;
+    }
+    
+    // 4자리 숫자 입력 시 자동 포맷팅 (예: 1530 -> 15:30)
+    if (value.length === 4) {
+        const hours = value.substring(0, 2);
+        const minutes = value.substring(2, 4);
+        checkinInput.value = `${hours}:${minutes}`;
+        
+        // 자동으로 퇴실시간 계산
+        calculateNewSchCheckout(dayKey);
+    }
+};
+
 // 퇴실시간 계산
 window.calculateNewSchCheckout = function(dayKey) {
     const checkinInput = document.getElementById(`newSch-${dayKey}-checkin`);
@@ -275,7 +312,23 @@ window.calculateNewSchCheckout = function(dayKey) {
     }
     
     try {
-        const [hours, minutes] = checkinInput.value.split(':').map(Number);
+        // 입력값에서 숫자만 추출
+        let timeValue = checkinInput.value.replace(/[^0-9]/g, '');
+        
+        // 4자리가 아니면 계산 중단
+        if (timeValue.length !== 4) {
+            return;
+        }
+        
+        const hours = parseInt(timeValue.substring(0, 2));
+        const minutes = parseInt(timeValue.substring(2, 4));
+        
+        // 유효성 검사
+        if (hours < 0 || hours > 23 || minutes < 0 || minutes > 59) {
+            console.error('[퇴실시간 계산] 잘못된 시간 형식:', timeValue);
+            return;
+        }
+        
         const duration = parseInt(durationInput.value) || 90;
         
         const checkinDate = new Date();
@@ -287,6 +340,9 @@ window.calculateNewSchCheckout = function(dayKey) {
         const checkoutMinutes = String(checkoutDate.getMinutes()).padStart(2, '0');
         
         checkoutInput.value = `${checkoutHours}:${checkoutMinutes}`;
+        
+        console.log(`[퇴실시간 계산] ${dayKey}: ${hours}:${minutes} + ${duration}분 = ${checkoutHours}:${checkoutMinutes}`);
+        
     } catch (error) {
         console.error('[퇴실시간 계산] 실패:', error);
     }
