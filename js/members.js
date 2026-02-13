@@ -228,6 +228,7 @@ function filterStudentsByStatus(status) {
         return s.status === status;
     });
     console.log('[filterStudentsByStatus] 필터링된 학생 수:', filteredStudents.length);
+    console.log('[filterStudentsByStatus] 필터링된 학생 목록:', filteredStudents.map(s => `${s.name}(${s.status})`));
     
     renderStudentList(filteredStudents);
     
@@ -610,9 +611,6 @@ async function showStudentForm(studentId = null) {
                 <div style="margin-top: 2rem; padding-top: 2rem; border-top: 2px solid #E1E8ED;">
                     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
                         <h3 style="margin: 0; color: #333;">주간 스케줄</h3>
-                        <button type="button" class="btn btn-secondary" onclick="openScheduledScheduleModal('${studentData.id}')" style="padding: 0.5rem 1rem;">
-                            <i class="fas fa-calendar-plus"></i> 예정 스케줄
-                        </button>
                     </div>
                     <table class="schedule-table">
                         <thead>
