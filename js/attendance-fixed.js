@@ -1044,7 +1044,7 @@ function renderAttendanceTable() {
             }
             
             row.innerHTML = `
-                <td>${student.name} (${student.attendance_number || '-'}) <span style="color: #9C27B0; font-weight: 600; font-size: 0.85rem;">[추가]</span></td>
+                <td>${student.name} (${student.attendance_number || '-'})</td>
                 <td>
                     <span class="display-mode" id="display-checkin-${rowId}">${checkInTime || '-'}</span>
                     <input type="text" class="form-input edit-mode" id="edit-checkin-${rowId}" value="${checkInTime}" placeholder="14:00" style="display: none;"
@@ -4902,56 +4902,74 @@ async function registerSchedule() {
                         continue;
                     }
                     
-                    // 해당 날짜에 이미 출석 레코드가 있는지 확인
+                    // ✅ 해당 날짜에 이미 출석 레코드가 있는지 확인
                     const existingRecords = allAttendance.filter(r => r.student_id === student.id && r.date === dateString);
                     
+                    // ✅ 주간 스케줄과 가장 가까운 시간의 레코드 찾기 (메인 레코드)
+                    let mainRecord = null;
                     if (existingRecords.length > 0) {
-                        // ✅ 기존 레코드가 있으면 첫 번째만 업데이트, 나머지는 삭제
-                        const firstRecord = existingRecords[0];
-                        
-                        // 보충인 경우 시간 설정, 결석인 경우 시간 초기화
-                        const updateData = {
-                            ...firstRecord,
-                            status: status,
-                            absence_reason: status === '결석' ? absenceReason : '',
-                            check_in_time: status === '보충' ? checkInTime : '',
-                            check_out_time: status === '보충' ? checkOutTime : '',
-                            expected_out_time: status === '보충' ? calculateExpectedTime(checkInTime, daySchedule.duration || 90) : '',
-                            makeup_date: ''
-                        };
-                        
-                        await API.update('attendance', firstRecord.id, updateData);
-                        successCount++;
-                        console.log(`  ✅ 업데이트: ${student.name} (기존 레코드 → ${status})`);
-                        
-                        // 나머지 레코드들은 삭제 (중복 방지)
-                        for (let i = 1; i < existingRecords.length; i++) {
-                            try {
-                                await API.delete('attendance', existingRecords[i].id);
-                                console.log(`  🗑️  삭제: ${student.name} (중복 레코드 제거)`);
-                            } catch (delError) {
-                                console.warn(`  ⚠️  삭제 실패: ${student.name}`, delError);
-                            }
-                        }
-                    } else {
-                        // ✅ 스케줄만 있고 레코드가 없는 경우
-                        // → 출석 현황 테이블에 미확정 스케줄로 표시되는 경우
-                        // → 레코드를 생성하여 상태 변경
+                        mainRecord = existingRecords.reduce((closest, record) => {
+                            if (!record.check_in_time) return closest;
+                            if (!closest) return record;
+                            
+                            const closestDiff = Math.abs(timeToMinutes(closest.check_in_time) - timeToMinutes(daySchedule.checkIn));
+                            const recordDiff = Math.abs(timeToMinutes(record.check_in_time) - timeToMinutes(daySchedule.checkIn));
+                            
+                            return recordDiff < closestDiff ? record : closest;
+                        }, null) || existingRecords[0];
+                    }
+                    
+                    if (status === '보충') {
+                        // ✅ 보충 스케줄 추가: 기존 레코드는 유지하고 새 레코드 생성
                         const createData = {
                             student_id: student.id,
                             student_name: student.name,
                             date: dateString,
-                            check_in_time: status === '보충' ? checkInTime : '',
-                            expected_out_time: status === '보충' ? calculateExpectedTime(checkInTime, daySchedule.duration || 90) : '',
-                            check_out_time: status === '보충' ? checkOutTime : '',
-                            status: status,
-                            absence_reason: status === '결석' ? absenceReason : '',
+                            check_in_time: checkInTime,
+                            expected_out_time: calculateExpectedTime(checkInTime, daySchedule.duration || 90),
+                            check_out_time: checkOutTime,
+                            status: '보충',
+                            absence_reason: '',
                             makeup_date: ''
                         };
                         
                         await API.create('attendance', createData);
                         successCount++;
-                        console.log(`  ✅ 생성: ${student.name} (미확정 스케줄 → ${status})`);
+                        console.log(`  ✅ 보충 생성: ${student.name} (${checkInTime}-${checkOutTime})`);
+                    } else if (status === '결석') {
+                        // ✅ 결석 처리: 메인 레코드만 업데이트 (나머지 보충 레코드는 유지)
+                        if (mainRecord) {
+                            const updateData = {
+                                ...mainRecord,
+                                status: '결석',
+                                absence_reason: absenceReason,
+                                check_in_time: '',
+                                check_out_time: '',
+                                expected_out_time: '',
+                                makeup_date: ''
+                            };
+                            
+                            await API.update('attendance', mainRecord.id, updateData);
+                            successCount++;
+                            console.log(`  ✅ 결석 업데이트: ${student.name}`);
+                        } else {
+                            // 레코드가 없으면 새로 생성
+                            const createData = {
+                                student_id: student.id,
+                                student_name: student.name,
+                                date: dateString,
+                                check_in_time: '',
+                                expected_out_time: '',
+                                check_out_time: '',
+                                status: '결석',
+                                absence_reason: absenceReason,
+                                makeup_date: ''
+                            };
+                            
+                            await API.create('attendance', createData);
+                            successCount++;
+                            console.log(`  ✅ 결석 생성: ${student.name}`);
+                        }
                     }
                     
                 } catch (error) {
