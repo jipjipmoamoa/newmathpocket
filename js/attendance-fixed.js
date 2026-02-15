@@ -1032,9 +1032,6 @@ function renderAttendanceTable() {
             row.dataset.recordId = record.id;
             row.dataset.scheduleType = 'extra'; // 추가 행 표시
             
-            // ✅ 추가 스케줄 행 시각적 구분: 좌측 보라색 테두리
-            row.style.borderLeft = '4px solid #9C27B0';
-            
             // 담당 선생님 색상 적용 (관리자/부관리자만)
             if (Auth.isAdminOrSubAdmin() && student.teacher_id && typeof getTeacherColorClass === 'function') {
                 const teacherColor = getTeacherColorClass(student.teacher_id);
@@ -4921,6 +4918,26 @@ async function registerSchedule() {
                     
                     if (status === '보충') {
                         // ✅ 보충 스케줄 추가: 기존 레코드는 유지하고 새 레코드 생성
+                        
+                        // ✅ 주간 스케줄 레코드가 없으면 먼저 생성 (메인 행 표시용)
+                        if (!mainRecord) {
+                            const mainCreateData = {
+                                student_id: student.id,
+                                student_name: student.name,
+                                date: dateString,
+                                check_in_time: daySchedule.checkIn,
+                                expected_out_time: daySchedule.checkOut,
+                                check_out_time: daySchedule.checkOut,
+                                status: '',
+                                absence_reason: '',
+                                makeup_date: ''
+                            };
+                            
+                            const mainResult = await API.create('attendance', mainCreateData);
+                            console.log(`  ✅ 주간 스케줄 레코드 생성: ${student.name} (${daySchedule.checkIn}-${daySchedule.checkOut})`);
+                        }
+                        
+                        // 보충 레코드 생성
                         const createData = {
                             student_id: student.id,
                             student_name: student.name,
