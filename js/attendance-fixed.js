@@ -580,9 +580,12 @@ function renderAttendanceTable() {
         // ✅ 학생의 모든 출석 기록 가져오기 (같은 날짜에 여러 개 있을 수 있음)
         const studentRecords = todayAttendanceRecords.filter(r => r.student_id === student.id);
         
-        // ✅ 기본 요일 스케줄이 있으면 추가
-        const usedRecordIds = new Set(); // 이미 사용된 기록 ID 추적
+        // ✅ 이미 사용된 기록 ID 추적
+        const usedRecordIds = new Set();
         
+        console.log(`[출석현황] ${student.name}: 주간스케줄=${daySchedule.enabled}, 출석기록수=${studentRecords.length}`);
+        
+        // ✅ 기본 요일 스케줄이 있으면 메인 행으로 추가
         if (daySchedule.enabled) {
             // 기본 스케줄의 checkIn 시간과 가장 가까운 출석 기록 찾기
             let mainRecord = null;
@@ -613,6 +616,7 @@ function renderAttendanceTable() {
             }
             
             const checkInTime = mainRecord?.check_in_time || daySchedule.checkIn || '23:59';
+            console.log(`  → 메인행 추가: ${student.name} (checkIn=${checkInTime}, record=${mainRecord?.id || 'null'})`);
             allAttendanceRows.push({
                 type: 'scheduled',
                 student: student,
@@ -623,9 +627,10 @@ function renderAttendanceTable() {
             });
         }
         
-        // ✅ 같은 학생의 나머지 출석 기록도 추가 (보충, 추가 수업 등)
+        // ✅ 같은 학생의 나머지 출석 기록도 무조건 추가 (주간 스케줄 유무와 무관)
         studentRecords.forEach(record => {
             if (!usedRecordIds.has(record.id)) {
+                console.log(`  → 추가행 추가: ${student.name} (checkIn=${record.check_in_time}, record=${record.id})`);
                 allAttendanceRows.push({
                     type: 'extra',
                     student: student,
@@ -1025,6 +1030,10 @@ function renderAttendanceTable() {
             row.dataset.studentId = student.id;
             row.dataset.studentName = student.name;
             row.dataset.recordId = record.id;
+            row.dataset.scheduleType = 'extra'; // 추가 행 표시
+            
+            // ✅ 추가 스케줄 행 시각적 구분: 좌측 보라색 테두리
+            row.style.borderLeft = '4px solid #9C27B0';
             
             // 담당 선생님 색상 적용 (관리자/부관리자만)
             if (Auth.isAdminOrSubAdmin() && student.teacher_id && typeof getTeacherColorClass === 'function') {
@@ -1035,7 +1044,7 @@ function renderAttendanceTable() {
             }
             
             row.innerHTML = `
-                <td>${student.name} (${student.attendance_number || '-'})</td>
+                <td>${student.name} (${student.attendance_number || '-'}) <span style="color: #9C27B0; font-weight: 600; font-size: 0.85rem;">[추가]</span></td>
                 <td>
                     <span class="display-mode" id="display-checkin-${rowId}">${checkInTime || '-'}</span>
                     <input type="text" class="form-input edit-mode" id="edit-checkin-${rowId}" value="${checkInTime}" placeholder="14:00" style="display: none;"
