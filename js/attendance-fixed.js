@@ -4784,9 +4784,12 @@ function handleScheduleStatusChange() {
     if (statusSelect.value === '결석') {
         reasonInput.style.display = 'block';
         supplementTimeDiv.style.display = 'none';
-    } else if (statusSelect.value === '보충') {
+    } else if (statusSelect.value === '보충' || statusSelect.value === '보강') {
         reasonInput.style.display = 'none';
         supplementTimeDiv.style.display = 'block';
+    } else {
+        reasonInput.style.display = 'none';
+        supplementTimeDiv.style.display = 'none';
     }
 }
 
@@ -4815,8 +4818,8 @@ async function registerSchedule() {
         return;
     }
     
-    // 보충인 경우 시간 확인
-    if (status === '보충') {
+    // 보충 또는 보강인 경우 시간 확인
+    if (status === '보충' || status === '보강') {
         if (!checkInTime || !checkOutTime) {
             alert('입실 시간과 퇴실 시간을 입력해주세요.');
             return;
@@ -4916,8 +4919,8 @@ async function registerSchedule() {
                         }, null) || existingRecords[0];
                     }
                     
-                    if (status === '보충') {
-                        // ✅ 보충 스케줄 추가: 기존 레코드는 유지하고 새 레코드 생성
+                    if (status === '보충' || status === '보강') {
+                        // ✅ 보충/보강 스케줄 추가: 기존 레코드는 유지하고 새 레코드 생성
                         
                         // ✅ 주간 스케줄 레코드가 없으면 먼저 생성 (메인 행 표시용)
                         if (!mainRecord) {
@@ -4937,7 +4940,7 @@ async function registerSchedule() {
                             console.log(`  ✅ 주간 스케줄 레코드 생성: ${student.name} (${daySchedule.checkIn}-${daySchedule.checkOut})`);
                         }
                         
-                        // 보충 레코드 생성
+                        // 보충/보강 레코드 생성
                         const createData = {
                             student_id: student.id,
                             student_name: student.name,
@@ -4945,14 +4948,14 @@ async function registerSchedule() {
                             check_in_time: checkInTime,
                             expected_out_time: calculateExpectedTime(checkInTime, daySchedule.duration || 90),
                             check_out_time: checkOutTime,
-                            status: '보충',
+                            status: status, // '보충' 또는 '보강'
                             absence_reason: '',
                             makeup_date: ''
                         };
                         
                         await API.create('attendance', createData);
                         successCount++;
-                        console.log(`  ✅ 보충 생성: ${student.name} (${checkInTime}-${checkOutTime})`);
+                        console.log(`  ✅ ${status} 생성: ${student.name} (${checkInTime}-${checkOutTime})`);
                     } else if (status === '결석') {
                         // ✅ 결석 처리: 메인 레코드만 업데이트 (나머지 보충 레코드는 유지)
                         if (mainRecord) {
