@@ -1,5 +1,17 @@
 // 스케줄 관리 모듈
 
+// 일정 배경색 (events.js와 동일한 설정)
+const EVENT_COLORS = {
+    'red': { name: '연빨강', color: '#FFCDD2' },
+    'blue': { name: '연하늘', color: '#BBDEFB' },
+    'yellow': { name: '연노랑', color: '#FFF9C4' },
+    'green': { name: '연두색', color: '#C8E6C9' },
+    'purple': { name: '연보라', color: '#E1BEE7' },
+    'orange': { name: '연주황', color: '#FFE0B2' },
+    'pink': { name: '연분홍', color: '#F8BBD0' },
+    'gray': { name: '연회색', color: '#E0E0E0' }
+};
+
 // 학생별 고유 색상 (20가지 파스텔톤 - 모두 다른 색)
 const studentColors = [
     '#FFE5E5', // 1. 연분홍
@@ -191,6 +203,10 @@ window.showScheduleMonthly = async function() {
                 </div>
                 <div style="flex: 1;"></div>
                 <div style="display: flex; gap: 1rem; align-items: center;">
+                    <!-- 일정 등록 버튼 -->
+                    <button class="btn btn-success" onclick="openEventModal()" style="background: #4CAF50; padding: 0.5rem 1rem;">
+                        <i class="fas fa-plus"></i> 일정 등록
+                    </button>
                     <!-- 월간 스케줄 월 이동 버튼 -->
                     <button onclick="changeMonthlyScheduleMonth(-1)" class="btn-secondary" style="padding: 0.5rem 1rem;">◀ 이전 달</button>
                     <span id="monthlyScheduleTitle" style="font-size: 1.1rem; font-weight: 600; min-width: 120px; text-align: center;"></span>
@@ -466,6 +482,14 @@ async function loadMonthlyScheduleCalendar() {
             })));
         }
         
+        // 일정 데이터 로드
+        if (typeof window.loadSchoolEvents === 'function') {
+            await window.loadSchoolEvents();
+            console.log('[loadMonthlyScheduleCalendar] 일정 데이터 로드 완료');
+        } else {
+            console.warn('[loadMonthlyScheduleCalendar] loadSchoolEvents 함수를 찾을 수 없습니다');
+        }
+        
         // 달력 렌더링
         renderMonthlyScheduleCalendar(activeStudents, monthAttendance);
         console.log('[loadMonthlyScheduleCalendar] 달력 렌더링 완료');
@@ -644,14 +668,86 @@ async function renderMonthlyScheduleCalendar(students, attendanceRecords) {
                 if (!dateInfo) return;
                 
                 const dateString = dateInfo.dateString;
-                const isPast = dateString <= todayString; // 과거 또는 현재
+                const isToday = dateString === todayString;
+                const isPast = dateString < todayString;
                 
-                console.log(`[${dateString}] ${isPast ? '과거/현재' : '미래'}, 출석 기록 수:`, attendanceRecords.filter(r => r.date === dateString).length);
+                console.log(`[${dateString}] ${isToday ? '당일' : isPast ? '과거' : '미래'}, 출석 기록 수:`, attendanceRecords.filter(r => r.date === dateString).length);
                 
                 let columns = [[], [], [], []]; // 기본 4열
                 
-                if (isPast) {
-                    // ===== 과거/현재: 주간 스케줄 기본 + 출석 기록에서 빠진 스케줄 추가 =====
+                if (isToday) {
+                    // ===== 당일: 주간 스케줄 전체 표시 + 보충 스케줄만 추가 =====
+                    
+                    // 1) 주간 스케줄을 평탄화 (모든 학생을 배열로)
+                    const weeklyDay = weeklySchedule[dayKey];
+                    let allItems = [];
+                    
+                    if (weeklyDay && weeklyDay.columns) {
+                        weeklyDay.columns.forEach(col => {
+                            col.forEach(item => allItems.push({...item}));
+                        });
+                    }
+                    
+                    // 2) 출석 기록에서 보충만 추가
+                    const teacherStudentIds = teacherStudents.map(s => s.id);
+                    const records = attendanceRecords.filter(r => 
+                        r.date === dateString && teacherStudentIds.includes(r.student_id)
+                    );
+                    
+                    console.log(`  [당일] 주간 스케줄 ${allItems.length}명:`, allItems.map(item => item.student.name));
+                    console.log(`  [당일] 출석 기록 ${records.length}개:`, records.map(r => `${r.student_name}(${r.status})`));
+                    
+                    // 3) 보강/보충 스케줄 추가 (결석 제외)
+                    records.forEach(record => {
+                        // 보강 또는 보충만 추가
+                        if ((record.status !== '보강' && record.status !== '보충') || !record.check_in_time || !record.check_out_time) {
+                            return;
+                        }
+                        
+                        const student = teacherStudents.find(s => s.id === record.student_id);
+                        if (student) {
+                            allItems.push({
+                                student: student,
+                                checkIn: record.check_in_time,
+                                checkOut: record.check_out_time,
+                                status: record.status
+                            });
+                            console.log(`  ➕ [당일] ${student.name} ${record.status} 추가: ${record.check_in_time}-${record.check_out_time}`);
+                        }
+                    });
+                    
+                    console.log(`  [당일] 최종 표시할 학생 ${allItems.length}명:`, allItems.map(item => item.student.name));
+                    
+                    // 4) 시작 시간 순으로 정렬
+                    allItems.sort((a, b) => timeToMinutes(a.checkIn) - timeToMinutes(b.checkIn));
+                    
+                    // 5) 열에 배치
+                    allItems.forEach(item => {
+                        let placed = false;
+                        for (let col = 0; col < 4; col++) {
+                            if (!hasTimeOverlap(columns[col], item)) {
+                                columns[col].push(item);
+                                placed = true;
+                                item.overflow = false;
+                                console.log(`  ✅ [당일] ${item.student.name} → 열${col} (${item.checkIn}-${item.checkOut})`);
+                                break;
+                            }
+                        }
+                        
+                        if (!placed) {
+                            const colCounts = columns.map(col => col.length);
+                            const minCol = colCounts.indexOf(Math.min(...colCounts));
+                            columns[minCol].push(item);
+                            item.overflow = true;
+                            console.log(`  ⚠️ [당일] ${item.student.name} → 열${minCol} (${item.checkIn}-${item.checkOut}) [4열 초과]`);
+                        }
+                    });
+                    
+                    console.log(`  [당일] 📊 처리 완료: ${allItems.length}명`);
+                    console.log(`  [당일] 📊 최종 열 구성:`, columns.map((col, i) => `열${i}(${col.length}명)`).join(', '));
+                    
+                } else if (isPast) {
+                    // ===== 과거: 주간 스케줄 기본 + 출석 기록에서 빠진 스케줄 추가 =====
                     
                     // 1) 주간 스케줄을 평탄화 (모든 학생을 배열로)
                     const weeklyDay = weeklySchedule[dayKey];
@@ -669,8 +765,8 @@ async function renderMonthlyScheduleCalendar(students, attendanceRecords) {
                         r.date === dateString && teacherStudentIds.includes(r.student_id)
                     );
                     
-                    console.log(`  주간 스케줄 ${allItems.length}명:`, allItems.map(item => item.student.name));
-                    console.log(`  출석 기록 ${records.length}개:`, records.map(r => `${r.student_name}(${r.status})`));
+                    console.log(`  [과거] 주간 스케줄 ${allItems.length}명:`, allItems.map(item => item.student.name));
+                    console.log(`  [과거] 출석 기록 ${records.length}개:`, records.map(r => `${r.student_name}(${r.status})`));
                     
                     // 3) 출석 기록이 있는 학생만 필터링
                     const attendedStudentIds = new Set(
@@ -679,12 +775,12 @@ async function renderMonthlyScheduleCalendar(students, attendanceRecords) {
                             .map(r => r.student_id)
                     );
                     
-                    console.log(`  출석한 학생 ID:`, Array.from(attendedStudentIds));
+                    console.log(`  [과거] 출석한 학생 ID:`, Array.from(attendedStudentIds));
                     
                     // 주간 스케줄에서 출석한 학생만 남기기
                     const beforeFilter = allItems.length;
                     allItems = allItems.filter(item => attendedStudentIds.has(item.student.id));
-                    console.log(`  필터링 후: ${beforeFilter}명 → ${allItems.length}명`);
+                    console.log(`  [과거] 필터링 후: ${beforeFilter}명 → ${allItems.length}명`);
                     
                     // 4) 출석 기록에는 있는데 주간 스케줄에 없는 학생 추가 (보강/보충 포함)
                     records.forEach(record => {
@@ -702,7 +798,7 @@ async function renderMonthlyScheduleCalendar(students, attendanceRecords) {
                                     checkOut: record.check_out_time,
                                     status: record.status
                                 });
-                                console.log(`  ➕ ${student.name} 보강/보충 추가: ${record.check_in_time}-${record.check_out_time} [${record.status}]`);
+                                console.log(`  ➕ [과거] ${student.name} 보강/보충 추가: ${record.check_in_time}-${record.check_out_time} [${record.status}]`);
                             }
                             return;
                         }
@@ -718,17 +814,17 @@ async function renderMonthlyScheduleCalendar(students, attendanceRecords) {
                                     checkOut: record.check_out_time,
                                     status: record.status
                                 });
-                                console.log(`  ➕ ${student.name} 추가 (주간 스케줄에 없음): ${record.check_in_time}-${record.check_out_time}`);
+                                console.log(`  ➕ [과거] ${student.name} 추가 (주간 스케줄에 없음): ${record.check_in_time}-${record.check_out_time}`);
                             }
                         }
                     });
                     
-                    console.log(`  최종 표시할 학생 ${allItems.length}명:`, allItems.map(item => item.student.name));
+                    console.log(`  [과거] 최종 표시할 학생 ${allItems.length}명:`, allItems.map(item => item.student.name));
                     
                     // 6) 시작 시간 순으로 정렬
                     allItems.sort((a, b) => timeToMinutes(a.checkIn) - timeToMinutes(b.checkIn));
                     
-                    // 7) 🎯 Greedy Column Packing: 한 열에 최대한 많은 스케줄 채우기
+                    // 6) 🎯 Greedy Column Packing: 한 열에 최대한 많은 스케줄 채우기
                     allItems.forEach(item => {
                         // 열0부터 순서대로 시도 (한 열을 최대한 채우기)
                         let placed = false;
@@ -737,7 +833,7 @@ async function renderMonthlyScheduleCalendar(students, attendanceRecords) {
                                 columns[col].push(item);
                                 placed = true;
                                 item.overflow = false; // 정상 배치
-                                console.log(`  ✅ ${item.student.name} → 열${col} (${item.checkIn}-${item.checkOut})`);
+                                console.log(`  ✅ [과거] ${item.student.name} → 열${col} (${item.checkIn}-${item.checkOut})`);
                                 break;
                             }
                         }
@@ -748,12 +844,12 @@ async function renderMonthlyScheduleCalendar(students, attendanceRecords) {
                             const minCol = colCounts.indexOf(Math.min(...colCounts));
                             columns[minCol].push(item);
                             item.overflow = true; // 4열 초과 표시
-                            console.log(`  ⚠️ ${item.student.name} → 열${minCol} (${item.checkIn}-${item.checkOut}) [4열 초과]`);
+                            console.log(`  ⚠️ [과거] ${item.student.name} → 열${minCol} (${item.checkIn}-${item.checkOut}) [4열 초과]`);
                         }
                     });
                     
-                    console.log(`  📊 처리 완료: ${allItems.length}명`);
-                    console.log(`  📊 최종 열 구성:`, columns.map((col, i) => `열${i}(${col.length}명)`).join(', '));
+                    console.log(`  [과거] 📊 처리 완료: ${allItems.length}명`);
+                    console.log(`  [과거] 📊 최종 열 구성:`, columns.map((col, i) => `열${i}(${col.length}명)`).join(', '));
                 } else {
                     // ===== 미래: 주간 스케줄 + 출석 기록 반영 =====
                     
@@ -771,29 +867,29 @@ async function renderMonthlyScheduleCalendar(students, attendanceRecords) {
                     const records = attendanceRecords.filter(r => r.date === dateString);
                     const teacherStudentIds = teacherStudents.map(s => s.id);
                     
-                    console.log(`  주간 스케줄 ${allItems.length}명:`, allItems.map(item => item.student.name));
-                    console.log(`  출석 기록 ${records.length}개:`, records.map(r => `${r.student_name}(${r.status})`));
+                    console.log(`  [미래] 주간 스케줄 ${allItems.length}명:`, allItems.map(item => item.student.name));
+                    console.log(`  [미래] 출석 기록 ${records.length}개:`, records.map(r => `${r.student_name}(${r.status})`));
                     
                     records.forEach(record => {
                         if (!teacherStudentIds.includes(record.student_id)) {
-                            console.log(`  ⏭️ ${record.student_name}: 다른 선생님 학생`);
+                            console.log(`  ⏭️ [미래] ${record.student_name}: 다른 선생님 학생`);
                             return;
                         }
                         
                         const student = teacherStudents.find(s => s.id === record.student_id);
                         if (!student) {
-                            console.log(`  ⚠️ ${record.student_name}: 학생 정보 없음`);
+                            console.log(`  ⚠️ [미래] ${record.student_name}: 학생 정보 없음`);
                             return;
                         }
                         
                         if (record.status === '결석') {
                             // 결석: 제거
-                            console.log(`  ❌ ${student.name}: 결석 제거`);
+                            console.log(`  ❌ [미래] ${student.name}: 결석 제거`);
                             allItems = allItems.filter(item => item.student.id !== student.id);
                         } else if (record.status === '보강' || record.status === '보충') {
                             // 보강/보충: 시간이 있으면 추가
                             if (record.check_in_time && record.check_out_time) {
-                                console.log(`  ➕ ${student.name}: ${record.status} 추가 (${record.check_in_time}-${record.check_out_time})`);
+                                console.log(`  ➕ [미래] ${student.name}: ${record.status} 추가 (${record.check_in_time}-${record.check_out_time})`);
                                 allItems.push({
                                     student: student,
                                     checkIn: record.check_in_time,
@@ -801,13 +897,13 @@ async function renderMonthlyScheduleCalendar(students, attendanceRecords) {
                                     status: record.status
                                 });
                             } else {
-                                console.log(`  ⚠️ ${student.name}: ${record.status} 시간 없음 (입실: ${record.check_in_time}, 퇴실: ${record.check_out_time})`);
+                                console.log(`  ⚠️ [미래] ${student.name}: ${record.status} 시간 없음 (입실: ${record.check_in_time}, 퇴실: ${record.check_out_time})`);
                             }
                         } else if (record.status === '출석' && record.check_in_time && record.check_out_time) {
                             // 출석 기록에는 있는데 주간 스케줄에 없는 학생 추가
                             const alreadyExists = allItems.some(item => item.student.id === student.id);
                             if (!alreadyExists) {
-                                console.log(`  ➕ ${student.name}: 추가 (주간 스케줄에 없음) ${record.check_in_time}-${record.check_out_time}`);
+                                console.log(`  ➕ [미래] ${student.name}: 추가 (주간 스케줄에 없음) ${record.check_in_time}-${record.check_out_time}`);
                                 allItems.push({
                                     student: student,
                                     checkIn: record.check_in_time,
@@ -818,7 +914,7 @@ async function renderMonthlyScheduleCalendar(students, attendanceRecords) {
                         }
                     });
                     
-                    console.log(`  최종 표시할 학생 ${allItems.length}명:`, allItems.map(item => item.student.name));
+                    console.log(`  [미래] 최종 표시할 학생 ${allItems.length}명:`, allItems.map(item => item.student.name));
                     
                     // 3) 시작 시간 순으로 정렬
                     allItems.sort((a, b) => timeToMinutes(a.checkIn) - timeToMinutes(b.checkIn));
@@ -832,6 +928,7 @@ async function renderMonthlyScheduleCalendar(students, attendanceRecords) {
                                 columns[col].push(item);
                                 placed = true;
                                 item.overflow = false; // 정상 배치
+                                console.log(`  ✅ [미래] ${item.student.name} → 열${col} (${item.checkIn}-${item.checkOut})`);
                                 break;
                             }
                         }
@@ -842,8 +939,12 @@ async function renderMonthlyScheduleCalendar(students, attendanceRecords) {
                             const minCol = colCounts.indexOf(Math.min(...colCounts));
                             columns[minCol].push(item);
                             item.overflow = true; // 4열 초과 표시
+                            console.log(`  ⚠️ [미래] ${item.student.name} → 열${minCol} (${item.checkIn}-${item.checkOut}) [4열 초과]`);
                         }
                     });
+                    
+                    console.log(`  [미래] 📊 처리 완료: ${allItems.length}명`);
+                    console.log(`  [미래] 📊 최종 열 구성:`, columns.map((col, i) => `열${i}(${col.length}명)`).join(', '));
                 }
                 
                 // 최소 4열 보장
@@ -931,9 +1032,22 @@ async function renderMonthlyScheduleCalendar(students, attendanceRecords) {
         dayKeys.forEach(dayKey => {
             const dateInfo = weekGroups[0] ? weekGroups[0][dayKey] : null; // 첫 주의 날짜 정보
             const dateText = dateInfo ? dateInfo.date : '-';
-            // 날짜 행은 모두 동일한 진한 회색
+            
+            // 해당 날짜의 일정 가져오기
+            let eventHTML = '';
             let bgColor = '#e9ecef';
-            html += `<th colspan="4" style="border: 1px solid #ccc; padding: 0.3rem; background: ${bgColor}; color: #333; font-weight: 600; text-align: center; font-size: 0.65rem;">${dateText}</th>`;
+            if (dateInfo && typeof window.getEventsForDate === 'function') {
+                const events = window.getEventsForDate(dateInfo.dateString);
+                if (events && events.length > 0) {
+                    const event = events[0]; // 첫 번째 일정만 표시
+                    const eventColor = EVENT_COLORS[event.background_color] || EVENT_COLORS.red;
+                    bgColor = eventColor.color;
+                    eventHTML = `<div style="font-weight: 700; margin-bottom: 0.2rem;" onclick="openEventModal('${event.id}')">${event.title}</div>`;
+                    eventHTML += `<div style="font-size: 0.55rem; color: #666;">(${event.start_date.slice(5)}~${event.end_date.slice(5)})</div>`;
+                }
+            }
+            
+            html += `<th colspan="4" style="border: 1px solid #ccc; padding: 0.3rem; background: ${bgColor}; color: #333; font-weight: 600; text-align: center; font-size: 0.65rem; cursor: ${eventHTML ? 'pointer' : 'default'};">${dateText}${eventHTML ? '<br/>' + eventHTML : ''}</th>`;
         });
         
         html += '</tr></thead><tbody>';
@@ -950,9 +1064,22 @@ async function renderMonthlyScheduleCalendar(students, attendanceRecords) {
                 dayKeys.forEach(dayKey => {
                     const dateInfo = week[dayKey];
                     const dateText = dateInfo ? dateInfo.date : '-';
-                    // 날짜 행은 모두 동일한 진한 회색
+                    
+                    // 해당 날짜의 일정 가져오기
+                    let eventHTML = '';
                     let bgColor = '#e9ecef';
-                    html += `<th colspan="4" style="border: 1px solid #ccc; padding: 0.3rem; background: ${bgColor}; color: #333; font-weight: 600; text-align: center; font-size: 0.65rem;">${dateText}</th>`;
+                    if (dateInfo && typeof window.getEventsForDate === 'function') {
+                        const events = window.getEventsForDate(dateInfo.dateString);
+                        if (events && events.length > 0) {
+                            const event = events[0]; // 첫 번째 일정만 표시
+                            const eventColor = EVENT_COLORS[event.background_color] || EVENT_COLORS.red;
+                            bgColor = eventColor.color;
+                            eventHTML = `<div style="font-weight: 700; margin-bottom: 0.2rem;" onclick="openEventModal('${event.id}')">${event.title}</div>`;
+                            eventHTML += `<div style="font-size: 0.55rem; color: #666;">(${event.start_date.slice(5)}~${event.end_date.slice(5)})</div>`;
+                        }
+                    }
+                    
+                    html += `<th colspan="4" style="border: 1px solid #ccc; padding: 0.3rem; background: ${bgColor}; color: #333; font-weight: 600; text-align: center; font-size: 0.65rem; cursor: ${eventHTML ? 'pointer' : 'default'};">${dateText}${eventHTML ? '<br/>' + eventHTML : ''}</th>`;
                 });
                 
                 html += '</tr>';
@@ -1350,8 +1477,10 @@ async function loadWeeklySchedule() {
         
     } catch (error) {
         console.error('스케줄 로드 실패:', error);
-        document.getElementById('weeklyScheduleTable').innerHTML = 
-            '<div class="alert alert-danger">스케줄을 불러오는데 실패했습니다.</div>';
+        const container = document.getElementById('weeklyScheduleTable');
+        if (container) {
+            container.innerHTML = '<div class="alert alert-danger">스케줄을 불러오는데 실패했습니다.</div>';
+        }
     }
 }
 
@@ -1851,6 +1980,12 @@ async function renderScheduleByTeachers(allStudents) {
         console.log('[renderScheduleByTeachers] 전체 시간 범위:', globalTimeRange);
         
         const container = document.getElementById('weeklyScheduleTable');
+        
+        if (!container) {
+            console.error('[renderScheduleByTeachers] weeklyScheduleTable 요소를 찾을 수 없습니다');
+            return;
+        }
+        
         let html = '';
         
         // 체크된 선생님별로 순회하면서 스케줄 테이블 생성
@@ -1901,8 +2036,10 @@ async function renderScheduleByTeachers(allStudents) {
         
     } catch (error) {
         console.error('선생님별 스케줄 렌더링 실패:', error);
-        document.getElementById('weeklyScheduleTable').innerHTML = 
-            '<div class="alert alert-danger">스케줄을 불러오는데 실패했습니다.</div>';
+        const container = document.getElementById('weeklyScheduleTable');
+        if (container) {
+            container.innerHTML = '<div class="alert alert-danger">스케줄을 불러오는데 실패했습니다.</div>';
+        }
     }
 }
 
