@@ -1611,7 +1611,8 @@ async function handleAttendance(studentId, recordId = null) {
             });
             
             const statusText = status === '보강' ? '보강' : status === '보충' ? '보충' : '출석';
-            alert(`${student.name} ${statusText} 처리 완료\n입실: ${checkInTime}\n퇴실: ${checkOutTime}`);
+            // ✅ 조용히 처리 (alert 제거)
+            console.log(`✅ ${student.name} ${statusText} 처리 완료 - 입실: ${checkInTime}, 퇴실: ${checkOutTime}`);
         } else {
             // recordId가 없으면 스케줄에서 시간 가져오기
             console.log('[handleAttendance] recordId 없음 - 스케줄에서 시간 가져오기');
@@ -1646,7 +1647,8 @@ async function handleAttendance(studentId, recordId = null) {
                 });
                 
                 const statusText = status === '보강' ? '보강' : status === '보충' ? '보충' : '출석';
-                alert(`${student.name} ${statusText} 처리 완료\n입실: ${checkInTime}\n퇴실: ${checkOutTime}`);
+                // ✅ 조용히 처리 (alert 제거)
+                console.log(`✅ ${student.name} ${statusText} 처리 완료 - 입실: ${checkInTime}, 퇴실: ${checkOutTime}`);
             } else {
                 // 새 레코드 생성
                 const attendanceData = {
@@ -1662,7 +1664,8 @@ async function handleAttendance(studentId, recordId = null) {
                 };
                 
                 await API.create('attendance', attendanceData);
-                alert(`${student.name} 출석 처리 완료\n입실: ${checkInTime}\n퇴실: ${checkOutTime}`);
+                // ✅ 조용히 처리 (alert 제거)
+                console.log(`✅ ${student.name} 출석 처리 완료 - 입실: ${checkInTime}, 퇴실: ${checkOutTime}`);
             }
         }
         
@@ -1670,8 +1673,8 @@ async function handleAttendance(studentId, recordId = null) {
         await renderMonthlyCalendar();
         
     } catch (error) {
-        console.error('출석 처리 실패:', error);
-        alert('출석 처리에 실패했습니다.');
+        console.error('❌ 출석 처리 실패:', error);
+        alert('출석 처리에 실패했습니다.\n오류: ' + (error.message || '알 수 없는 오류'));
     }
 }
 
@@ -1709,7 +1712,8 @@ async function handleAbsence(studentId, recordId = null) {
                     absence_reason: absenceReason || ''
                 });
                 
-                alert(`${student.name} 결석 처리 완료`);
+                // ✅ 조용히 처리 (alert 제거)
+                console.log(`✅ ${student.name} 결석 처리 완료 (사유: ${absenceReason || '없음'})`);
             }
         } else {
             // recordId가 없으면 기존 레코드 찾기
@@ -1726,7 +1730,8 @@ async function handleAbsence(studentId, recordId = null) {
                     absence_reason: absenceReason || ''
                 });
                 
-                alert(`${student.name} 결석 처리 완료`);
+                // ✅ 조용히 처리 (alert 제거)
+                console.log(`✅ ${student.name} 결석 처리 완료 (사유: ${absenceReason || '없음'})`);
             } else {
                 // 새 레코드 생성
                 const attendanceData = {
@@ -1742,7 +1747,8 @@ async function handleAbsence(studentId, recordId = null) {
                 };
                 
                 await API.create('attendance', attendanceData);
-                alert(`${student.name} 결석 처리 완료`);
+                // ✅ 조용히 처리 (alert 제거)
+                console.log(`✅ ${student.name} 결석 처리 완료 (사유: ${absenceReason || '없음'})`);
             }
         }
         
@@ -1940,6 +1946,9 @@ function handleRegisterStatusChange() {
     const statusSelect = document.getElementById('registerStatus');
     const reasonSelect = document.getElementById('registerAbsenceReason');
     const makeupDateDiv = document.getElementById('registerMakeupDate');
+    const checkInInput = document.getElementById('registerCheckInTime');
+    const checkOutInput = document.getElementById('registerCheckOutTime');
+    const studentSelect = document.getElementById('registerStudentSelect');
     
     if (!statusSelect) return;
     
@@ -1951,9 +1960,71 @@ function handleRegisterStatusChange() {
     } else if (status === '보강') {
         if (reasonSelect) reasonSelect.style.display = 'none';
         if (makeupDateDiv) makeupDateDiv.style.display = 'block';
+        
+        // ✅ 보강 선택 시 시간 입력창 비우기 (기존 스케줄 시간 제거)
+        if (checkInInput) {
+            checkInInput.value = '';
+            checkInInput.placeholder = '보강 입실 시간 (예: 16:00)';
+        }
+        if (checkOutInput) {
+            checkOutInput.value = '';
+            checkOutInput.placeholder = '보강 퇴실 시간 (예: 17:30)';
+        }
+        
+        console.log('[상태 변경] 보강 모드 - 시간 입력창 초기화');
+    } else if (status === '보충') {
+        if (reasonSelect) reasonSelect.style.display = 'none';
+        if (makeupDateDiv) makeupDateDiv.style.display = 'none';
+        
+        // ✅ 보충 선택 시 시간 입력창 비우기
+        if (checkInInput) {
+            checkInInput.value = '';
+            checkInInput.placeholder = '보충 입실 시간 (예: 16:00)';
+        }
+        if (checkOutInput) {
+            checkOutInput.value = '';
+            checkOutInput.placeholder = '보충 퇴실 시간 (예: 17:30)';
+        }
+        
+        console.log('[상태 변경] 보충 모드 - 시간 입력창 초기화');
     } else {
         if (reasonSelect) reasonSelect.style.display = 'none';
         if (makeupDateDiv) makeupDateDiv.style.display = 'none';
+        
+        // ✅ 일반 출석 선택 시 스케줄 시간 다시 채우기
+        if (studentSelect && studentSelect.value) {
+            const selectedOption = studentSelect.options[studentSelect.selectedIndex];
+            if (selectedOption && selectedOption.dataset.studentData) {
+                try {
+                    const studentData = JSON.parse(selectedOption.dataset.studentData);
+                    let schedule = studentData.schedule;
+                    
+                    if (typeof schedule === 'string' && schedule.trim() !== '') {
+                        schedule = JSON.parse(schedule);
+                    }
+                    
+                    const selectedDate = getSelectedDateString();
+                    const dateObj = new Date(selectedDate);
+                    const dayKeys = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+                    const selectedDayKey = dayKeys[dateObj.getDay()];
+                    const daySchedule = schedule && schedule[selectedDayKey];
+                    
+                    if (daySchedule && daySchedule.enabled) {
+                        if (checkInInput) {
+                            checkInInput.value = daySchedule.checkIn || '';
+                            checkInInput.placeholder = '14:00';
+                        }
+                        if (checkOutInput) {
+                            checkOutInput.value = daySchedule.checkOut || '';
+                            checkOutInput.placeholder = '15:30';
+                        }
+                        console.log('[상태 변경] 일반 출석 - 스케줄 시간 복원:', daySchedule.checkIn, '-', daySchedule.checkOut);
+                    }
+                } catch (e) {
+                    console.error('[상태 변경] 스케줄 복원 오류:', e);
+                }
+            }
+        }
     }
 }
 
@@ -2970,6 +3041,7 @@ function handleRegisterStudentChange() {
     const manualInput = document.getElementById('registerManualName');
     const checkInInput = document.getElementById('registerCheckInTime');
     const checkOutInput = document.getElementById('registerCheckOutTime');
+    const statusSelect = document.getElementById('registerStatus');
     
     if (select.value) {
         // 드롭다운에서 선택하면 수동 입력 초기화
@@ -3001,15 +3073,24 @@ function handleRegisterStudentChange() {
                 if (schedule && schedule[selectedDayKey] && schedule[selectedDayKey].enabled) {
                     const daySchedule = schedule[selectedDayKey];
                     
-                    // 입실/퇴실 시간 자동 입력
-                    if (daySchedule.checkIn && checkInInput) {
-                        checkInInput.value = daySchedule.checkIn;
-                    }
-                    if (daySchedule.checkOut && checkOutInput) {
-                        checkOutInput.value = daySchedule.checkOut;
-                    }
+                    // ✅ 현재 상태 확인
+                    const currentStatus = statusSelect ? statusSelect.value : '';
                     
-                    console.log(`[스케줄 반영] ${studentData.name}: ${daySchedule.checkIn} - ${daySchedule.checkOut}`);
+                    // ✅ 보강/보충인 경우 시간 입력창 비우기 (사용자가 직접 입력하도록)
+                    if (currentStatus === '보강' || currentStatus === '보충') {
+                        if (checkInInput) checkInInput.value = '';
+                        if (checkOutInput) checkOutInput.value = '';
+                        console.log(`[스케줄 반영] ${studentData.name}: 보강/보충 모드 - 시간 입력 필요`);
+                    } else {
+                        // 일반 출석인 경우만 스케줄 시간 자동 입력
+                        if (daySchedule.checkIn && checkInInput) {
+                            checkInInput.value = daySchedule.checkIn;
+                        }
+                        if (daySchedule.checkOut && checkOutInput) {
+                            checkOutInput.value = daySchedule.checkOut;
+                        }
+                        console.log(`[스케줄 반영] ${studentData.name}: ${daySchedule.checkIn} - ${daySchedule.checkOut}`);
+                    }
                 } else {
                     // 스케줄이 없으면 입력창 비우기
                     if (checkInInput) checkInInput.value = '';
@@ -3086,6 +3167,42 @@ async function registerNewAttendance() {
         return;
     }
     
+    // ✅ 보강/보충 등록 시 기존 스케줄과 동일한 시간인지 확인
+    if ((status === '보강' || status === '보충') && studentData.id && studentData.schedule) {
+        try {
+            let schedule = studentData.schedule;
+            if (typeof schedule === 'string' && schedule.trim() !== '') {
+                schedule = JSON.parse(schedule);
+            }
+            
+            const selectedDate = getSelectedDateString();
+            const dateObj = new Date(selectedDate);
+            const dayKeys = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+            const selectedDayKey = dayKeys[dateObj.getDay()];
+            const daySchedule = schedule && schedule[selectedDayKey];
+            
+            if (daySchedule && daySchedule.enabled) {
+                const scheduledCheckIn = daySchedule.checkIn;
+                const scheduledCheckOut = daySchedule.checkOut;
+                
+                // 기존 스케줄과 동일한 시간이면 경고
+                if (checkInTime === scheduledCheckIn && checkOutTime === scheduledCheckOut) {
+                    const confirmMsg = `⚠️ 입력하신 시간(${checkInTime}-${checkOutTime})이 기존 주간 스케줄과 동일합니다.\n\n` +
+                        `${status} 스케줄은 주간 스케줄과 별개로 추가되어야 합니다.\n` +
+                        `다른 시간으로 등록하시겠습니까?\n\n` +
+                        `예: 기존 스케줄 ${scheduledCheckIn}-${scheduledCheckOut} → ${status} 16:00-17:30`;
+                    
+                    if (!confirm(confirmMsg)) {
+                        console.log(`[등록 취소] ${studentData.name} ${status} - 기존 스케줄과 동일한 시간`);
+                        return;
+                    }
+                }
+            }
+        } catch (e) {
+            console.error('[시간 중복 확인 오류]', e);
+        }
+    }
+    
     // 출석 데이터 생성
     const attendanceData = {
         student_id: studentData.id,
@@ -3134,7 +3251,8 @@ async function registerNewAttendance() {
     
     try {
         await API.create('attendance', attendanceData);
-        alert(`${studentData.name} 출석이 등록되었습니다.`);
+        // ✅ 조용히 등록 완료 (alert 제거)
+        console.log(`✅ ${studentData.name} 출석 등록 완료 (상태: ${status || '출석'})`);
         
         // 입력 필드 초기화
         document.getElementById('registerStudentSelect').value = '';
@@ -3156,7 +3274,7 @@ async function registerNewAttendance() {
         await renderMonthlyCalendar();
         
     } catch (error) {
-        console.error('출석 등록 오류:', error);
+        console.error('❌ 출석 등록 오류:', error);
         console.error('오류 상세:', error.message);
         console.error('등록하려던 데이터:', attendanceData);
         alert('출석 등록에 실패했습니다.\n오류: ' + (error.message || '알 수 없는 오류'));
@@ -4999,8 +5117,8 @@ async function registerSchedule() {
             }
         }
         
-        const message = `일정 등록 완료\n성공: ${successCount}건${failCount > 0 ? `\n실패: ${failCount}건` : ''}`;
-        alert(message);
+        // ✅ 조용히 등록 완료 (alert 제거)
+        console.log(`✅ 일정 등록 완료 - 성공: ${successCount}건${failCount > 0 ? `, 실패: ${failCount}건` : ''}`);
         
         // 모달 닫기
         closeScheduleModal();
@@ -5010,8 +5128,8 @@ async function registerSchedule() {
         await renderMonthlyCalendar();
         
     } catch (error) {
-        console.error('일정 등록 실패:', error);
-        alert('일정 등록에 실패했습니다.');
+        console.error('❌ 일정 등록 실패:', error);
+        alert('일정 등록에 실패했습니다.\n오류: ' + (error.message || '알 수 없는 오류'));
     }
 }
 
