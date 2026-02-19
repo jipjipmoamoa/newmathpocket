@@ -1674,7 +1674,7 @@ async function handleAttendance(studentId, recordId = null) {
         
     } catch (error) {
         console.error('❌ 출석 처리 실패:', error);
-        alert('출석 처리에 실패했습니다.\n오류: ' + (error.message || '알 수 없는 오류'));
+        // ✅ 실패 시에도 alert 제거 (콘솔에만 로그)
     }
 }
 
@@ -1756,8 +1756,8 @@ async function handleAbsence(studentId, recordId = null) {
         await renderMonthlyCalendar();
         
     } catch (error) {
-        console.error('결석 처리 실패:', error);
-        alert('결석 처리에 실패했습니다.');
+        console.error('❌ 결석 처리 실패:', error);
+        // ✅ 실패 시에도 alert 제거 (콘솔에만 로그)
     }
 }
 
@@ -2572,10 +2572,26 @@ function renderScheduleItem(schedule, pageType = 'check') {
     }
     
     if (schedule.status === '결석') {
-        // 결석: "결석"에만 취소선, 이름과 "(사유)"는 취소선 없음
-        itemClass += ' absent';
+        // ✅ 결석: "결석"에만 취소선, 이름과 "(사유)"는 취소선 없음
+        // ✅ 보강 결석: 빨간색, 보충 결석: 보라색, 일반 결석: 검정색
         const reason = schedule.absence_reason ? ` (${schedule.absence_reason})` : '';
-        content = `${schedule.student_name} <span style="text-decoration: line-through;">결석</span>${reason}`;
+        
+        // makeup_date가 있으면 보강 결석 (빨간색)
+        if (schedule.makeup_date) {
+            itemClass += ' makeup';
+            content = `${schedule.student_name} <span style="text-decoration: line-through;">결석</span>${reason}`;
+        }
+        // check_in_time이 비어있고 기존 레코드가 보충이면 보충 결석 (보라색)
+        // 단, makeup_date가 없어야 보충으로 간주
+        else if (!schedule.makeup_date && schedule.schedule_type === 'extra') {
+            itemClass += ' supplement';
+            content = `${schedule.student_name} <span style="text-decoration: line-through;">결석</span>${reason}`;
+        }
+        // 일반 결석 (검정색)
+        else {
+            itemClass += ' absent';
+            content = `${schedule.student_name} <span style="text-decoration: line-through;">결석</span>${reason}`;
+        }
     } else if (schedule.status === '보강') {
         // 보강: "입실시간, 이름, 퇴실시간 (결석날짜)" - 빨간색
         itemClass += ' makeup';
