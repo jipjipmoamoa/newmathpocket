@@ -773,13 +773,23 @@ function renderAttendanceTable() {
             // 보충 표시
             statusColor = 'style="color: #9C27B0; font-weight: 600;"';
         } else if (status === '결석') {
-            // 결석 사유 표시: "결석"에만 취소선
+            // ✅ 결석 사유 표시: "결석"에만 취소선
             if (absenceReason) {
                 statusText = `<span style="text-decoration: line-through;">결석</span>(${absenceReason})`;
             } else {
                 statusText = `<span style="text-decoration: line-through;">결석</span>`;
             }
-            statusColor = 'style="color: #000; font-weight: 600;"';
+            // ✅ 보강 결석: 빨간색, 보충 결석: 보라색, 일반 결석: 검정색
+            if (makeupDate) {
+                // 보강 결석: 빨간색 유지
+                statusColor = 'style="color: #f44336; font-weight: 600;"';
+            } else if (item.scheduleType === 'extra') {
+                // 보충 결석: 보라색 유지
+                statusColor = 'style="color: #9C27B0; font-weight: 600;"';
+            } else {
+                // 일반 결석: 검정색
+                statusColor = 'style="color: #000; font-weight: 600;"';
+            }
         } else {
             // 상태가 비어있을 때: 입실만 있으면 체크 이모티콘 표시
             if (checkInTime && !checkOutTime) {
@@ -891,7 +901,12 @@ function renderAttendanceTable() {
                 } else {
                     statusText = `<span style="text-decoration: line-through;">결석</span>`;
                 }
-                statusColor = 'color: #000; font-weight: 600;';
+                // ✅ 보강 결석: 빨간색, 일반 결석: 검정색
+                if (makeupDate) {
+                    statusColor = 'color: #f44336; font-weight: 600;';
+                } else {
+                    statusColor = 'color: #000; font-weight: 600;';
+                }
             } else {
                 // 상태가 비어있을 때: 입실만 있으면 체크 이모티콘 표시
                 if (checkInTime && !checkOutTime) {
@@ -1014,7 +1029,14 @@ function renderAttendanceTable() {
                 } else {
                     statusText = `<span style="text-decoration: line-through;">결석</span>`;
                 }
-                statusColor = 'style="color: #000; font-weight: 600;"';
+                // ✅ 보강 결석: 빨간색, 보충 결석: 보라색, 일반 결석: 검정색
+                if (makeupDate) {
+                    statusColor = 'style="color: #f44336; font-weight: 600;"';
+                } else if (item.scheduleType === 'extra') {
+                    statusColor = 'style="color: #9C27B0; font-weight: 600;"';
+                } else {
+                    statusColor = 'style="color: #000; font-weight: 600;"';
+                }
             } else {
                 // 상태가 비어있을 때: 입실만 있으면 체크 이모티콘 표시
                 if (checkInTime && !checkOutTime) {
