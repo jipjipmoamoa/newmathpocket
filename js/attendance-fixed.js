@@ -4780,11 +4780,12 @@ function openScheduleModal() {
                     style="width: 100%; padding: 0.75rem; border: 1px solid #ced4da; border-radius: 4px; font-size: 1rem;">
                     <option value="결석">결석</option>
                     <option value="보충">보충</option>
+                    <option value="보강">보강</option>
                 </select>
                 <!-- 결석 사유 입력 -->
                 <input type="text" id="scheduleAbsenceReason" placeholder="결석 사유 입력" 
                     style="width: 100%; padding: 0.75rem; border: 1px solid #ced4da; border-radius: 4px; font-size: 1rem; margin-top: 0.5rem;" />
-                <!-- 보충 시간 입력 -->
+                <!-- 보충/보강 시간 입력 -->
                 <div id="scheduleSupplementTime" style="display: none; margin-top: 0.5rem; gap: 1rem;">
                     <div style="display: flex; gap: 1rem;">
                         <div style="flex: 1;">
@@ -4800,6 +4801,14 @@ function openScheduleModal() {
                                 onblur="this.value = formatTimeInput(this.value)" />
                         </div>
                     </div>
+                </div>
+                <!-- 보강 결석날짜 입력 -->
+                <div id="scheduleMakeupDate" style="display: none; margin-top: 0.5rem;">
+                    <label style="display: block; font-size: 0.9rem; margin-bottom: 0.3rem; color: #666;">결석 날짜 (MM/DD)</label>
+                    <input type="text" id="scheduleMakeupDateInput" placeholder="02/16" 
+                        maxlength="5"
+                        style="width: 100%; padding: 0.75rem; border: 1px solid #ced4da; border-radius: 4px; font-size: 1rem;"
+                        oninput="formatMakeupDateInput(this)" />
                 </div>
             </div>
             
@@ -5077,16 +5086,24 @@ function handleScheduleStatusChange() {
     const statusSelect = document.getElementById('scheduleStatus');
     const reasonInput = document.getElementById('scheduleAbsenceReason');
     const supplementTimeDiv = document.getElementById('scheduleSupplementTime');
+    const makeupDateDiv = document.getElementById('scheduleMakeupDate');
     
     if (statusSelect.value === '결석') {
         reasonInput.style.display = 'block';
         supplementTimeDiv.style.display = 'none';
-    } else if (statusSelect.value === '보충' || statusSelect.value === '보강') {
+        if (makeupDateDiv) makeupDateDiv.style.display = 'none';
+    } else if (statusSelect.value === '보충') {
         reasonInput.style.display = 'none';
         supplementTimeDiv.style.display = 'block';
+        if (makeupDateDiv) makeupDateDiv.style.display = 'none';
+    } else if (statusSelect.value === '보강') {
+        reasonInput.style.display = 'none';
+        supplementTimeDiv.style.display = 'block';
+        if (makeupDateDiv) makeupDateDiv.style.display = 'block';
     } else {
         reasonInput.style.display = 'none';
         supplementTimeDiv.style.display = 'none';
+        if (makeupDateDiv) makeupDateDiv.style.display = 'none';
     }
 }
 
@@ -5097,6 +5114,7 @@ async function registerSchedule() {
     const absenceReason = document.getElementById('scheduleAbsenceReason').value.trim();
     const checkInTime = document.getElementById('scheduleCheckInTime')?.value.trim() || '';
     const checkOutTime = document.getElementById('scheduleCheckOutTime')?.value.trim() || '';
+    const makeupDateInput = document.getElementById('scheduleMakeupDateInput')?.value.trim() || '';
     
     // 유효성 검사
     if (!title) {
@@ -5120,6 +5138,23 @@ async function registerSchedule() {
         if (!checkInTime || !checkOutTime) {
             alert('입실 시간과 퇴실 시간을 입력해주세요.');
             return;
+        }
+    }
+    
+    // 보강인 경우 결석날짜 확인
+    if (status === '보강' && !makeupDateInput) {
+        alert('결석 날짜를 입력해주세요.');
+        return;
+    }
+    
+    // 결석날짜 변환 (MM/DD → YYYY-MM-DD)
+    let makeupDate = '';
+    if (status === '보강' && makeupDateInput) {
+        const [mm, dd] = makeupDateInput.split('/');
+        if (mm && dd) {
+            // 현재 연도 사용 (또는 첫 번째 선택 날짜의 연도)
+            const year = selectedScheduleDates.length > 0 ? selectedScheduleDates[0].split('-')[0] : new Date().getFullYear();
+            makeupDate = `${year}-${mm.padStart(2, '0')}-${dd.padStart(2, '0')}`;
         }
     }
     
@@ -5247,12 +5282,12 @@ async function registerSchedule() {
                             check_out_time: checkOutTime,
                             status: status, // '보충' 또는 '보강'
                             absence_reason: '',
-                            makeup_date: ''
+                            makeup_date: status === '보강' ? makeupDate : ''
                         };
                         
                         await API.create('attendance', createData);
                         successCount++;
-                        console.log(`  ✅ ${status} 생성: ${student.name} (${checkInTime}-${checkOutTime})`);
+                        console.log(`  ✅ ${status} 생성: ${student.name} (${checkInTime}-${checkOutTime})${status === '보강' ? ` 결석날짜: ${makeupDate}` : ''}`);
                     } else if (status === '결석') {
                         // ✅ 결석 처리: 메인 레코드만 업데이트 (나머지 보충 레코드는 유지)
                         if (mainRecord) {
