@@ -2013,40 +2013,8 @@ function handleRegisterStatusChange() {
         if (reasonSelect) reasonSelect.style.display = 'none';
         if (makeupDateDiv) makeupDateDiv.style.display = 'none';
         
-        // ✅ 일반 출석 선택 시 스케줄 시간 다시 채우기
-        if (studentSelect && studentSelect.value) {
-            const selectedOption = studentSelect.options[studentSelect.selectedIndex];
-            if (selectedOption && selectedOption.dataset.studentData) {
-                try {
-                    const studentData = JSON.parse(selectedOption.dataset.studentData);
-                    let schedule = studentData.schedule;
-                    
-                    if (typeof schedule === 'string' && schedule.trim() !== '') {
-                        schedule = JSON.parse(schedule);
-                    }
-                    
-                    const selectedDate = getSelectedDateString();
-                    const dateObj = new Date(selectedDate);
-                    const dayKeys = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
-                    const selectedDayKey = dayKeys[dateObj.getDay()];
-                    const daySchedule = schedule && schedule[selectedDayKey];
-                    
-                    if (daySchedule && daySchedule.enabled) {
-                        if (checkInInput) {
-                            checkInInput.value = daySchedule.checkIn || '';
-                            checkInInput.placeholder = '14:00';
-                        }
-                        if (checkOutInput) {
-                            checkOutInput.value = daySchedule.checkOut || '';
-                            checkOutInput.placeholder = '15:30';
-                        }
-                        console.log('[상태 변경] 일반 출석 - 스케줄 시간 복원:', daySchedule.checkIn, '-', daySchedule.checkOut);
-                    }
-                } catch (e) {
-                    console.error('[상태 변경] 스케줄 복원 오류:', e);
-                }
-            }
-        }
+        // ✅ 2행 등록은 별개의 스케줄이므로 일반 출석 선택 시에도 스케줄 시간을 자동으로 채우지 않음
+        console.log('[상태 변경] 일반 출석 모드 - 사용자 직접 입력');
     }
 }
 
@@ -2114,11 +2082,13 @@ async function registerAttendance() {
         return;
     }
     
-    // 이미 출석 체크되었는지 확인
-    const existingRecord = todayAttendanceRecords.find(r => r.student_id === studentId);
-    if (existingRecord) {
-        alert(`${student.name} 학생은 이미 출석 체크되었습니다.`);
-        return;
+    // ✅ 일반 출석만 중복 체크 (보강/보충은 여러 개 등록 가능)
+    if (status !== '보강' && status !== '보충') {
+        const existingRecord = todayAttendanceRecords.find(r => r.student_id === studentId);
+        if (existingRecord) {
+            alert(`${student.name} 학생은 이미 출석 체크되었습니다.`);
+            return;
+        }
     }
     
     // 출석 데이터 생성
@@ -2135,9 +2105,67 @@ async function registerAttendance() {
     };
     
     try {
+        // ✅ 보강/보충 등록 시 주간 스케줄 레코드가 없으면 먼저 생성
+        if (status === '보강' || status === '보충') {
+            const dateString = getSelectedDateString();
+            const dateObj = new Date(dateString);
+            const dayKeys = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+            const dayKey = dayKeys[dateObj.getDay()];
+            
+            // 학생의 스케줄 확인
+            let schedule = student.schedule;
+            if (typeof schedule === 'string' && schedule.trim() !== '') {
+                try {
+                    schedule = JSON.parse(schedule);
+                } catch (e) {
+                    schedule = null;
+                }
+            }
+            
+            const daySchedule = schedule && schedule[dayKey];
+            const hasSchedule = daySchedule && daySchedule.enabled && daySchedule.checkIn && daySchedule.checkOut;
+            
+            if (hasSchedule) {
+                // 해당 날짜에 주간 스케줄 레코드가 있는지 확인
+                const allRecords = await API.getList('attendance', { limit: 10000 });
+                const allAttendance = Array.isArray(allRecords) ? allRecords : (allRecords.data || []);
+                
+                const existingRecords = allAttendance.filter(r => 
+                    r.student_id === studentId && 
+                    r.date === dateString
+                );
+                
+                // 주간 스케줄과 가장 가까운 시간의 레코드 찾기
+                const mainRecord = existingRecords.find(r => 
+                    r.check_in_time === daySchedule.checkIn || 
+                    (r.check_in_time && Math.abs(timeToMinutes(r.check_in_time) - timeToMinutes(daySchedule.checkIn)) < 30)
+                );
+                
+                // 주간 스케줄 레코드가 없으면 생성
+                if (!mainRecord) {
+                    const mainData = {
+                        student_id: studentId,
+                        student_name: student.name,
+                        date: dateString,
+                        check_in_time: daySchedule.checkIn,
+                        expected_out_time: daySchedule.checkOut,
+                        check_out_time: daySchedule.checkOut,
+                        status: '',
+                        absence_reason: '',
+                        makeup_date: ''
+                    };
+                    
+                    await API.create('attendance', mainData);
+                    console.log(`✅ 주간 스케줄 레코드 생성: ${student.name} (${daySchedule.checkIn}-${daySchedule.checkOut})`);
+                }
+            }
+        }
+        
+        // 보강/보충 레코드 생성
         const result = await API.create('attendance', attendanceData);
-        console.log('출석 등록 성공:', result);
-        alert('출석이 등록되었습니다.');
+        console.log(`✅ ${status} 등록 성공:`, result);
+        
+        // ✅ 조용히 등록 (알림 제거)
         
         // 입력 폼 초기화
         document.getElementById('registerStudentSelect').value = '';
@@ -2153,8 +2181,8 @@ async function registerAttendance() {
         await renderMonthlyCalendar();
         
     } catch (error) {
-        console.error('출석 등록 실패:', error);
-        alert('출석 등록에 실패했습니다.');
+        console.error(`❌ ${status} 등록 실패:`, error);
+        alert(`${status} 등록에 실패했습니다.\n오류: ${error.message || '알 수 없는 오류'}`);
     }
 }
 
@@ -3212,71 +3240,16 @@ async function renderStudentSelectForRegister() {
 function handleRegisterStudentChange() {
     const select = document.getElementById('registerStudentSelect');
     const manualInput = document.getElementById('registerManualName');
-    const checkInInput = document.getElementById('registerCheckInTime');
-    const checkOutInput = document.getElementById('registerCheckOutTime');
-    const statusSelect = document.getElementById('registerStatus');
     
     if (select.value) {
         // 드롭다운에서 선택하면 수동 입력 초기화
         if (manualInput) manualInput.value = '';
         
-        // 선택된 학생의 스케줄 정보 가져오기
-        const selectedOption = select.options[select.selectedIndex];
-        if (selectedOption && selectedOption.dataset.studentData) {
-            try {
-                const studentData = JSON.parse(selectedOption.dataset.studentData);
-                let schedule = studentData.schedule;
-                
-                // 스케줄 파싱
-                if (typeof schedule === 'string' && schedule.trim() !== '') {
-                    try {
-                        schedule = JSON.parse(schedule);
-                    } catch (e) {
-                        schedule = null;
-                    }
-                }
-                
-                // 현재 선택된 날짜의 요일 확인
-                const selectedDate = getSelectedDateString();
-                const dateObj = new Date(selectedDate);
-                const dayKeys = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
-                const selectedDayKey = dayKeys[dateObj.getDay()];
-                
-                // 해당 요일의 스케줄 가져오기
-                if (schedule && schedule[selectedDayKey] && schedule[selectedDayKey].enabled) {
-                    const daySchedule = schedule[selectedDayKey];
-                    
-                    // ✅ 현재 상태 확인
-                    const currentStatus = statusSelect ? statusSelect.value : '';
-                    
-                    // ✅ 보강/보충인 경우 시간 입력창 비우기 (사용자가 직접 입력하도록)
-                    if (currentStatus === '보강' || currentStatus === '보충') {
-                        if (checkInInput) checkInInput.value = '';
-                        if (checkOutInput) checkOutInput.value = '';
-                        console.log(`[스케줄 반영] ${studentData.name}: 보강/보충 모드 - 시간 입력 필요`);
-                    } else {
-                        // 일반 출석인 경우만 스케줄 시간 자동 입력
-                        if (daySchedule.checkIn && checkInInput) {
-                            checkInInput.value = daySchedule.checkIn;
-                        }
-                        if (daySchedule.checkOut && checkOutInput) {
-                            checkOutInput.value = daySchedule.checkOut;
-                        }
-                        console.log(`[스케줄 반영] ${studentData.name}: ${daySchedule.checkIn} - ${daySchedule.checkOut}`);
-                    }
-                } else {
-                    // 스케줄이 없으면 입력창 비우기
-                    if (checkInInput) checkInInput.value = '';
-                    if (checkOutInput) checkOutInput.value = '';
-                    console.log(`[스케줄 반영] ${studentData.name}: 해당 요일 스케줄 없음`);
-                }
-            } catch (error) {
-                console.error('스케줄 반영 오류:', error);
-            }
-        }
+        // ✅ 2행 등록은 완전히 별개의 스케줄이므로 주간 스케줄 정보를 끌고 오지 않음
+        // 사용자가 직접 시간을 입력하도록 함
+        console.log(`[학생 선택] ${select.options[select.selectedIndex].textContent} - 별개 스케줄 등록 모드`);
     } else {
-        // 선택 해제 시 입력창 비우기
-        if (checkInInput) checkInInput.value = '';
+        // 선택 해제 시 입력창 비우기 (필요 없음 - 사용자가 입력한 값 유지)
         if (checkOutInput) checkOutInput.value = '';
     }
 }
