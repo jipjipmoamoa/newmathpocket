@@ -2346,6 +2346,9 @@ async function renderMonthlyCalendar() {
     // 해당 월의 출석 기록 로드 (출석체크 페이지) [CHECK_PAGE_MARKER]
     await loadMonthAttendance(currentYear, currentMonth, 'check');
     
+    // ✅ 보강 번호 계산
+    const makeupNumberMap = calculateMakeupNumbers(allMonthAttendance);
+    
     // 달력 생성
     const firstDay = new Date(currentYear, currentMonth, 1);
     const lastDay = new Date(currentYear, currentMonth + 1, 0);
@@ -2447,7 +2450,7 @@ async function renderMonthlyCalendar() {
                         // 일반 표시 (모든 출석 기록)
                         rowHTML += '<div class="schedule-list">';
                         schedules.forEach(schedule => {
-                            rowHTML += renderScheduleItem(schedule, 'check');
+                            rowHTML += renderScheduleItem(schedule, 'check', makeupNumberMap);
                         });
                         rowHTML += '</div>';
                     }
@@ -2562,8 +2565,107 @@ function getSchedulesForDate(dateString) {
     return filtered;
 }
 
+// ============================================
+// 보강 번호 부여 로직
+// ============================================
+
+/**
+ * 같은 결석날짜에 대한 보강들을 그룹화하고 번호를 부여합니다.
+ * @param {Array} allRecords - 전체 출석 기록 배열
+ * @returns {Map} - recordId를 키로, 보강 번호(①, ②, ③...)를 값으로 하는 Map
+ */
+function calculateMakeupNumbers(allRecords) {
+    const makeupNumberMap = new Map();
+    
+    // 1. 보강 레코드만 필터링 (status === '보강' && makeup_date 존재)
+    const makeupRecords = allRecords.filter(r => 
+        r.status === '보강' && r.makeup_date
+    );
+    
+    if (makeupRecords.length === 0) {
+        return makeupNumberMap;
+    }
+    
+    console.log('[calculateMakeupNumbers] 보강 레코드 총', makeupRecords.length, '개');
+    
+    // 2. 학생별 + 결석날짜별로 그룹화
+    const groupByStudentAndAbsenceDate = {};
+    
+    makeupRecords.forEach(record => {
+        const key = `${record.student_id}_${record.makeup_date}`;
+        if (!groupByStudentAndAbsenceDate[key]) {
+            groupByStudentAndAbsenceDate[key] = [];
+        }
+        groupByStudentAndAbsenceDate[key].push(record);
+    });
+    
+    console.log('[calculateMakeupNumbers] 그룹 수:', Object.keys(groupByStudentAndAbsenceDate).length);
+    
+    // 3. 각 그룹별로 번호 부여 여부 결정
+    Object.entries(groupByStudentAndAbsenceDate).forEach(([key, records]) => {
+        const [studentId, makeupDate] = key.split('_');
+        
+        // 같은 결석날짜에 대한 보강이 2개 이상인 경우에만 번호 부여
+        if (records.length < 2) {
+            console.log(`[calculateMakeupNumbers] ${key}: 보강 1개만 있어서 번호 부여 안 함`);
+            return;
+        }
+        
+        // 원래 결석 수업의 시간(분) 확인
+        const absenceRecord = allRecords.find(r => 
+            r.student_id === studentId && 
+            r.date === makeupDate && 
+            r.status === '결석'
+        );
+        
+        let originalDuration = 0;
+        if (absenceRecord && absenceRecord.check_in_time && absenceRecord.check_out_time) {
+            originalDuration = timeToMinutes(absenceRecord.check_out_time) - timeToMinutes(absenceRecord.check_in_time);
+        } else {
+            // 결석 레코드를 못 찾으면 기본 90분으로 가정
+            originalDuration = 90;
+        }
+        
+        // 보강 시간 합계 계산
+        let totalMakeupDuration = 0;
+        records.forEach(r => {
+            if (r.check_in_time && r.check_out_time) {
+                const duration = timeToMinutes(r.check_out_time) - timeToMinutes(r.check_in_time);
+                totalMakeupDuration += duration;
+            }
+        });
+        
+        console.log(`[calculateMakeupNumbers] ${key}: 원래 ${originalDuration}분, 보강 합계 ${totalMakeupDuration}분`);
+        
+        // 보강 시간 합계가 원래 수업 시간 이내라면 번호 부여
+        if (totalMakeupDuration <= originalDuration) {
+            // 보강 날짜 순서대로 정렬 (date 기준 오름차순)
+            records.sort((a, b) => {
+                if (a.date !== b.date) {
+                    return a.date.localeCompare(b.date);
+                }
+                // 같은 날이면 입실시간 순
+                return (a.check_in_time || '').localeCompare(b.check_in_time || '');
+            });
+            
+            // 번호 부여
+            const numberSymbols = ['①', '②', '③', '④', '⑤', '⑥', '⑦', '⑧', '⑨', '⑩'];
+            records.forEach((record, index) => {
+                const symbol = numberSymbols[index] || `⑪`; // 10개 초과 시 ⑪로 표시
+                makeupNumberMap.set(record.id, symbol);
+                console.log(`  - ${record.date} ${record.check_in_time}: ${symbol}`);
+            });
+        } else {
+            console.log(`[calculateMakeupNumbers] ${key}: 보강 시간이 초과되어 번호 부여 안 함`);
+        }
+    });
+    
+    console.log('[calculateMakeupNumbers] 번호 부여된 보강:', makeupNumberMap.size, '개');
+    return makeupNumberMap;
+}
+
 // 스케줄 아이템 렌더링 (pageType: 'check' 또는 'view')
-function renderScheduleItem(schedule, pageType = 'check') {
+function renderScheduleItem(schedule, pageType = 'check', makeupNumberMap = null) {
     let itemClass = 'schedule-item';
     let content = '';
     let highlightStyle = '';
@@ -2615,10 +2717,17 @@ function renderScheduleItem(schedule, pageType = 'check') {
             content = `${schedule.student_name} <span style="text-decoration: line-through;">결석</span>${reason}`;
         }
     } else if (schedule.status === '보강') {
-        // 보강: "입실시간, 이름, 퇴실시간 (결석날짜)" - 빨간색
+        // 보강: "입실시간, 이름, 퇴실시간 보강[번호] (결석날짜)" - 빨간색
         itemClass += ' makeup';
         const makeupDateStr = schedule.makeup_date ? ` (${schedule.makeup_date.substring(5).replace('-', '/')})` : '';
-        content = `${schedule.check_in_time || '-'} ${schedule.student_name} ${schedule.check_out_time || '-'}${makeupDateStr}`;
+        
+        // 보강 번호가 있으면 표시
+        let makeupNumber = '';
+        if (makeupNumberMap && schedule.id && makeupNumberMap.has(schedule.id)) {
+            makeupNumber = makeupNumberMap.get(schedule.id);
+        }
+        
+        content = `${schedule.check_in_time || '-'} ${schedule.student_name} ${schedule.check_out_time || '-'} 보강${makeupNumber}${makeupDateStr}`;
     } else if (schedule.status === '보충') {
         // 보충: "입실시간, 이름, 퇴실시간" - 보라색
         itemClass += ' supplement';
@@ -2986,8 +3095,34 @@ function calculateStudentStats(student, year, month) {
     // 출석 횟수
     const attendanceCount = studentRecords.filter(r => r.status === '출석').length;
     
-    // 보강 횟수
-    const makeupCount = studentRecords.filter(r => r.status === '보강').length;
+    // ✅ 보강 횟수 계산 (번호가 부여된 그룹은 1회로 계산)
+    const makeupRecords = studentRecords.filter(r => r.status === '보강');
+    const makeupNumberMap = calculateMakeupNumbers(allMonthAttendance);
+    
+    // 보강을 결석날짜별로 그룹화
+    const makeupGroups = {};
+    makeupRecords.forEach(record => {
+        const key = record.makeup_date || 'no-date';
+        if (!makeupGroups[key]) {
+            makeupGroups[key] = [];
+        }
+        makeupGroups[key].push(record);
+    });
+    
+    // 각 그룹별로 횟수 계산
+    let makeupCount = 0;
+    Object.values(makeupGroups).forEach(group => {
+        // 그룹 내에 번호가 부여된 보강이 있는지 확인
+        const hasNumber = group.some(r => makeupNumberMap.has(r.id));
+        
+        if (hasNumber) {
+            // 번호가 부여된 그룹 전체를 1회로 계산
+            makeupCount += 1;
+        } else {
+            // 번호가 없는 보강은 각각 1회씩 계산
+            makeupCount += group.length;
+        }
+    });
     
     // 수업 예정 횟수 계산 (주간 스케줄 기준)
     const weeklyScheduleCount = countWeeklySchedule(student.schedule);
@@ -3531,6 +3666,9 @@ function renderViewMonthlyCalendar(year, month) {
     const container = document.getElementById('viewMonthlyCalendarContainer');
     if (!container) return;
     
+    // ✅ 보강 번호 계산
+    const makeupNumberMap = calculateMakeupNumbers(allMonthAttendance);
+    
     // 오늘 날짜
     const today = new Date();
     
@@ -3635,7 +3773,7 @@ function renderViewMonthlyCalendar(year, month) {
                         // 일반 표시 (모든 출석 기록)
                         rowHTML += '<div class="schedule-list">';
                         schedules.forEach(schedule => {
-                            rowHTML += renderScheduleItem(schedule, 'view');
+                            rowHTML += renderScheduleItem(schedule, 'view', makeupNumberMap);
                         });
                         rowHTML += '</div>';
                     }
@@ -4365,6 +4503,9 @@ function printAttendanceView() {
 function renderViewCalendar(year, month, attendanceRecords) {
     const container = document.getElementById('viewCalendarContainer');
     
+    // ✅ 보강 번호 계산
+    const makeupNumberMap = calculateMakeupNumbers(attendanceRecords);
+    
     const firstDay = new Date(year, month - 1, 1);
     const lastDay = new Date(year, month, 0);
     
@@ -4413,7 +4554,7 @@ function renderViewCalendar(year, month, attendanceRecords) {
                 if (schedules.length > 0) {
                     html += '<div class="schedule-list">';
                     schedules.forEach(schedule => {
-                        html += renderScheduleItem(schedule);
+                        html += renderScheduleItem(schedule, 'view', makeupNumberMap);
                     });
                     html += '</div>';
                 }
