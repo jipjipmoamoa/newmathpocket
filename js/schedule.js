@@ -1150,13 +1150,25 @@ async function renderMonthlyScheduleCalendar(students, attendanceRecords) {
                             const isHighlighted = highlightedScheduleStudentId === item.student.id;
                             const borderStyle = isHighlighted ? 'border: 3px solid #FF6B35 !important;' : '';
                             
-                            html += `<td rowspan="${slots}" class="monthly-student-cell" data-student-id="${item.student.id}" style="border: 1px solid #dee2e6; padding: 0.3rem; background: ${color}; vertical-align: top; text-align: center; ${weekSeparatorStyle} ${firstColBorder} ${borderStyle} cursor: pointer;" onclick="toggleHighlightMonthlyStudent('${item.student.id}', event)">
-                                <div class="student-name" style="font-size: 0.91rem; font-weight: 600; color: ${textColor}; margin-bottom: 0.1rem;">${shortName}</div>
-                                <div class="student-time" style="font-size: 0.77rem; font-weight: normal; color: #888; line-height: 1.3;">
-                                    <div>${item.checkIn}</div>
-                                    <div>${item.checkOut}</div>
-                                </div>
-                            </td>`;
+                            // ✅ 추가 스케줄(보강/보충)이면서 30분/60분인 경우만 이름만 표시
+                            const isShortSchedule = slots <= 2; // 1칸(30분) 또는 2칸(60분)
+                            const isExtraSchedule = item.status === '보강' || item.status === '보충'; // 추가 스케줄 여부
+                            
+                            if (isShortSchedule && isExtraSchedule) {
+                                // 추가 스케줄 + 짧은 시간: 이름만 표시
+                                html += `<td rowspan="${slots}" class="monthly-student-cell" data-student-id="${item.student.id}" style="border: 1px solid #dee2e6; padding: 0.3rem; background: ${color}; vertical-align: middle; text-align: center; ${weekSeparatorStyle} ${firstColBorder} ${borderStyle} cursor: pointer;" onclick="toggleHighlightMonthlyStudent('${item.student.id}', event)">
+                                    <div class="student-name" style="font-size: 0.91rem; font-weight: 600; color: ${textColor};">${shortName}</div>
+                                </td>`;
+                            } else {
+                                // 주간 스케줄 또는 긴 시간 스케줄: 이름 + 시간 표시
+                                html += `<td rowspan="${slots}" class="monthly-student-cell" data-student-id="${item.student.id}" style="border: 1px solid #dee2e6; padding: 0.2rem; background: ${color}; vertical-align: top; text-align: center; ${weekSeparatorStyle} ${firstColBorder} ${borderStyle} cursor: pointer;" onclick="toggleHighlightMonthlyStudent('${item.student.id}', event)">
+                                    <div class="student-name" style="font-size: 0.91rem; font-weight: 600; color: ${textColor}; margin-bottom: 0;">${shortName}</div>
+                                    <div class="student-time" style="font-size: 0.7rem; font-weight: normal; color: #888; line-height: 1.0;">
+                                        <div>${item.checkIn}</div>
+                                        <div>${item.checkOut}</div>
+                                    </div>
+                                </td>`;
+                            }
                         } else {
                             // 빈 셀
                             html += `<td style="border: 1px solid #dee2e6; padding: 0.2rem; background: ${bgColor}; vertical-align: middle; ${weekSeparatorStyle} ${firstColBorder}"></td>`;
