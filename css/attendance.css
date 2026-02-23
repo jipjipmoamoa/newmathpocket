@@ -1011,6 +1011,10 @@ input[type="date"] {
     font-size: 0.9rem;
     font-family: 'Noto Sans KR', sans-serif;
     background: white;
+    resize: vertical; /* 세로 크기 조절 가능 */
+    min-height: 32px; /* 최소 높이 */
+    line-height: 1.4; /* 줄 간격 */
+    overflow-y: auto; /* 내용이 많으면 스크롤 */
 }
 
 .student-text-memo:focus {
@@ -1128,10 +1132,16 @@ input[type="date"] {
 
 /* 출석조회 페이지 인쇄 스타일 */
 @media print {
-    /* 페이지 설정 - 가로 방향 */
+    /* 페이지 설정 - A4 가로 방향 */
     @page {
         margin: 2mm;
-        size: A4 landscape;
+        size: A4 landscape; /* A4 가로 (297mm x 210mm) */
+    }
+    
+    /* HTML, BODY 설정 */
+    html, body {
+        width: 297mm;
+        height: 210mm;
     }
     
     /* 불필요한 요소 숨김 */
@@ -1348,6 +1358,10 @@ input[type="date"] {
         border: none;
         font-size: 0.59rem;
         background: transparent;
+        resize: none; /* 인쇄 시 크기 조절 비활성화 */
+        overflow: hidden; /* 인쇄 시 스크롤바 숨김 */
+        white-space: pre-wrap; /* 줄바꿈 유지 */
+        word-wrap: break-word; /* 긴 단어 줄바꿈 */
     }
     
     /* 색상 강제 적용 */
