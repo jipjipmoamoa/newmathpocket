@@ -4035,15 +4035,14 @@ async function renderViewStudentList() {
                         <span class="student-text-name" onclick="selectViewStudent('${student.id}', '${student.name}', event)">${student.name}</span>
                         ${countText ? `<span class="student-text-count">${countText}</span>` : ''}
                         <span class="student-text-school">(${shortSchoolName})</span>
-                        <input 
-                            type="text"
+                        <textarea 
                             class="student-text-memo"
                             placeholder="" 
-                            value=""
                             data-student-id="${student.id}"
                             oninput="saveStudentMonthlyMemoDebounced('${student.id}', this.value)"
                             onclick="event.stopPropagation()"
-                        />
+                            rows="1"
+                        ></textarea>
                     </div>
                 `;
             });
