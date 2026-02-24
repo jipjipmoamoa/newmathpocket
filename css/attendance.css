@@ -999,9 +999,9 @@ input[type="date"] {
 }
 
 .student-text-memo {
-    width: 140px;
-    max-width: 140px;
-    min-width: 140px;
+    width: 180px; /* 140px → 180px (40px 증가) */
+    max-width: 180px;
+    min-width: 180px;
     flex: none;
     flex-grow: 0;
     flex-shrink: 0;
@@ -1154,9 +1154,42 @@ input[type="date"] {
     button,
     .btn-secondary,
     input[type="checkbox"],
-    label,
-    .view-memo-section {
+    label {
         display: none !important;
+    }
+    
+    /* MEMO 섹션 인쇄 스타일 */
+    .view-memo-section {
+        display: block !important;
+        background: white;
+        padding: 0.5rem;
+        border: 1px solid #d0d0d0;
+        border-radius: 4px;
+        margin-top: 0.5rem;
+        page-break-inside: avoid;
+    }
+    
+    .view-memo-section h4 {
+        font-size: 0.7rem;
+        font-weight: 700;
+        color: #000;
+        margin: 0 0 0.3rem 0;
+        padding: 0;
+    }
+    
+    .view-memo-section textarea {
+        width: 100%;
+        min-height: 40px;
+        padding: 0.3rem;
+        border: 1px solid #d0d0d0;
+        border-radius: 3px;
+        font-size: 0.6rem;
+        font-family: 'Noto Sans KR', sans-serif;
+        background: white;
+        resize: none;
+        overflow: hidden;
+        white-space: pre-wrap;
+        word-wrap: break-word;
     }
     
     /* body 스타일 */
