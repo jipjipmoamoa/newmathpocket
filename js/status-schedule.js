@@ -99,11 +99,25 @@ async function loadStatusSchedules(studentId) {
     try {
         const response = await API.getList('student_status_schedules', 1, 1000);
         const allSchedules = response.data || response || [];
+        const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
         
-        // 해당 학생의 활성 예약만 필터링
-        const schedules = allSchedules.filter(s => 
-            s.student_id === studentId && s.is_active
-        );
+        // 해당 학생의 활성 예약 중 미래 예약만 필터링
+        const schedules = allSchedules.filter(s => {
+            if (s.student_id !== studentId || !s.is_active) return false;
+            
+            // 시작날짜가 있으면 시작날짜가 오늘 이후인지 확인
+            if (s.start_date) {
+                return s.start_date >= today;
+            }
+            
+            // 시작날짜가 없고 종료날짜만 있으면 종료날짜가 오늘 이후인지 확인
+            if (s.end_date) {
+                return s.end_date >= today;
+            }
+            
+            // 둘 다 없으면 표시하지 않음
+            return false;
+        });
         
         // 시작날짜 순 정렬
         schedules.sort((a, b) => {
@@ -116,16 +130,16 @@ async function loadStatusSchedules(studentId) {
         if (!container) return;
         
         if (schedules.length === 0) {
-            container.innerHTML = '<p style="color: #999; margin: 0;">예약된 상태 변경이 없습니다</p>';
+            container.innerHTML = '<p style="color: #999; margin: 0; font-size: 0.9rem;">예정된 상태 변경이 없습니다</p>';
             return;
         }
         
-        let html = '<table style="width: 100%; border-collapse: collapse;">';
+        let html = '<table style="width: 100%; border-collapse: collapse; font-size: 0.9rem;">';
         html += '<thead><tr style="background: #f0f0f0;">';
-        html += '<th style="padding: 0.5rem; text-align: left; border: 1px solid #ddd;">시작</th>';
-        html += '<th style="padding: 0.5rem; text-align: left; border: 1px solid #ddd;">종료</th>';
-        html += '<th style="padding: 0.5rem; text-align: left; border: 1px solid #ddd;">상태</th>';
-        html += '<th style="padding: 0.5rem; text-align: center; border: 1px solid #ddd; width: 80px;">삭제</th>';
+        html += '<th style="padding: 0.4rem; text-align: left; border: 1px solid #ddd; font-size: 0.85rem;">시작</th>';
+        html += '<th style="padding: 0.4rem; text-align: left; border: 1px solid #ddd; font-size: 0.85rem;">종료</th>';
+        html += '<th style="padding: 0.4rem; text-align: left; border: 1px solid #ddd; font-size: 0.85rem;">상태</th>';
+        html += '<th style="padding: 0.4rem; text-align: center; border: 1px solid #ddd; width: 70px; font-size: 0.85rem;">삭제</th>';
         html += '</tr></thead><tbody>';
         
         schedules.forEach(schedule => {
@@ -135,12 +149,12 @@ async function loadStatusSchedules(studentId) {
                                schedule.scheduled_status === '휴원' ? '#FF9800' : '#F44336';
             
             html += '<tr>';
-            html += `<td style="padding: 0.5rem; border: 1px solid #ddd;">${startDisplay}</td>`;
-            html += `<td style="padding: 0.5rem; border: 1px solid #ddd;">${endDisplay}</td>`;
-            html += `<td style="padding: 0.5rem; border: 1px solid #ddd; color: ${statusColor}; font-weight: 600;">${schedule.scheduled_status}</td>`;
-            html += `<td style="padding: 0.5rem; border: 1px solid #ddd; text-align: center;">
+            html += `<td style="padding: 0.4rem; border: 1px solid #ddd; font-size: 0.9rem;">${startDisplay}</td>`;
+            html += `<td style="padding: 0.4rem; border: 1px solid #ddd; font-size: 0.9rem;">${endDisplay}</td>`;
+            html += `<td style="padding: 0.4rem; border: 1px solid #ddd; color: ${statusColor}; font-weight: 600; font-size: 0.9rem;">${schedule.scheduled_status}</td>`;
+            html += `<td style="padding: 0.4rem; border: 1px solid #ddd; text-align: center;">
                         <button class="btn-danger-small" onclick="deleteStatusSchedule('${schedule.id}', '${studentId}')" 
-                                style="padding: 0.3rem 0.8rem; font-size: 0.85rem;">삭제</button>
+                                style="padding: 0.25rem 0.6rem; font-size: 0.8rem;">삭제</button>
                      </td>`;
             html += '</tr>';
         });
@@ -175,26 +189,13 @@ async function deleteStatusSchedule(scheduleId, studentId) {
     }
 }
 
-// 학생 상세 표시 시 예약 목록 로드
+// 학생 상세 표시 시 예약 목록 로드 (항상)
 const originalShowStudentDetail = window.showStudentDetail;
 if (originalShowStudentDetail) {
     window.showStudentDetail = async function(studentId) {
         await originalShowStudentDetail(studentId);
-        // 정보 탭이 활성화되면 예약 목록 로드
-        if (currentStudentTab === 'info') {
-            setTimeout(() => loadStatusSchedules(studentId), 100);
-        }
-    };
-}
-
-// 탭 전환 시 예약 목록 로드
-const originalSwitchStudentTab = window.switchStudentTab;
-if (originalSwitchStudentTab) {
-    window.switchStudentTab = async function(tab, studentId) {
-        await originalSwitchStudentTab(tab, studentId);
-        if (tab === 'info') {
-            setTimeout(() => loadStatusSchedules(studentId), 100);
-        }
+        // 상태 예약은 헤더 아래에 있으므로 항상 로드
+        setTimeout(() => loadStatusSchedules(studentId), 100);
     };
 }
 
