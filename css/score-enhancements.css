@@ -1,0 +1,132 @@
+/* 시험점수 탭 추가 기능 스타일 */
+
+/* 점수 표시/수정 모드 전환 */
+.score-display {
+    display: block;
+    padding: 0.5rem;
+    min-height: 1.5rem;
+    line-height: 1.5rem;
+}
+
+.score-value {
+    font-weight: 600;
+}
+
+/* 재시험 행 스타일 */
+.retest-row {
+    background: #FFF9E6 !important;
+}
+
+.retest-row td {
+    border-top: 1px dashed #FFD54F !important;
+    border-bottom: 1px solid #E1E8ED !important;
+}
+
+.retest-row input.input-field {
+    background: white;
+    border: 1px solid #FFD54F;
+}
+
+.retest-row input.input-field:focus {
+    border-color: #FFC107;
+    box-shadow: 0 0 0 2px rgba(255, 193, 7, 0.1);
+}
+
+/* 필터링된 행 스타일 */
+.score-data-row[data-category="학교"] {
+    transition: background-color 0.3s ease;
+}
+
+.score-data-row[data-category="학원"] {
+    transition: background-color 0.3s ease;
+}
+
+/* 구분 헤더 호버 효과 */
+th[id^="score-category-header-"] {
+    transition: background-color 0.2s ease;
+}
+
+th[id^="score-category-header-"]:hover {
+    background-color: #FFF9C4;
+}
+
+/* 관리 버튼 스타일 */
+.scores-table button {
+    transition: transform 0.1s ease, opacity 0.2s ease;
+}
+
+.scores-table button:hover {
+    transform: scale(1.2);
+    opacity: 0.8;
+}
+
+.scores-table button:active {
+    transform: scale(1);
+}
+
+/* 점수 셀 스타일 (70점 미만 더블클릭 가능) */
+.score-value[style*="pointer"] {
+    position: relative;
+}
+
+.score-value[style*="pointer"]:hover::after {
+    content: "더블클릭";
+    position: absolute;
+    bottom: -1.5rem;
+    left: 50%;
+    transform: translateX(-50%);
+    background: #333;
+    color: white;
+    padding: 0.2rem 0.5rem;
+    border-radius: 4px;
+    font-size: 0.7rem;
+    white-space: nowrap;
+    pointer-events: none;
+    z-index: 10;
+}
+
+/* 입력/표시 모드 전환 애니메이션 */
+.score-edit-field {
+    transition: all 0.2s ease;
+}
+
+/* 재시험 행 표시 애니메이션 */
+.retest-row {
+    animation: slideDown 0.3s ease;
+}
+
+@keyframes slideDown {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* 필터링 애니메이션 */
+.score-data-row {
+    transition: opacity 0.3s ease, transform 0.3s ease;
+}
+
+.score-data-row[style*="display: none"] {
+    opacity: 0;
+    transform: scale(0.95);
+}
+
+/* 모바일 반응형 */
+@media (max-width: 768px) {
+    .score-value[style*="pointer"]:hover::after {
+        display: none;
+    }
+    
+    .scores-table button {
+        font-size: 1rem;
+    }
+    
+    .retest-row {
+        font-size: 0.9rem;
+    }
+}
