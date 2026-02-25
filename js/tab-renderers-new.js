@@ -27,12 +27,14 @@ function renderScoresTab(student) {
             <table class="data-table scores-table">
                 <thead>
                     <tr>
-                        <th style="width: 80px;">구분</th>
+                        <th style="width: 80px; cursor: pointer; user-select: none;" 
+                            onclick="toggleScoreFilter('${student.id}')" 
+                            id="score-category-header-${student.id}">구분</th>
                         <th style="width: 150px;">종류</th>
                         <th style="width: 150px;">범위</th>
                         <th style="width: 80px;">점수</th>
                         <th>오답유형</th>
-                        <th style="width: 90px;">관리</th>
+                        <th style="width: 120px;">관리</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -57,48 +59,102 @@ function renderScoresTab(student) {
                     <!-- 데이터 행 (3행부터, 최신순) -->
                     ${scores.length === 0 ? '<tr><td colspan="6" class="empty-message">등록된 시험점수가 없습니다</td></tr>' : ''}
                     ${scores.map(score => `
-                        <tr id="score-row-${score.id}">
-                            <td><input type="text" class="input-field score-edit-field" 
-                                data-score-id="${score.id}" 
-                                data-student-id="${student.id}" 
-                                data-field="category" 
-                                value="${score.category || ''}" 
-                                onblur="this.value = formatScoreCategory(this.value); updateScoreField('${student.id}', '${score.id}', 'category', this.value)"
-                                onkeydown="handleScoreEnter(event, 'edit', '${student.id}', 'category', '${score.id}')"></td>
-                            <td><input type="text" class="input-field score-edit-field" 
-                                data-score-id="${score.id}" 
-                                data-student-id="${student.id}" 
-                                data-field="type" 
-                                value="${score.type || ''}" 
-                                onblur="this.value = formatScoreType(this.value); updateScoreField('${student.id}', '${score.id}', 'type', this.value)"
-                                onkeydown="handleScoreEnter(event, 'edit', '${student.id}', 'type', '${score.id}')"></td>
-                            <td><input type="text" class="input-field score-edit-field" 
-                                data-score-id="${score.id}" 
-                                data-student-id="${student.id}" 
-                                data-field="range" 
-                                value="${score.range || ''}" 
-                                onblur="this.value = formatScoreRange(this.value); updateScoreField('${student.id}', '${score.id}', 'range', this.value)"
-                                onkeydown="handleScoreEnter(event, 'edit', '${student.id}', 'range', '${score.id}')"></td>
-                            <td><input type="text" class="input-field score-edit-field" 
-                                data-score-id="${score.id}" 
-                                data-student-id="${student.id}" 
-                                data-field="value" 
-                                value="${score.value || ''}" 
-                                style="color: ${getScoreColor(score.value)}"
-                                onblur="updateScoreField('${student.id}', '${score.id}', 'value', this.value)"
-                                onkeydown="handleScoreEnter(event, 'edit', '${student.id}', 'value', '${score.id}')"></td>
-                            <td><input type="text" class="input-field score-edit-field" 
-                                data-score-id="${score.id}" 
-                                data-student-id="${student.id}" 
-                                data-field="notes" 
-                                value="${score.notes || ''}" 
-                                onblur="updateScoreField('${student.id}', '${score.id}', 'notes', this.value)"
-                                onkeydown="handleScoreEnter(event, 'edit', '${student.id}', 'notes', '${score.id}')"></td>
+                        <tr id="score-row-${score.id}" class="score-data-row" data-category="${score.category || ''}" data-score-id="${score.id}">
+                            <td>
+                                <span class="score-display" id="display-category-${score.id}">${score.category || ''}</span>
+                                <input type="text" class="input-field score-edit-field" 
+                                    id="edit-category-${score.id}"
+                                    data-score-id="${score.id}" 
+                                    data-student-id="${student.id}" 
+                                    data-field="category" 
+                                    value="${score.category || ''}" 
+                                    style="display: none;"
+                                    onblur="this.value = formatScoreCategory(this.value); updateScoreField('${student.id}', '${score.id}', 'category', this.value)"
+                                    onkeydown="handleScoreEnter(event, 'edit', '${student.id}', 'category', '${score.id}')">
+                            </td>
+                            <td>
+                                <span class="score-display" id="display-type-${score.id}">${score.type || ''}</span>
+                                <input type="text" class="input-field score-edit-field" 
+                                    id="edit-type-${score.id}"
+                                    data-score-id="${score.id}" 
+                                    data-student-id="${student.id}" 
+                                    data-field="type" 
+                                    value="${score.type || ''}" 
+                                    style="display: none;"
+                                    onblur="this.value = formatScoreType(this.value); updateScoreField('${student.id}', '${score.id}', 'type', this.value)"
+                                    onkeydown="handleScoreEnter(event, 'edit', '${student.id}', 'type', '${score.id}')">
+                            </td>
+                            <td>
+                                <span class="score-display" id="display-range-${score.id}">${score.range || ''}</span>
+                                <input type="text" class="input-field score-edit-field" 
+                                    id="edit-range-${score.id}"
+                                    data-score-id="${score.id}" 
+                                    data-student-id="${student.id}" 
+                                    data-field="range" 
+                                    value="${score.range || ''}" 
+                                    style="display: none;"
+                                    onblur="this.value = formatScoreRange(this.value); updateScoreField('${student.id}', '${score.id}', 'range', this.value)"
+                                    onkeydown="handleScoreEnter(event, 'edit', '${student.id}', 'range', '${score.id}')">
+                            </td>
+                            <td>
+                                <span class="score-display score-value" 
+                                    id="display-value-${score.id}" 
+                                    style="color: ${getScoreColor(score.value)}; cursor: ${parseInt(score.value) < 70 ? 'pointer' : 'default'};"
+                                    ondblclick="${parseInt(score.value) < 70 ? `toggleRetestRow('${student.id}', '${score.id}')` : ''}">${score.value || ''}</span>
+                                <input type="text" class="input-field score-edit-field" 
+                                    id="edit-value-${score.id}"
+                                    data-score-id="${score.id}" 
+                                    data-student-id="${student.id}" 
+                                    data-field="value" 
+                                    value="${score.value || ''}" 
+                                    style="display: none; color: ${getScoreColor(score.value)};"
+                                    onblur="updateScoreField('${student.id}', '${score.id}', 'value', this.value)"
+                                    onkeydown="handleScoreEnter(event, 'edit', '${student.id}', 'value', '${score.id}')">
+                            </td>
+                            <td>
+                                <span class="score-display" id="display-notes-${score.id}">${score.notes || ''}</span>
+                                <input type="text" class="input-field score-edit-field" 
+                                    id="edit-notes-${score.id}"
+                                    data-score-id="${score.id}" 
+                                    data-student-id="${student.id}" 
+                                    data-field="notes" 
+                                    value="${score.notes || ''}" 
+                                    style="display: none;"
+                                    onblur="updateScoreField('${student.id}', '${score.id}', 'notes', this.value)"
+                                    onkeydown="handleScoreEnter(event, 'edit', '${student.id}', 'notes', '${score.id}')">
+                            </td>
                             <td style="padding: 0.3rem; text-align: center;">
+                                <button onclick="enterScoreEditMode('${score.id}')" 
+                                    title="수정"
+                                    style="background: none; border: none; color: #FF6B35; font-size: 1.2rem; cursor: pointer; padding: 0 0.3rem; line-height: 1;">✏️</button>
                                 <button onclick="deleteScore('${student.id}', '${score.id}')" 
-                                    style="background: none; border: none; color: #FF6B35; font-size: 1.3rem; cursor: pointer; padding: 0; line-height: 1;">❌</button>
+                                    title="삭제"
+                                    style="background: none; border: none; color: #FF6B35; font-size: 1.2rem; cursor: pointer; padding: 0 0.3rem; line-height: 1;">🗑️</button>
                             </td>
                         </tr>
+                        ${parseInt(score.value) < 70 ? `
+                        <tr id="retest-row-${score.id}" class="retest-row" style="display: none;" data-parent-score="${score.id}">
+                            <td colspan="2" style="text-align: right; padding: 0.5rem; background: #FFF9E6; font-weight: 600;">재시험</td>
+                            <td style="background: #FFF9E6;"></td>
+                            <td style="background: #FFF9E6;">
+                                <input type="text" class="input-field" 
+                                    id="retest-value-${score.id}"
+                                    placeholder="점수"
+                                    value="${score.retest_value || ''}"
+                                    style="background: white;"
+                                    onblur="updateRetestField('${student.id}', '${score.id}', 'retest_value', this.value)">
+                            </td>
+                            <td style="background: #FFF9E6;">
+                                <input type="text" class="input-field" 
+                                    id="retest-notes-${score.id}"
+                                    placeholder="오답유형"
+                                    value="${score.retest_notes || ''}"
+                                    style="background: white;"
+                                    onblur="updateRetestField('${student.id}', '${score.id}', 'retest_notes', this.value)">
+                            </td>
+                            <td style="background: #FFF9E6;"></td>
+                        </tr>
+                        ` : ''}
                     `).join('')}
                 </tbody>
             </table>
