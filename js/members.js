@@ -462,6 +462,42 @@ async function showStudentDetail(studentId) {
                 </div>
             </div>
             
+            <!-- 상태 예약 섹션 -->
+            <div style="margin: 1rem 1.5rem; padding: 1rem; background: #f8f9fa; border-radius: 8px; border: 1px solid #E1E8ED;">
+                <h3 style="margin: 0 0 1rem 0; color: #333; font-size: 1rem; font-weight: 600;">상태 예약</h3>
+                <div style="display: grid; grid-template-columns: auto auto auto auto; gap: 1rem; align-items: end;">
+                    <div>
+                        <label style="display: block; margin-bottom: 0.5rem; font-weight: 600; font-size: 0.85rem;">시작 (yyyy.mm.dd)</label>
+                        <input type="text" id="statusScheduleStart-${student.id}" placeholder="2026.03.01" 
+                               style="padding: 0.5rem; border: 1px solid #ddd; border-radius: 4px; width: 140px; font-size: 0.9rem;"
+                               oninput="formatDateInput(this)" maxlength="10">
+                    </div>
+                    <div>
+                        <label style="display: block; margin-bottom: 0.5rem; font-weight: 600; font-size: 0.85rem;">종료 (yyyy.mm.dd)</label>
+                        <input type="text" id="statusScheduleEnd-${student.id}" placeholder="2026.03.31" 
+                               style="padding: 0.5rem; border: 1px solid #ddd; border-radius: 4px; width: 140px; font-size: 0.9rem;"
+                               oninput="formatDateInput(this)" maxlength="10">
+                    </div>
+                    <div>
+                        <label style="display: block; margin-bottom: 0.5rem; font-weight: 600; font-size: 0.85rem;">변경할 상태</label>
+                        <select id="statusScheduleStatus-${student.id}" style="padding: 0.5rem; border: 1px solid #ddd; border-radius: 4px; width: 110px; font-size: 0.9rem;">
+                            <option value="재원">재원</option>
+                            <option value="휴원">휴원</option>
+                            <option value="퇴원">퇴원</option>
+                        </select>
+                    </div>
+                    <div>
+                        <button class="btn btn-primary" onclick="scheduleStatusChange('${student.id}')" 
+                                style="padding: 0.5rem 1.2rem; font-size: 0.9rem;">
+                            예약
+                        </button>
+                    </div>
+                </div>
+                <div id="statusScheduleList-${student.id}" style="margin-top: 1rem;">
+                    <!-- 예약 목록 표시 -->
+                </div>
+            </div>
+            
             <!-- 5칸 탭 -->
             <div class="detail-tabs">
                 <button class="detail-tab ${currentStudentTab === 'info' ? 'active' : ''}" onclick="switchStudentTab('info', '${student.id}')">정보</button>
@@ -949,42 +985,6 @@ function renderInfoTab(student, teachers, gradeOptions, currentSchoolType) {
                 <div class="book-item">
                     <label>현행심화</label>
                     <div class="book-value" id="book-advanced-${student.id}">${bookAdvanced}</div>
-                </div>
-            </div>
-            
-            <!-- 상태 예약 섹션 -->
-            <div style="margin-top: 2rem; padding: 1.5rem; background: #f8f9fa; border-radius: 8px;">
-                <h3 style="margin: 0 0 1rem 0; color: #333; font-size: 1.1rem;">상태 예약</h3>
-                <div style="display: grid; grid-template-columns: auto auto auto auto; gap: 1rem; align-items: end;">
-                    <div>
-                        <label style="display: block; margin-bottom: 0.5rem; font-weight: 600;">시작 (yyyy.mm.dd)</label>
-                        <input type="text" id="statusScheduleStart" placeholder="2026.03.01" 
-                               style="padding: 0.5rem; border: 1px solid #ddd; border-radius: 4px; width: 150px;"
-                               oninput="formatDateInput(this)" maxlength="10">
-                    </div>
-                    <div>
-                        <label style="display: block; margin-bottom: 0.5rem; font-weight: 600;">종료 (yyyy.mm.dd)</label>
-                        <input type="text" id="statusScheduleEnd" placeholder="2026.03.31" 
-                               style="padding: 0.5rem; border: 1px solid #ddd; border-radius: 4px; width: 150px;"
-                               oninput="formatDateInput(this)" maxlength="10">
-                    </div>
-                    <div>
-                        <label style="display: block; margin-bottom: 0.5rem; font-weight: 600;">변경할 상태</label>
-                        <select id="statusScheduleStatus" style="padding: 0.5rem; border: 1px solid #ddd; border-radius: 4px; width: 120px;">
-                            <option value="재원">재원</option>
-                            <option value="휴원">휴원</option>
-                            <option value="퇴원">퇴원</option>
-                        </select>
-                    </div>
-                    <div>
-                        <button class="btn btn-primary" onclick="scheduleStatusChange('${student.id}')" 
-                                style="padding: 0.5rem 1.5rem;">
-                            예약
-                        </button>
-                    </div>
-                </div>
-                <div id="statusScheduleList-${student.id}" style="margin-top: 1.5rem;">
-                    <!-- 예약 목록 표시 -->
                 </div>
             </div>
             
