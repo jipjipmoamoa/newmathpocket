@@ -221,11 +221,15 @@ window.updateRetestField = async function(studentId, scoreId, field, value) {
         score[field] = value;
         
         console.log(`[updateRetestField] ${field} 업데이트:`, value);
+        console.log(`[updateRetestField] 저장할 score 객체:`, score);
+        console.log(`[updateRetestField] 전체 scores 배열:`, scores);
         
         // DB 저장
-        await API.update('students', studentId, {
+        const updateResult = await API.update('students', studentId, {
             scores: JSON.stringify(scores)
         });
+        
+        console.log('[updateRetestField] API 응답:', updateResult);
         
         // allStudents 업데이트
         const studentIndex = allStudents.findIndex(s => s.id === studentId);
@@ -263,14 +267,15 @@ window.handleRetestEnter = async function(event, studentId, scoreId, currentFiel
             const valueInput = document.getElementById(`retest-value-${scoreId}`);
             const notesInput = document.getElementById(`retest-notes-${scoreId}`);
             
-            // 값이 있으면 저장
-            if (valueInput && valueInput.value) {
+            // 재시험 점수는 항상 저장 (필수)
+            if (valueInput) {
                 await updateRetestField(studentId, scoreId, 'retest_value', valueInput.value);
                 console.log('✅ 재시험 점수 최종 저장:', valueInput.value);
             }
-            if (notesInput && notesInput.value) {
-                await updateRetestField(studentId, scoreId, 'retest_notes', notesInput.value);
-                console.log('✅ 재시험 오답유형 저장:', notesInput.value);
+            // 오답유형은 빈 값이어도 저장 (선택)
+            if (notesInput !== null) {
+                await updateRetestField(studentId, scoreId, 'retest_notes', notesInput.value || '');
+                console.log('✅ 재시험 오답유형 저장:', notesInput.value || '(빈 값)');
             }
             
             // 재시험 행 닫기
