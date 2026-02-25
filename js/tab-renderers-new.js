@@ -123,13 +123,13 @@ function renderScoresTab(student) {
                                     onblur="updateScoreField('${student.id}', '${score.id}', 'notes', this.value)"
                                     onkeydown="handleScoreEnter(event, 'edit', '${student.id}', 'notes', '${score.id}')">
                             </td>
-                            <td style="padding: 0.3rem; text-align: center;">
-                                <button onclick="enterScoreEditMode('${score.id}')" 
-                                    title="수정"
-                                    style="background: none; border: none; color: #FF6B35; font-size: 1.2rem; cursor: pointer; padding: 0 0.3rem; line-height: 1;">✏️</button>
-                                <button onclick="deleteScore('${student.id}', '${score.id}')" 
-                                    title="삭제"
-                                    style="background: none; border: none; color: #FF6B35; font-size: 1.2rem; cursor: pointer; padding: 0 0.3rem; line-height: 1;">🗑️</button>
+                            <td class="action-buttons" style="padding: 0.3rem; text-align: center;">
+                                <button class="btn-edit" onclick="enterScoreEditMode('${score.id}')" title="수정">
+                                    <i class="fas fa-pencil-alt"></i>
+                                </button>
+                                <button class="btn-delete" onclick="deleteScore('${student.id}', '${score.id}')" title="삭제">
+                                    <i class="fas fa-times"></i>
+                                </button>
                             </td>
                         </tr>
                         ${parseInt(score.value) < 70 ? `
@@ -142,7 +142,8 @@ function renderScoresTab(student) {
                                     placeholder="점수"
                                     value="${score.retest_value || ''}"
                                     style="background: white;"
-                                    onblur="updateRetestField('${student.id}', '${score.id}', 'retest_value', this.value)">
+                                    onblur="updateRetestField('${student.id}', '${score.id}', 'retest_value', this.value)"
+                                    onkeydown="handleRetestEnter(event, '${student.id}', '${score.id}', 'value')">
                             </td>
                             <td style="background: #FFF9E6;">
                                 <input type="text" class="input-field" 
@@ -150,7 +151,8 @@ function renderScoresTab(student) {
                                     placeholder="오답유형"
                                     value="${score.retest_notes || ''}"
                                     style="background: white;"
-                                    onblur="updateRetestField('${student.id}', '${score.id}', 'retest_notes', this.value)">
+                                    onblur="updateRetestField('${student.id}', '${score.id}', 'retest_notes', this.value)"
+                                    onkeydown="handleRetestEnter(event, '${student.id}', '${score.id}', 'notes')">
                             </td>
                             <td style="background: #FFF9E6;"></td>
                         </tr>
