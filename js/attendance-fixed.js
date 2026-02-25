@@ -594,8 +594,11 @@ function renderAttendanceTable() {
                 mainRecord = studentRecords.find(r => r.status === '결석');
                 
                 // ✅ 우선순위 2: 결석이 없으면 입실 시간이 스케줄과 가장 가까운 레코드
+                // ⚠️ 보강/보충 레코드는 제외 (추가 행으로 별도 렌더링)
                 if (!mainRecord && daySchedule.checkIn) {
                     mainRecord = studentRecords.reduce((closest, record) => {
+                        // 보강/보충 레코드는 메인 레코드로 사용하지 않음
+                        if (record.status === '보강' || record.status === '보충') return closest;
                         if (!record.check_in_time) return closest;
                         const recordTime = record.check_in_time;
                         const scheduleTime = daySchedule.checkIn;
@@ -608,8 +611,8 @@ function renderAttendanceTable() {
                         return recordDiff < closestDiff ? record : closest;
                     }, null);
                 } else if (!mainRecord) {
-                    // 입실 시간도 없으면 첫 번째 레코드 사용
-                    mainRecord = studentRecords[0];
+                    // 입실 시간도 없으면 첫 번째 레코드 사용 (보강/보충 제외)
+                    mainRecord = studentRecords.find(r => r.status !== '보강' && r.status !== '보충') || null;
                 }
                 
                 if (mainRecord) usedRecordIds.add(mainRecord.id); // 사용된 기록 마킹
