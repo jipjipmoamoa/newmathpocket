@@ -1,13 +1,25 @@
 // 상태 예약 시스템
 
-// 날짜 입력 포맷팅 (yyyy.mm.dd)
-function formatDateInput(input) {
+// 날짜 입력 포맷팅 (yymmdd 또는 yyyymmdd → yyyy.mm.dd)
+window.formatDateInput = function(input) {
     let value = input.value.replace(/[^\d]/g, ''); // 숫자만 남김
+    
+    // 6자리 입력 (yymmdd)을 8자리 (yyyymmdd)로 변환
+    if (value.length === 6) {
+        // 첫 두 자리가 20~99이면 20yy, 00~19이면 20yy로 간주
+        const yy = parseInt(value.slice(0, 2));
+        const fullYear = yy >= 0 && yy <= 99 ? '20' + value.slice(0, 2) : value.slice(0, 2);
+        value = fullYear + value.slice(2);
+    }
+    
     if (value.length > 8) value = value.slice(0, 8);
     
-    if (value.length >= 5) {
+    // yyyy.mm.dd 형식으로 변환
+    if (value.length >= 8) {
+        value = value.slice(0, 4) + '.' + value.slice(4, 6) + '.' + value.slice(6, 8);
+    } else if (value.length >= 6) {
         value = value.slice(0, 4) + '.' + value.slice(4, 6) + '.' + value.slice(6);
-    } else if (value.length >= 3) {
+    } else if (value.length >= 4) {
         value = value.slice(0, 4) + '.' + value.slice(4);
     }
     
@@ -15,15 +27,15 @@ function formatDateInput(input) {
 }
 
 // 상태 변경 예약
-async function scheduleStatusChange(studentId) {
+window.scheduleStatusChange = async function(studentId) {
     if (!Auth.isLoggedIn()) {
         alert('로그인이 필요합니다');
         return;
     }
     
-    const startInput = document.getElementById('statusScheduleStart').value.trim();
-    const endInput = document.getElementById('statusScheduleEnd').value.trim();
-    const status = document.getElementById('statusScheduleStatus').value;
+    const startInput = document.getElementById(`statusScheduleStart-${studentId}`).value.trim();
+    const endInput = document.getElementById(`statusScheduleEnd-${studentId}`).value.trim();
+    const status = document.getElementById(`statusScheduleStatus-${studentId}`).value;
     
     // 최소한 시작날짜 또는 종료날짜 중 하나는 필요
     if (!startInput && !endInput) {
@@ -72,9 +84,9 @@ async function scheduleStatusChange(studentId) {
         alert(`${status} 상태가 예약되었습니다`);
         
         // 입력 필드 초기화
-        document.getElementById('statusScheduleStart').value = '';
-        document.getElementById('statusScheduleEnd').value = '';
-        document.getElementById('statusScheduleStatus').value = '재원';
+        document.getElementById(`statusScheduleStart-${studentId}`).value = '';
+        document.getElementById(`statusScheduleEnd-${studentId}`).value = '';
+        document.getElementById(`statusScheduleStatus-${studentId}`).value = '재원';
         
         // 예약 목록 새로고침
         await loadStatusSchedules(studentId);
@@ -168,7 +180,7 @@ async function loadStatusSchedules(studentId) {
 }
 
 // 상태 예약 삭제
-async function deleteStatusSchedule(scheduleId, studentId) {
+window.deleteStatusSchedule = async function(scheduleId, studentId) {
     if (!Auth.isLoggedIn()) {
         alert('로그인이 필요합니다');
         return;
