@@ -50,18 +50,33 @@ th[id^="score-category-header-"]:hover {
     background-color: #FFF9C4;
 }
 
-/* 관리 버튼 스타일 */
-.scores-table button {
-    transition: transform 0.1s ease, opacity 0.2s ease;
+/* 관리 버튼 스타일 - 상담내용 탭과 동일 */
+.scores-table .btn-edit,
+.scores-table .btn-delete {
+    background: none;
+    border: none;
+    padding: 0.3rem 0.5rem;
+    cursor: pointer;
+    font-size: 1rem;
+    transition: all 0.2s;
 }
 
-.scores-table button:hover {
-    transform: scale(1.2);
-    opacity: 0.8;
+.scores-table .btn-edit {
+    color: #FF8C00;
 }
 
-.scores-table button:active {
-    transform: scale(1);
+.scores-table .btn-edit:hover {
+    color: #FF6600;
+    transform: scale(1.1);
+}
+
+.scores-table .btn-delete {
+    color: #FF8C00;
+}
+
+.scores-table .btn-delete:hover {
+    color: #FF0000;
+    transform: scale(1.1);
 }
 
 /* 점수 셀 스타일 (70점 미만 더블클릭 가능) */
