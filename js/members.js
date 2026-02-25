@@ -1,7 +1,7 @@
 // 회원 관리 모듈
 
 // 현재 선택된 학생 상태 필터
-let currentStudentStatusFilter = '재원';
+let currentStudentStatusFilter = 'all';
 // 현재 선택된 탭
 let currentStudentTab = 'info';
 // 현재 선택된 담당선생님 필터 (학생관리)
@@ -17,7 +17,10 @@ async function showStudentsPage() {
             <!-- 소카테고리 필터와 버튼 -->
             <div class="student-header-row">
                 <div class="student-status-tabs">
-                    <button class="status-tab active" data-status="재원" onclick="filterStudentsByStatus('재원')">
+                    <button class="status-tab active" data-status="all" onclick="filterStudentsByStatus('all')">
+                        전체
+                    </button>
+                    <button class="status-tab" data-status="재원" onclick="filterStudentsByStatus('재원')">
                         재원생
                     </button>
                     <button class="status-tab" data-status="휴원" onclick="filterStudentsByStatus('휴원')">
@@ -158,6 +161,14 @@ async function loadStudents() {
         allStudents = Array.isArray(result) ? result : (result.data || []);
         console.log('[loadStudents] 로드된 학생 수:', allStudents.length);
         
+        // 상태별 학생 수 집계
+        const statusCounts = {};
+        allStudents.forEach(s => {
+            const status = s.status || '상태없음';
+            statusCounts[status] = (statusCounts[status] || 0) + 1;
+        });
+        console.log('[loadStudents] 상태별 학생 수:', statusCounts);
+        
         // 선생님 데이터도 함께 로드하여 캐싱
         try {
             const teachersResult = await API.getList('teachers', { limit: 1000 });
@@ -191,8 +202,13 @@ async function loadStudents() {
 
 // 상태별 학생 필터링
 function filterStudentsByStatus(status) {
-    console.log('[filterStudentsByStatus] 필터링 시작 - 상태:', status);
+    console.log('\n========== 필터링 시작 ==========');
+    console.log('[filterStudentsByStatus] 필터링 상태:', status);
     console.log('[filterStudentsByStatus] 전체 학생 수:', allStudents.length);
+    
+    // 전체 학생의 상태 확인
+    const allStatuses = allStudents.map(s => ({ name: s.name, status: s.status, id: s.id }));
+    console.log('[filterStudentsByStatus] 전체 학생 목록 (이름/상태/ID):', allStatuses);
     
     currentStudentStatusFilter = status;
     
@@ -218,6 +234,9 @@ function filterStudentsByStatus(status) {
     // 선택된 학생 초기화 (정보창 닫기)
     selectedStudentId = null;
     
+    // 상태별 필터링 전 학생 목록 출력
+    console.log('[filterStudentsByStatus] 필터 적용 전 학생 목록:', studentsToShow.map(s => `${s.name}(${s.status})`));
+    
     // 상태별 필터링 (undefined 체크 추가)
     const filteredStudents = studentsToShow.filter(s => {
         // 데이터 손상된 학생은 별도 처리
@@ -225,10 +244,21 @@ function filterStudentsByStatus(status) {
             console.warn('[필터링 경고] 데이터 손상된 학생:', s.id);
             return false; // 일단 제외
         }
-        return s.status === status;
+        
+        // ✅ '전체' 필터는 모든 학생 표시
+        if (status === 'all') {
+            return true;
+        }
+        
+        const match = s.status === status;
+        if (status === '퇴원') {
+            console.log(`[퇴원생 체크] ${s.name}: status="${s.status}", 매칭=${match}`);
+        }
+        return match;
     });
     console.log('[filterStudentsByStatus] 필터링된 학생 수:', filteredStudents.length);
     console.log('[filterStudentsByStatus] 필터링된 학생 목록:', filteredStudents.map(s => `${s.name}(${s.status})`));
+    console.log('========== 필터링 완료 ==========\n');
     
     renderStudentList(filteredStudents);
     
@@ -412,11 +442,11 @@ async function showStudentDetail(studentId) {
             <div class="student-detail-header-new">
                 <input type="text" id="studentName" class="student-name-input" value="${student.name}" onchange="updateStudentField('${student.id}', 'name', this.value)" placeholder="학생 이름">
                 <div class="header-controls">
-                    <div class="status-toggle" onclick="toggleStudentStatus('${student.id}')">
-                        <span class="status-badge status-${student.status === '재원' ? 'active' : student.status === '휴원' ? 'paused' : 'inactive'}">
-                            ${student.status || '재원'}
-                        </span>
-                    </div>
+                    <select class="status-select" onchange="updateStudentStatus('${student.id}', this.value)">
+                        <option value="재원" ${student.status === '재원' ? 'selected' : ''}>재원</option>
+                        <option value="휴원" ${student.status === '휴원' ? 'selected' : ''}>휴원</option>
+                        <option value="퇴원" ${student.status === '퇴원' ? 'selected' : ''}>퇴원</option>
+                    </select>
                     <select class="teacher-select" onchange="updateStudentTeacher('${student.id}', this.value)">
                         <option value="">담당 선생님 선택</option>
                         ${teachers.map(t => `
@@ -432,12 +462,13 @@ async function showStudentDetail(studentId) {
                 </div>
             </div>
             
-            <!-- 4칸 탭 -->
+            <!-- 5칸 탭 -->
             <div class="detail-tabs">
                 <button class="detail-tab ${currentStudentTab === 'info' ? 'active' : ''}" onclick="switchStudentTab('info', '${student.id}')">정보</button>
                 <button class="detail-tab ${currentStudentTab === 'scores' ? 'active' : ''}" onclick="switchStudentTab('scores', '${student.id}')">시험점수</button>
                 <button class="detail-tab ${currentStudentTab === 'books' ? 'active' : ''}" onclick="switchStudentTab('books', '${student.id}')">사용책</button>
                 <button class="detail-tab ${currentStudentTab === 'consultation' ? 'active' : ''}" onclick="switchStudentTab('consultation', '${student.id}')">상담내용</button>
+                <button class="detail-tab ${currentStudentTab === 'teacher-history' ? 'active' : ''}" onclick="switchStudentTab('teacher-history', '${student.id}')">담당 선생님</button>
             </div>
             
             <div id="tabContent" class="tab-content">
@@ -764,6 +795,8 @@ function renderStudentTabContent(student, teachers, gradeOptions, currentSchoolT
         content = renderBooksTab(student);
     } else if (currentStudentTab === 'consultation') {
         content = renderConsultationTab(student);
+    } else if (currentStudentTab === 'teacher-history') {
+        content = renderTeacherHistoryTab(student, teachers);
     }
     
     console.log('[renderStudentTabContent] currentStudentTab:', currentStudentTab, 'content length:', content ? content.length : 0);
@@ -916,6 +949,42 @@ function renderInfoTab(student, teachers, gradeOptions, currentSchoolType) {
                 <div class="book-item">
                     <label>현행심화</label>
                     <div class="book-value" id="book-advanced-${student.id}">${bookAdvanced}</div>
+                </div>
+            </div>
+            
+            <!-- 상태 예약 섹션 -->
+            <div style="margin-top: 2rem; padding: 1.5rem; background: #f8f9fa; border-radius: 8px;">
+                <h3 style="margin: 0 0 1rem 0; color: #333; font-size: 1.1rem;">상태 예약</h3>
+                <div style="display: grid; grid-template-columns: auto auto auto auto; gap: 1rem; align-items: end;">
+                    <div>
+                        <label style="display: block; margin-bottom: 0.5rem; font-weight: 600;">시작 (yyyy.mm.dd)</label>
+                        <input type="text" id="statusScheduleStart" placeholder="2026.03.01" 
+                               style="padding: 0.5rem; border: 1px solid #ddd; border-radius: 4px; width: 150px;"
+                               oninput="formatDateInput(this)" maxlength="10">
+                    </div>
+                    <div>
+                        <label style="display: block; margin-bottom: 0.5rem; font-weight: 600;">종료 (yyyy.mm.dd)</label>
+                        <input type="text" id="statusScheduleEnd" placeholder="2026.03.31" 
+                               style="padding: 0.5rem; border: 1px solid #ddd; border-radius: 4px; width: 150px;"
+                               oninput="formatDateInput(this)" maxlength="10">
+                    </div>
+                    <div>
+                        <label style="display: block; margin-bottom: 0.5rem; font-weight: 600;">변경할 상태</label>
+                        <select id="statusScheduleStatus" style="padding: 0.5rem; border: 1px solid #ddd; border-radius: 4px; width: 120px;">
+                            <option value="재원">재원</option>
+                            <option value="휴원">휴원</option>
+                            <option value="퇴원">퇴원</option>
+                        </select>
+                    </div>
+                    <div>
+                        <button class="btn btn-primary" onclick="scheduleStatusChange('${student.id}')" 
+                                style="padding: 0.5rem 1.5rem;">
+                            예약
+                        </button>
+                    </div>
+                </div>
+                <div id="statusScheduleList-${student.id}" style="margin-top: 1.5rem;">
+                    <!-- 예약 목록 표시 -->
                 </div>
             </div>
             
@@ -1490,8 +1559,8 @@ async function deleteConsultation(studentId, consulId) {
 
 // 교재 추가 함수 제거 (이미 위에서 구현함)
 
-// 상태 토글 (재원 → 휴원 → 퇴원 → 재원)
-async function toggleStudentStatus(studentId) {
+// 상태 변경 (드롭다운 방식)
+async function updateStudentStatus(studentId, newStatus) {
     if (!Auth.isLoggedIn()) {
         alert('로그인이 필요합니다');
         return;
@@ -1500,33 +1569,29 @@ async function toggleStudentStatus(studentId) {
     const student = allStudents.find(s => s.id === studentId);
     if (!student) return;
     
-    const statusOrder = ['재원', '휴원', '퇴원'];
-    const currentIndex = statusOrder.indexOf(student.status || '재원');
-    const nextStatus = statusOrder[(currentIndex + 1) % 3];
-    
     try {
-        const updateData = { status: nextStatus };
+        const updateData = { status: newStatus };
         
         // 휴원이나 퇴원으로 변경 시 탈퇴일 자동 설정
-        if ((nextStatus === '휴원' || nextStatus === '퇴원') && !student.withdrawal_date) {
+        if ((newStatus === '휴원' || newStatus === '퇴원') && !student.withdrawal_date) {
             updateData.withdrawal_date = new Date().getTime();
         }
         
         // 재원으로 복귀 시 탈퇴일 제거
-        if (nextStatus === '재원') {
+        if (newStatus === '재원') {
             updateData.withdrawal_date = null;
         }
         
         await API.update('students', studentId, updateData);
         
-        // 로컬 데이터 즉시 업데이트 (폴더 이동 개념)
-        student.status = nextStatus;
+        // 로컬 데이터 즉시 업데이트
+        student.status = newStatus;
         if (updateData.withdrawal_date !== undefined) {
             student.withdrawal_date = updateData.withdrawal_date;
         }
         
         // 현재 필터 상태 업데이트
-        filterStudentsByStatus(nextStatus);
+        filterStudentsByStatus(newStatus);
         
         // 데이터 새로고침 (백그라운드에서)
         loadStudents();
@@ -1547,12 +1612,75 @@ async function updateStudentTeacher(studentId, teacherId) {
     }
     
     try {
+        // 기존 학생 정보 가져오기
+        const student = allStudents.find(s => s.id === studentId);
+        if (!student) {
+            alert('학생 정보를 찾을 수 없습니다');
+            return;
+        }
+        
+        const oldTeacherId = student.teacher_id;
+        
+        // 담당 선생님이 실제로 변경되었는지 확인
+        if (oldTeacherId === teacherId) {
+            console.log('[updateStudentTeacher] 담당 선생님 변경 없음');
+            return;
+        }
+        
+        // 학생 정보 업데이트
         await API.update('students', studentId, { teacher_id: teacherId });
         
         // 로컬 데이터 업데이트
-        const student = allStudents.find(s => s.id === studentId);
-        if (student) {
-            student.teacher_id = teacherId;
+        student.teacher_id = teacherId;
+        
+        // ✅ 담당 선생님 변경 이력 자동 기록
+        try {
+            // 선생님 정보 로드
+            const teachers = await API.getList('teachers', { limit: 1000 });
+            const teachersArr = Array.isArray(teachers) ? teachers : teachers.data;
+            const newTeacher = teachersArr.find(t => t.id === teacherId);
+            
+            if (newTeacher) {
+                const today = new Date().toISOString().split('T')[0];
+                
+                // 기존 현재 담당 이력 종료 처리
+                const assignments = await API.getList('teacher_assignments', { limit: 1000 });
+                const allAssignments = Array.isArray(assignments) ? assignments : assignments.data;
+                const currentAssignment = allAssignments.find(a => a.student_id === studentId && a.is_current === true);
+                
+                if (currentAssignment) {
+                    // 종료일을 오늘 이전으로 설정
+                    const endDate = new Date();
+                    endDate.setDate(endDate.getDate() - 1);
+                    const endDateStr = endDate.toISOString().split('T')[0];
+                    
+                    await API.update('teacher_assignments', currentAssignment.id, {
+                        ...currentAssignment,
+                        end_date: endDateStr,
+                        is_current: false
+                    });
+                    
+                    console.log(`[updateStudentTeacher] 기존 담당 종료: ${currentAssignment.teacher_name}`);
+                }
+                
+                // 새 담당 이력 추가
+                const newAssignment = {
+                    student_id: studentId,
+                    student_name: student.name,
+                    teacher_id: teacherId,
+                    teacher_name: newTeacher.name,
+                    start_date: today,
+                    end_date: '',
+                    is_current: true,
+                    notes: '자동 기록'
+                };
+                
+                await API.create('teacher_assignments', newAssignment);
+                console.log(`[updateStudentTeacher] 새 담당 등록: ${newTeacher.name}`);
+            }
+        } catch (error) {
+            console.error('[updateStudentTeacher] 이력 기록 실패:', error);
+            // 이력 기록 실패는 무시 (메인 기능은 성공)
         }
         
         alert('담당 선생님이 변경되었습니다');
@@ -2626,9 +2754,12 @@ async function renderTeacherStudentsGrid(teachers) {
         const studentsResult = await API.getList('students', { limit: 1000 });
         const students = Array.isArray(studentsResult) ? studentsResult : (studentsResult.data || []);
         
+        // ✅ 재원생만 필터링
+        const activeStudents = students.filter(s => s.status === '재원');
+        
         grid.innerHTML = teachers.map(teacher => {
-            // 해당 선생님이 담당하는 학생들 필터링
-            const teacherStudents = students.filter(s => s.teacher_id === teacher.id);
+            // 해당 선생님이 담당하는 재원생만 필터링
+            const teacherStudents = activeStudents.filter(s => s.teacher_id === teacher.id);
             
             // 학교 → 학년 → 가나다순 정렬
             const sortedStudents = teacherStudents.sort((a, b) => {
@@ -4016,4 +4147,56 @@ async function updateScheduleDuration(studentId, dayKey, duration) {
 }
 
 // ===== 추가 수업 행 관련 함수들 제거됨 =====
+
+// ===== 전역 함수 노출 =====
+window.showStudentsPage = showStudentsPage;
+window.showTeachersPage = showTeachersPage;
+window.showAllMembersPage = showAllMembersPage;
+window.loadStudents = loadStudents;
+window.filterStudentsByStatus = filterStudentsByStatus;
+window.filterStudentsByTeacher = filterStudentsByTeacher;
+window.renderStudentList = renderStudentList;
+window.showStudentDetail = showStudentDetail;
+window.showStudentForm = showStudentForm;
+window.cycleStatus = cycleStatus;
+window.calculateNewScheduleCheckout = calculateNewScheduleCheckout;
+window.switchStudentTab = switchStudentTab;
+window.openStudentModal = openStudentModal;
+window.closeStudentModal = closeStudentModal;
+window.editStudent = editStudent;
+window.saveStudent = saveStudent;
+window.saveStudentFromForm = saveStudentFromForm;
+window.cancelStudentForm = cancelStudentForm;
+window.deleteStudent = deleteStudent;
+window.addScore = addScore;
+window.editScore = editScore;
+window.deleteScore = deleteScore;
+window.addBook = addBook;
+window.editBook = editBook;
+window.deleteBook = deleteBook;
+window.addConsultation = addConsultation;
+window.editConsultation = editConsultation;
+window.deleteConsultation = deleteConsultation;
+window.generateAttendanceNumber = generateAttendanceNumber;
+window.formatTimeString = formatTimeString;
+window.updateScheduleCheckboxState = updateScheduleCheckboxState;
+window.updateScheduleTimeState = updateScheduleTimeState;
+window.updateScheduleDurationState = updateScheduleDurationState;
+window.getStudentSchedule = getStudentSchedule;
+window.calculateCheckOutTime = calculateCheckOutTime;
+window.loadTeachers = loadTeachers;
+window.filterTeachersByStatus = filterTeachersByStatus;
+window.renderTeacherList = renderTeacherList;
+window.showTeacherDetail = showTeacherDetail;
+window.openTeacherModal = openTeacherModal;
+window.closeTeacherModal = closeTeacherModal;
+window.saveTeacher = saveTeacher;
+window.deleteTeacher = deleteTeacher;
+window.selectTeacherColor = selectTeacherColor;
+window.toggleTeacherStatus = toggleTeacherStatus;
+window.openAssignStudentsModal = openAssignStudentsModal;
+window.closeAssignStudentsModal = closeAssignStudentsModal;
+window.saveAssignedStudents = saveAssignedStudents;
+window.showTeacherStudentsTab = showTeacherStudentsTab;
+window.filterAllMembers = filterAllMembers;
 
