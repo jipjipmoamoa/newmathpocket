@@ -112,6 +112,14 @@ window.enterScoreEditMode = function(scoreId) {
         if (display && input) {
             display.style.display = 'none';
             input.style.display = 'block';
+            
+            // Enter 키 이벤트 추가 (전체 행 저장)
+            input.onkeydown = function(event) {
+                if (event.key === 'Enter') {
+                    event.preventDefault();
+                    saveScoreRow(scoreId);
+                }
+            };
         }
     });
     
@@ -121,6 +129,29 @@ window.enterScoreEditMode = function(scoreId) {
         setTimeout(() => firstInput.focus(), 50);
     }
 };
+
+// 수정 행 전체 저장
+async function saveScoreRow(scoreId) {
+    const fields = ['category', 'type', 'range', 'value', 'notes'];
+    const row = document.getElementById(`score-row-${scoreId}`);
+    if (!row) return;
+    
+    const studentId = row.closest('.tab-panel').querySelector('[id^="new-score-category-"]')?.id.split('-').pop();
+    if (!studentId) return;
+    
+    // 모든 필드 저장
+    for (const field of fields) {
+        const input = document.getElementById(`edit-${field}-${scoreId}`);
+        if (input && input.value) {
+            await updateScoreField(studentId, scoreId, field, input.value);
+        }
+    }
+    
+    // 수정 모드 종료
+    exitScoreEditMode(scoreId);
+    
+    console.log('✅ 행 전체 저장 완료');
+}
 
 // 수정 모드 종료
 window.exitScoreEditMode = function(scoreId) {
@@ -206,6 +237,48 @@ window.updateRetestField = async function(studentId, scoreId, field, value) {
         
     } catch (error) {
         console.error('❌ 재시험 정보 저장 실패:', error);
+    }
+};
+
+// 5. 재시험 Enter 키 핸들러
+window.handleRetestEnter = async function(event, studentId, scoreId, currentField) {
+    if (event.key === 'Enter') {
+        event.preventDefault();
+        
+        if (currentField === 'value') {
+            // 점수 입력 후 Enter → 오답유형으로 이동
+            const notesInput = document.getElementById(`retest-notes-${scoreId}`);
+            if (notesInput) {
+                // 현재 값 저장
+                const valueInput = document.getElementById(`retest-value-${scoreId}`);
+                if (valueInput && valueInput.value) {
+                    await updateRetestField(studentId, scoreId, 'retest_value', valueInput.value);
+                }
+                // 오답유형으로 포커스 이동
+                setTimeout(() => notesInput.focus(), 50);
+            }
+        } else if (currentField === 'notes') {
+            // 오답유형 입력 후 Enter → 전체 저장 & 재시험 행 닫기
+            const valueInput = document.getElementById(`retest-value-${scoreId}`);
+            const notesInput = document.getElementById(`retest-notes-${scoreId}`);
+            
+            // 두 필드 모두 저장
+            if (valueInput && valueInput.value) {
+                await updateRetestField(studentId, scoreId, 'retest_value', valueInput.value);
+            }
+            if (notesInput && notesInput.value) {
+                await updateRetestField(studentId, scoreId, 'retest_notes', notesInput.value);
+            }
+            
+            // 재시험 행 닫기
+            const retestRow = document.getElementById(`retest-row-${scoreId}`);
+            if (retestRow) {
+                retestRow.style.display = 'none';
+                retestRow.classList.remove('retest-visible');
+            }
+            
+            console.log('✅ 재시험 정보 저장 및 행 닫기 완료');
+        }
     }
 };
 
