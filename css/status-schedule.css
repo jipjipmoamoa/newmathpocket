@@ -1,0 +1,153 @@
+/* 상태 예약 시스템 스타일 */
+
+/* 상태 선택 드롭다운 */
+.status-select {
+    padding: 0.5rem 1rem;
+    border: 2px solid #E1E8ED;
+    border-radius: 8px;
+    font-size: 0.95rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    margin-right: 0.75rem;
+    min-width: 100px;
+}
+
+.status-select:focus {
+    outline: none;
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 3px rgba(255, 107, 53, 0.1);
+}
+
+.status-select option[value="재원"] {
+    color: #4CAF50;
+    font-weight: 600;
+}
+
+.status-select option[value="휴원"] {
+    color: #FF9800;
+    font-weight: 600;
+}
+
+.status-select option[value="퇴원"] {
+    color: #F44336;
+    font-weight: 600;
+}
+
+/* 상태 예약 섹션 */
+.status-schedule-section {
+    margin-top: 2rem;
+    padding: 1.5rem;
+    background: #f8f9fa;
+    border-radius: 8px;
+    border: 1px solid #E1E8ED;
+}
+
+.status-schedule-section h3 {
+    margin: 0 0 1rem 0;
+    color: #333;
+    font-size: 1.1rem;
+    font-weight: 600;
+}
+
+.status-schedule-form {
+    display: grid;
+    grid-template-columns: auto auto auto auto;
+    gap: 1rem;
+    align-items: end;
+}
+
+.status-schedule-form > div {
+    display: flex;
+    flex-direction: column;
+}
+
+.status-schedule-form label {
+    display: block;
+    margin-bottom: 0.5rem;
+    font-weight: 600;
+    font-size: 0.9rem;
+    color: #555;
+}
+
+.status-schedule-form input[type="text"],
+.status-schedule-form select {
+    padding: 0.5rem;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-size: 0.95rem;
+}
+
+.status-schedule-form input[type="text"]:focus,
+.status-schedule-form select:focus {
+    outline: none;
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 3px rgba(255, 107, 53, 0.1);
+}
+
+/* 예약 목록 테이블 */
+.status-schedule-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 1.5rem;
+    background: white;
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+.status-schedule-table thead {
+    background: #f0f0f0;
+}
+
+.status-schedule-table th {
+    padding: 0.75rem;
+    text-align: left;
+    border: 1px solid #ddd;
+    font-weight: 600;
+    font-size: 0.9rem;
+    color: #333;
+}
+
+.status-schedule-table td {
+    padding: 0.75rem;
+    border: 1px solid #ddd;
+    font-size: 0.9rem;
+}
+
+.status-schedule-table tr:hover {
+    background: #f9f9f9;
+}
+
+/* 상태 색상 */
+.status-active {
+    color: #4CAF50;
+    font-weight: 600;
+}
+
+.status-paused {
+    color: #FF9800;
+    font-weight: 600;
+}
+
+.status-inactive {
+    color: #F44336;
+    font-weight: 600;
+}
+
+/* 반응형 */
+@media (max-width: 1200px) {
+    .status-schedule-form {
+        grid-template-columns: 1fr 1fr;
+    }
+}
+
+@media (max-width: 768px) {
+    .status-schedule-form {
+        grid-template-columns: 1fr;
+    }
+    
+    .status-select {
+        min-width: auto;
+        width: 100%;
+    }
+}
