@@ -81,19 +81,19 @@ window.scheduleStatusChange = async function(studentId) {
         await API.create('student_status_schedules', schedule);
         
         console.log('✅ 상태 예약 생성:', schedule);
-        alert(`${status} 상태가 예약되었습니다`);
         
         // 입력 필드 초기화
         document.getElementById(`statusScheduleStart-${studentId}`).value = '';
         document.getElementById(`statusScheduleEnd-${studentId}`).value = '';
         document.getElementById(`statusScheduleStatus-${studentId}`).value = '재원';
         
-        // 예약 목록 새로고침
+        // 예약 목록 새로고침 (알림 없이 자동으로 표시)
         await loadStatusSchedules(studentId);
         
     } catch (error) {
         console.error('❌ 상태 예약 실패:', error);
-        alert('상태 예약에 실패했습니다');
+        console.error('에러 상세:', error);
+        alert('상태 예약에 실패했습니다. 콘솔을 확인해주세요.');
     }
 }
 
@@ -109,8 +109,8 @@ function isValidDate(dateString) {
 // 상태 예약 목록 로드
 async function loadStatusSchedules(studentId) {
     try {
-        const response = await API.getList('student_status_schedules', 1, 1000);
-        const allSchedules = response.data || response || [];
+        const response = await API.getList('student_status_schedules');
+        const allSchedules = Array.isArray(response) ? response : (response.data || []);
         const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
         
         // 해당 학생의 활성 예약 중 미래 예약만 필터링
@@ -142,7 +142,7 @@ async function loadStatusSchedules(studentId) {
         if (!container) return;
         
         if (schedules.length === 0) {
-            container.innerHTML = '<p style="color: #999; margin: 0; font-size: 0.9rem;">예정된 상태 변경이 없습니다</p>';
+            container.innerHTML = '';
             return;
         }
         
@@ -217,8 +217,8 @@ async function applyScheduledStatusChanges() {
         const today = new Date().toISOString().split('T')[0]; // yyyy-mm-dd
         console.log('[applyScheduledStatusChanges] 오늘 날짜:', today);
         
-        const response = await API.getList('student_status_schedules', 1, 1000);
-        const allSchedules = response.data || response || [];
+        const response = await API.getList('student_status_schedules');
+        const allSchedules = Array.isArray(response) ? response : (response.data || []);
         
         // 활성화된 예약만 필터링
         const activeSchedules = allSchedules.filter(s => s.is_active);
