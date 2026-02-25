@@ -71,9 +71,10 @@ window.addScore = async function(studentId) {
         
         console.log('[addScore] 기존 점수 개수:', scores.length);
         
-        // 새 점수 추가
+        // 새 점수 추가 (최신 날짜 자동 설정)
         const newScore = {
             id: Date.now().toString(),
+            date: new Date().toISOString().split('T')[0], // YYYY-MM-DD 형식
             category: formattedCategory,
             type: formattedType,
             range: formattedRange,
