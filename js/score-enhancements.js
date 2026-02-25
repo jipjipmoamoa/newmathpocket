@@ -260,7 +260,14 @@ window.handleRetestEnter = async function(event, studentId, scoreId, currentFiel
             }
         } else if (currentField === 'notes') {
             // 오답유형 입력 후 Enter → 값 저장하고 재시험 행 닫기
+            const valueInput = document.getElementById(`retest-value-${scoreId}`);
             const notesInput = document.getElementById(`retest-notes-${scoreId}`);
+            
+            // 값이 있으면 저장
+            if (valueInput && valueInput.value) {
+                await updateRetestField(studentId, scoreId, 'retest_value', valueInput.value);
+                console.log('✅ 재시험 점수 최종 저장:', valueInput.value);
+            }
             if (notesInput && notesInput.value) {
                 await updateRetestField(studentId, scoreId, 'retest_notes', notesInput.value);
                 console.log('✅ 재시험 오답유형 저장:', notesInput.value);
@@ -274,6 +281,14 @@ window.handleRetestEnter = async function(event, studentId, scoreId, currentFiel
             }
             
             console.log('✅ 재시험 정보 저장 및 행 닫기 완료');
+            
+            // 시험점수 탭 새로고침하여 저장된 데이터 표시
+            if (typeof window.showStudentDetail === 'function') {
+                // 현재 학생 정보 새로고침
+                setTimeout(() => {
+                    window.showStudentDetail(studentId);
+                }, 100);
+            }
         }
     }
 };
