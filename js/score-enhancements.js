@@ -278,24 +278,83 @@ window.handleRetestEnter = async function(event, studentId, scoreId, currentFiel
                 console.log('✅ 재시험 오답유형 저장:', notesInput.value || '(빈 값)');
             }
             
-            // 재시험 행 닫기
-            const retestRow = document.getElementById(`retest-row-${scoreId}`);
-            if (retestRow) {
-                retestRow.style.display = 'none';
-                retestRow.classList.remove('retest-visible');
-            }
+            console.log('✅ 재시험 정보 저장 완료');
             
-            console.log('✅ 재시험 정보 저장 및 행 닫기 완료');
+            // 재시험 행을 표시 모드로 전환 (입력칸 → 텍스트)
+            switchRetestToDisplayMode(scoreId, valueInput?.value, notesInput?.value);
             
-            // 시험점수 탭 새로고침하여 저장된 데이터 표시
-            if (typeof window.showStudentDetail === 'function') {
-                // 현재 학생 정보 새로고침
-                setTimeout(() => {
-                    window.showStudentDetail(studentId);
-                }, 100);
+            console.log('✅ 재시험 정보 화면에 표시됨 (표시 모드)');
+        }
+    }
+};
+
+// 6. 재시험 행을 표시 모드로 전환
+function switchRetestToDisplayMode(scoreId, retestValue, retestNotes) {
+    // 입력칸 숨기기
+    const valueInput = document.getElementById(`retest-value-${scoreId}`);
+    const notesInput = document.getElementById(`retest-notes-${scoreId}`);
+    
+    if (valueInput) {
+        valueInput.style.display = 'none';
+    }
+    if (notesInput) {
+        notesInput.style.display = 'none';
+    }
+    
+    // 텍스트 표시
+    const valueDisplay = document.getElementById(`retest-display-value-${scoreId}`);
+    const notesDisplay = document.getElementById(`retest-display-notes-${scoreId}`);
+    
+    if (valueDisplay && retestValue) {
+        valueDisplay.textContent = retestValue;
+        valueDisplay.style.display = 'block';
+        // 점수에 따라 색상 변경
+        const numValue = parseInt(retestValue);
+        if (!isNaN(numValue)) {
+            if (numValue >= 70) {
+                valueDisplay.style.color = '#000';
+                valueDisplay.style.fontWeight = 'normal';
+            } else {
+                valueDisplay.style.color = '#f44336';
+                valueDisplay.style.fontWeight = '600';
             }
         }
     }
+    
+    if (notesDisplay) {
+        notesDisplay.textContent = retestNotes || '';
+        notesDisplay.style.display = 'block';
+    }
+    
+    console.log(`[switchRetestToDisplayMode] scoreId=${scoreId}, 표시 모드로 전환`);
+}
+
+// 7. 재시험 행을 수정 모드로 전환 (더블클릭 시)
+window.switchRetestToEditMode = function(scoreId) {
+    // 텍스트 숨기기
+    const valueDisplay = document.getElementById(`retest-display-value-${scoreId}`);
+    const notesDisplay = document.getElementById(`retest-display-notes-${scoreId}`);
+    
+    if (valueDisplay) {
+        valueDisplay.style.display = 'none';
+    }
+    if (notesDisplay) {
+        notesDisplay.style.display = 'none';
+    }
+    
+    // 입력칸 표시 및 포커스
+    const valueInput = document.getElementById(`retest-value-${scoreId}`);
+    const notesInput = document.getElementById(`retest-notes-${scoreId}`);
+    
+    if (valueInput) {
+        valueInput.style.display = 'block';
+        setTimeout(() => valueInput.focus(), 50);
+    }
+    if (notesInput) {
+        notesInput.style.display = 'block';
+    }
+    
+    console.log(`[switchRetestToEditMode] scoreId=${scoreId}, 수정 모드로 전환`);
 };
 
 // 탭 전환 감지 (기존 switchStudentTab 함수 확장)
