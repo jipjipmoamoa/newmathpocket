@@ -11,13 +11,22 @@ console.log('[schedule-status-helper.js] 로드 시작');
  * @returns {string} '재원', '휴원', '퇴원' 중 하나
  */
 window.getStudentStatusOnDate = function(student, dateString, allStatusSchedules = []) {
-    if (!student || !dateString) return student?.status || '퇴원';
+    if (!student || !dateString) {
+        console.warn('[getStudentStatusOnDate] 파라미터 누락:', { student: !!student, dateString });
+        return student?.status || '퇴원';
+    }
+    
+    console.log(`[getStudentStatusOnDate] ${student.name} on ${dateString}, 예약 데이터: ${allStatusSchedules.length}개`);
     
     // 해당 학생의 예약 상태 찾기
     const studentSchedules = allStatusSchedules.filter(schedule => 
         schedule.student_id === student.id && 
         schedule.is_active !== false // 활성화된 예약만
     );
+    
+    if (studentSchedules.length > 0) {
+        console.log(`  → ${student.name}의 예약 상태 ${studentSchedules.length}개:`, studentSchedules);
+    }
     
     // 날짜 순으로 정렬 (과거 -> 미래)
     studentSchedules.sort((a, b) => {
@@ -54,7 +63,12 @@ window.getStudentStatusOnDate = function(student, dateString, allStatusSchedules
  * @returns {Object} 스케줄 객체 (monday, tuesday, ... 포함)
  */
 window.getStudentScheduleOnDate = function(student, dateString, allScheduledSchedules = []) {
-    if (!student || !dateString) return student?.schedule || {};
+    if (!student || !dateString) {
+        console.warn('[getStudentScheduleOnDate] 파라미터 누락:', { student: !!student, dateString });
+        return student?.schedule || {};
+    }
+    
+    console.log(`[getStudentScheduleOnDate] ${student.name} on ${dateString}, 예약 데이터: ${allScheduledSchedules.length}개`);
     
     // 현재 스케줄 파싱
     let currentSchedule = student.schedule;
@@ -74,6 +88,10 @@ window.getStudentScheduleOnDate = function(student, dateString, allScheduledSche
         schedule.student_id === student.id &&
         schedule.is_active !== false // 활성화된 예약만
     );
+    
+    if (studentSchedules.length > 0) {
+        console.log(`  → ${student.name}의 예약 스케줄 ${studentSchedules.length}개:`, studentSchedules);
+    }
     
     // 날짜 순으로 정렬 (과거 -> 미래)
     studentSchedules.sort((a, b) => {
