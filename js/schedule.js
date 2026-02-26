@@ -448,8 +448,8 @@ async function loadMonthlyScheduleCalendar() {
             const scheduleResponse = await API.getList('scheduled_schedules', { limit: 1000 });
             allScheduledSchedules = Array.isArray(scheduleResponse) ? scheduleResponse : (scheduleResponse.data || []);
             
-            console.log('[loadMonthlyScheduleCalendar] 예약 상태:', allStatusSchedules.length);
-            console.log('[loadMonthlyScheduleCalendar] 예약 스케줄:', allScheduledSchedules.length);
+            console.log('[loadMonthlyScheduleCalendar] 예약 상태 로드:', allStatusSchedules.length, allStatusSchedules);
+            console.log('[loadMonthlyScheduleCalendar] 예약 스케줄 로드:', allScheduledSchedules.length, allScheduledSchedules);
         } catch (e) {
             console.error('[loadMonthlyScheduleCalendar] 예약 데이터 로드 실패:', e);
         }
@@ -674,10 +674,14 @@ async function renderMonthlyScheduleCalendar(students, attendanceRecords, allSta
         
         // ✅ 날짜별 스케줄 데이터 빌드 함수
         function buildScheduleDataForDate(dateString, dayKey) {
+            console.log(`[buildScheduleDataForDate] 시작: ${dateString} (${dayKey}), 예약상태: ${allStatusSchedules.length}, 예약스케줄: ${allScheduledSchedules.length}`);
+            
             // 해당 날짜에 각 학생의 상태와 스케줄 적용
             const dateStudents = teacherStudents.map(student => {
                 const effectiveStatus = window.getStudentStatusOnDate(student, dateString, allStatusSchedules);
                 const effectiveSchedule = window.getStudentScheduleOnDate(student, dateString, allScheduledSchedules);
+                
+                console.log(`  → ${student.name}: ${student.status} → ${effectiveStatus}`);
                 
                 return {
                     ...student,
@@ -686,7 +690,7 @@ async function renderMonthlyScheduleCalendar(students, attendanceRecords, allSta
                 };
             }).filter(s => s.effectiveStatus === '재원'); // 재원생만
             
-            console.log(`[buildScheduleDataForDate] ${dateString}: 재원생 ${dateStudents.length}명`);
+            console.log(`[buildScheduleDataForDate] ${dateString}: 전체 ${teacherStudents.length}명 → 재원생 ${dateStudents.length}명`);
             
             // 해당 요일의 스케줄이 있는 학생만 수집
             const dayStudents = [];
