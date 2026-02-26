@@ -472,12 +472,15 @@ async function showStudentDetail(studentId) {
             </div>
             
             <div id="tabContent" class="tab-content">
-                ${renderStudentTabContent(student, teachers, gradeOptions, currentSchoolType)}
+                <!-- 탭 컨텐츠는 비동기 렌더링 -->
             </div>
         </div>
     `;
     
     updateButtonStates();
+    
+    // 탭 컨텐츠 비동기 렌더링
+    await renderStudentTabContentAsync(student, teachers, gradeOptions, currentSchoolType);
 }
 
 // 새 학생 추가 폼 표시 (인라인)
@@ -778,14 +781,22 @@ function calculateNewScheduleCheckout(dayKey) {
 }
 
 // 탭 전환
-function switchStudentTab(tab, studentId) {
+async function switchStudentTab(tab, studentId) {
     currentStudentTab = tab;
-    showStudentDetail(studentId);
+    await showStudentDetail(studentId);
 }
 
-// 탭 컨텐츠 렌더링
-function renderStudentTabContent(student, teachers, gradeOptions, currentSchoolType) {
+// 탭 컨텐츠 비동기 렌더링
+async function renderStudentTabContentAsync(student, teachers, gradeOptions, currentSchoolType) {
+    const container = document.getElementById('tabContent');
+    if (!container) {
+        console.error('[renderStudentTabContentAsync] tabContent 컨테이너를 찾을 수 없음');
+        return;
+    }
+    
     let content = '';
+    
+    console.log('[renderStudentTabContentAsync] currentStudentTab:', currentStudentTab);
     
     if (currentStudentTab === 'info') {
         content = renderInfoTab(student, teachers, gradeOptions, currentSchoolType);
@@ -796,12 +807,13 @@ function renderStudentTabContent(student, teachers, gradeOptions, currentSchoolT
     } else if (currentStudentTab === 'consultation') {
         content = renderConsultationTab(student);
     } else if (currentStudentTab === 'teacher-history') {
-        content = renderTeacherHistoryTab(student, teachers);
+        // ✅ async 함수이므로 await로 기다림
+        content = await renderTeacherHistoryTab(student, teachers);
     }
     
-    console.log('[renderStudentTabContent] currentStudentTab:', currentStudentTab, 'content length:', content ? content.length : 0);
+    console.log('[renderStudentTabContentAsync] content length:', content ? content.length : 0);
     
-    return content;
+    container.innerHTML = content;
 }
 
 // 정보 탭
