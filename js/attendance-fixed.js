@@ -1565,6 +1565,9 @@ async function handleAttendance(studentId, recordId = null) {
         
         let checkInTime, checkOutTime, expectedOutTime;
         
+        // ✅ 빈 문자열도 null로 처리
+        if (recordId === '') recordId = null;
+        
         // recordId가 있으면 해당 기록만 업데이트 (2행 등록된 보강/보충 유지)
         if (recordId) {
             const existingRecord = todayAttendanceRecords.find(r => r.id === recordId);
@@ -1602,30 +1605,14 @@ async function handleAttendance(studentId, recordId = null) {
                     expectedOutTime = schedule.checkOut;
                 }
             } else {
-                // 일반 스케줄: 레코드에 시간이 있으면 유지, 없으면 스케줄에서 가져오기
+                // ✅ 일반 출석: 레코드의 기존 시간 그대로 유지
                 console.log('[handleAttendance] 일반 스케줄 처리 (recordId 있음)');
                 
-                // ✅ 레코드에 이미 시간이 있으면 그대로 유지
-                if (existingRecord.check_in_time && existingRecord.check_out_time) {
-                    checkInTime = existingRecord.check_in_time;
-                    checkOutTime = existingRecord.check_out_time;
-                    expectedOutTime = existingRecord.expected_out_time || checkOutTime;
-                    console.log('[handleAttendance] 레코드의 시간 유지 - 입실:', checkInTime, '퇴실:', checkOutTime);
-                } else {
-                    // 시간이 없으면 스케줄에서 가져오기
-                    const schedule = getStudentTodaySchedule(student);
-                    console.log('[handleAttendance] 가져온 스케줄:', schedule);
-                    
-                    if (!schedule || !schedule.checkIn || !schedule.checkOut) {
-                        console.log('[handleAttendance] ❌ 스케줄 없음 - schedule:', schedule);
-                        alert('해당 학생의 오늘 스케줄 정보를 찾을 수 없습니다.');
-                        return;
-                    }
-                    checkInTime = schedule.checkIn;
-                    checkOutTime = schedule.checkOut;
-                    expectedOutTime = schedule.checkOut;
-                    console.log('[handleAttendance] 스케줄에서 가져온 시간 - 입실:', checkInTime, '퇴실:', checkOutTime);
-                }
+                checkInTime = existingRecord.check_in_time || '';
+                checkOutTime = existingRecord.check_out_time || '';
+                expectedOutTime = existingRecord.expected_out_time || checkOutTime;
+                
+                console.log('[handleAttendance] 레코드의 시간 유지 - 입실:', checkInTime, '퇴실:', checkOutTime);
             }
             
             // ✅ 기존 상태가 보강/보충이면 유지, 그렇지 않으면 출석으로 변경
@@ -1645,8 +1632,8 @@ async function handleAttendance(studentId, recordId = null) {
             // ✅ 조용히 처리 (alert 제거)
             console.log(`✅ ${student.name} ${statusText} 처리 완료 - 입실: ${checkInTime}, 퇴실: ${checkOutTime}`);
         } else {
-            // recordId가 없으면 스케줄에서 시간 가져오기
-            console.log('[handleAttendance] recordId 없음 - 스케줄에서 시간 가져오기');
+            // ✅ recordId가 없을 때: 새 출석 기록 생성만 허용
+            console.log('[handleAttendance] recordId 없음 - 새 출석 기록 생성');
             const schedule = getStudentTodaySchedule(student);
             console.log('[handleAttendance] 가져온 스케줄:', schedule);
             
@@ -1661,26 +1648,7 @@ async function handleAttendance(studentId, recordId = null) {
             expectedOutTime = schedule.checkOut;
             console.log('[handleAttendance] 스케줄에서 가져온 시간 - 입실:', checkInTime, '퇴실:', checkOutTime);
             
-            const existingRecord = todayAttendanceRecords.find(r => r.student_id === student.id);
-            
-            if (existingRecord) {
-                // 기존 레코드가 있으면 업데이트
-                const status = (existingRecord.status === '보강' || existingRecord.status === '보충') 
-                    ? existingRecord.status 
-                    : '출석';
-                
-                await API.update('attendance', existingRecord.id, {
-                    ...existingRecord,
-                    check_in_time: checkInTime,
-                    expected_out_time: expectedOutTime,
-                    check_out_time: checkOutTime,
-                    status: status
-                });
-                
-                const statusText = status === '보강' ? '보강' : status === '보충' ? '보충' : '출석';
-                // ✅ 조용히 처리 (alert 제거)
-                console.log(`✅ ${student.name} ${statusText} 처리 완료 - 입실: ${checkInTime}, 퇴실: ${checkOutTime}`);
-            } else {
+            // ✅ 새 레코드만 생성 (기존 레코드 덮어쓰기 방지)
                 // 새 레코드 생성
                 const attendanceData = {
                     student_id: student.id,
@@ -1729,6 +1697,9 @@ async function handleAbsence(studentId, recordId = null) {
         if (absenceReason === null) {
             return; // 취소
         }
+        
+        // ✅ 빈 문자열도 null로 처리
+        if (recordId === '') recordId = null;
         
         // recordId가 있으면 해당 기록만 업데이트
         if (recordId) {
