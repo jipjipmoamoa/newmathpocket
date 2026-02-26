@@ -133,24 +133,26 @@ function renderScoresTab(student) {
                             </td>
                         </tr>
                         ${parseInt(score.value) < 70 ? `
-                        <tr id="retest-row-${score.id}" class="retest-row" style="display: none;" data-parent-score="${score.id}">
+                        <tr id="retest-row-${score.id}" class="retest-row" style="display: none;" data-parent-score="${score.id}" ondblclick="switchRetestToEditMode('${score.id}')">
                             <td colspan="2" style="text-align: right; padding: 0.5rem; background: #FFF9E6; font-weight: 600;">재시험</td>
                             <td style="background: #FFF9E6;"></td>
                             <td style="background: #FFF9E6;">
-                                <input type="text" class="input-field" 
+                                <span class="retest-display" id="retest-display-value-${score.id}" style="display: ${score.retest_value ? 'block' : 'none'}; padding: 0.3rem 0.5rem; color: ${score.retest_value >= 70 ? '#000' : '#f44336'}; font-weight: ${score.retest_value >= 70 ? 'normal' : '600'};">${score.retest_value || ''}</span>
+                                <input type="text" class="input-field retest-input" 
                                     id="retest-value-${score.id}"
                                     placeholder="점수"
                                     value="${score.retest_value || ''}"
-                                    style="background: white;"
+                                    style="display: ${score.retest_value ? 'none' : 'block'}; background: white;"
                                     onblur="updateRetestField('${student.id}', '${score.id}', 'retest_value', this.value)"
                                     onkeydown="handleRetestEnter(event, '${student.id}', '${score.id}', 'value')">
                             </td>
                             <td style="background: #FFF9E6;">
-                                <input type="text" class="input-field" 
+                                <span class="retest-display" id="retest-display-notes-${score.id}" style="display: ${score.retest_notes || score.retest_value ? 'block' : 'none'}; padding: 0.3rem 0.5rem;">${score.retest_notes || ''}</span>
+                                <input type="text" class="input-field retest-input" 
                                     id="retest-notes-${score.id}"
                                     placeholder="오답유형"
                                     value="${score.retest_notes || ''}"
-                                    style="background: white;"
+                                    style="display: ${score.retest_notes || score.retest_value ? 'none' : 'block'}; background: white;"
                                     onblur="updateRetestField('${student.id}', '${score.id}', 'retest_notes', this.value)"
                                     onkeydown="handleRetestEnter(event, '${student.id}', '${score.id}', 'notes')">
                             </td>
