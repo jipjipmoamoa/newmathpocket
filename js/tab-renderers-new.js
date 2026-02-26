@@ -32,8 +32,8 @@ function renderScoresTab(student) {
                             id="score-category-header-${student.id}">구분</th>
                         <th style="width: 150px;">종류</th>
                         <th style="width: 150px;">범위</th>
-                        <th style="width: 80px;">점수</th>
-                        <th>오답유형</th>
+                        <th style="width: 112px;">점수</th>
+                        <th style="flex: 1;">오답유형</th>
                         <th style="width: 120px;">관리</th>
                     </tr>
                 </thead>
@@ -49,7 +49,7 @@ function renderScoresTab(student) {
                         <td><input type="text" id="new-score-range-${student.id}" placeholder="중111 또는 초421" class="input-field" 
                             onblur="this.value = formatScoreRange(this.value)"
                             onkeydown="handleScoreEnter(event, 'new', '${student.id}', 'range')"></td>
-                        <td><input type="text" id="new-score-value-${student.id}" placeholder="점수" class="input-field"
+                        <td style="width: 112px;"><input type="text" id="new-score-value-${student.id}" placeholder="점수" class="input-field" style="width: 100%;"
                             onkeydown="handleScoreEnter(event, 'new', '${student.id}', 'value')"></td>
                         <td><input type="text" id="new-score-notes-${student.id}" placeholder="오답유형" class="input-field"
                             onkeydown="handleScoreEnter(event, 'new', '${student.id}', 'notes')"></td>
@@ -96,18 +96,16 @@ function renderScoresTab(student) {
                                     onblur="this.value = formatScoreRange(this.value); updateScoreField('${student.id}', '${score.id}', 'range', this.value)"
                                     onkeydown="handleScoreEnter(event, 'edit', '${student.id}', 'range', '${score.id}')">
                             </td>
-                            <td>
+                            <td style="width: 112px;">
                                 <span class="score-display score-value" 
-                                    id="display-value-${score.id}" 
-                                    style="color: ${getScoreColor(score.value)}; cursor: ${parseInt(score.value) < 70 ? 'pointer' : 'default'};"
-                                    ondblclick="${parseInt(score.value) < 70 ? `toggleRetestRow('${student.id}', '${score.id}')` : ''}">${score.value || ''}</span>
+                                    id="display-value-${score.id}">${formatScoreDisplay(score.value)}</span>
                                 <input type="text" class="input-field score-edit-field" 
                                     id="edit-value-${score.id}"
                                     data-score-id="${score.id}" 
                                     data-student-id="${student.id}" 
                                     data-field="value" 
                                     value="${score.value || ''}" 
-                                    style="display: none; color: ${getScoreColor(score.value)};"
+                                    style="display: none; width: 100%;"
                                     onblur="updateScoreField('${student.id}', '${score.id}', 'value', this.value)"
                                     onkeydown="handleScoreEnter(event, 'edit', '${student.id}', 'value', '${score.id}')">
                             </td>
@@ -132,33 +130,6 @@ function renderScoresTab(student) {
                                 </button>
                             </td>
                         </tr>
-                        ${parseInt(score.value) < 70 ? `
-                        <tr id="retest-row-${score.id}" class="retest-row" style="display: none;" data-parent-score="${score.id}" ondblclick="switchRetestToEditMode('${score.id}')">
-                            <td colspan="2" style="text-align: right; padding: 0.5rem; background: #FFF9E6; font-weight: 600;">재시험</td>
-                            <td style="background: #FFF9E6;"></td>
-                            <td style="background: #FFF9E6;">
-                                <span class="retest-display" id="retest-display-value-${score.id}" style="display: ${score.retest_value ? 'block' : 'none'}; padding: 0.3rem 0.5rem; color: ${score.retest_value >= 70 ? '#000' : '#f44336'}; font-weight: ${score.retest_value >= 70 ? 'normal' : '600'};">${score.retest_value || ''}</span>
-                                <input type="text" class="input-field retest-input" 
-                                    id="retest-value-${score.id}"
-                                    placeholder="점수"
-                                    value="${score.retest_value || ''}"
-                                    style="display: ${score.retest_value ? 'none' : 'block'}; background: white;"
-                                    onblur="updateRetestField('${student.id}', '${score.id}', 'retest_value', this.value)"
-                                    onkeydown="handleRetestEnter(event, '${student.id}', '${score.id}', 'value')">
-                            </td>
-                            <td style="background: #FFF9E6;">
-                                <span class="retest-display" id="retest-display-notes-${score.id}" style="display: ${score.retest_notes || score.retest_value ? 'block' : 'none'}; padding: 0.3rem 0.5rem;">${score.retest_notes || ''}</span>
-                                <input type="text" class="input-field retest-input" 
-                                    id="retest-notes-${score.id}"
-                                    placeholder="오답유형"
-                                    value="${score.retest_notes || ''}"
-                                    style="display: ${score.retest_notes || score.retest_value ? 'none' : 'block'}; background: white;"
-                                    onblur="updateRetestField('${student.id}', '${score.id}', 'retest_notes', this.value)"
-                                    onkeydown="handleRetestEnter(event, '${student.id}', '${score.id}', 'notes')">
-                            </td>
-                            <td style="background: #FFF9E6;"></td>
-                        </tr>
-                        ` : ''}
                     `).join('')}
                 </tbody>
             </table>
@@ -221,6 +192,48 @@ window.getScoreColor = function(value) {
     if (numScore === 100) return '#2196F3'; // 파란색
     if (numScore < 70) return '#f44336'; // 빨간색
     return '#000'; // 기본 검은색
+}
+
+// 점수 표시 HTML 생성: "65-90" → "<span style='color: red'>65</span>-90"
+window.formatScoreDisplay = function(value) {
+    if (!value) return '';
+    
+    // "65-90" 형식 체크
+    if (value.includes('-')) {
+        const parts = value.split('-');
+        if (parts.length === 2) {
+            const firstScore = parts[0].trim();
+            const secondScore = parts[1].trim();
+            const firstNum = parseInt(firstScore);
+            
+            // 첫 번째 점수만 색상 적용
+            if (!isNaN(firstNum)) {
+                let color = '#000';
+                if (firstNum === 100) {
+                    color = '#2196F3'; // 파란색
+                } else if (firstNum < 70) {
+                    color = '#f44336'; // 빨간색
+                }
+                return `<span style="color: ${color}; font-weight: ${firstNum < 70 ? '600' : 'normal'};">${firstScore}</span>-${secondScore}`;
+            }
+        }
+    }
+    
+    // 단일 점수는 기존 방식
+    const numScore = parseInt(value);
+    if (!isNaN(numScore)) {
+        let color = '#000';
+        let weight = 'normal';
+        if (numScore === 100) {
+            color = '#2196F3';
+        } else if (numScore < 70) {
+            color = '#f44336';
+            weight = '600';
+        }
+        return `<span style="color: ${color}; font-weight: ${weight};">${value}</span>`;
+    }
+    
+    return value;
 }
 
 // 엔터키 핸들러: 다음 필드로 이동 또는 저장
