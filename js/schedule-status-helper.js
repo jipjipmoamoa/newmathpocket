@@ -46,9 +46,9 @@ window.getStudentStatusOnDate = function(student, dateString, allStatusSchedules
     }
     
     // 예약 상태가 있으면 그것을 반환, 없으면 현재 상태 반환
-    if (effectiveStatus && effectiveStatus.new_status) {
-        console.log(`[getStudentStatusOnDate] ${student.name} on ${dateString}: ${effectiveStatus.new_status} (예약 적용)`);
-        return effectiveStatus.new_status;
+    if (effectiveStatus && effectiveStatus.scheduled_status) {
+        console.log(`[getStudentStatusOnDate] ${student.name} on ${dateString}: ${effectiveStatus.scheduled_status} (예약 적용)`);
+        return effectiveStatus.scheduled_status;
     }
     
     console.log(`[getStudentStatusOnDate] ${student.name} on ${dateString}: ${student.status} (기본 상태)`);
@@ -111,16 +111,33 @@ window.getStudentScheduleOnDate = function(student, dateString, allScheduledSche
     }
     
     // 예약 스케줄이 있으면 그것을 반환
-    if (effectiveSchedule && effectiveSchedule.new_schedule) {
-        let newSchedule = effectiveSchedule.new_schedule;
-        if (typeof newSchedule === 'string' && newSchedule.trim() !== '') {
-            try {
-                newSchedule = JSON.parse(newSchedule);
-                console.log(`[getStudentScheduleOnDate] ${student.name} on ${dateString}: 예약 스케줄 적용`, newSchedule);
-                return newSchedule;
-            } catch (e) {
-                console.error('[getStudentScheduleOnDate] 예약 스케줄 파싱 오류:', e);
-            }
+    // ✅ scheduled_schedules는 요일별 필드로 저장됨 (monday, tuesday, ...)
+    if (effectiveSchedule) {
+        // 요일 필드가 있는지 확인
+        const dayKeys = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
+        const hasScheduleFields = dayKeys.some(day => effectiveSchedule.hasOwnProperty(day));
+        
+        if (hasScheduleFields) {
+            // 요일별 데이터를 schedule 형식으로 변환
+            const newSchedule = {};
+            dayKeys.forEach(day => {
+                const timeRange = effectiveSchedule[day];
+                if (timeRange && timeRange.trim() !== '') {
+                    // "16:30-18:00" 형식을 파싱
+                    const [checkIn, checkOut] = timeRange.split('-');
+                    newSchedule[day] = {
+                        enabled: true,
+                        checkIn: checkIn.trim(),
+                        checkOut: checkOut.trim(),
+                        duration: 90 // 기본값
+                    };
+                } else {
+                    newSchedule[day] = { enabled: false };
+                }
+            });
+            
+            console.log(`[getStudentScheduleOnDate] ${student.name} on ${dateString}: 예약 스케줄 적용`, newSchedule);
+            return newSchedule;
         }
     }
     
