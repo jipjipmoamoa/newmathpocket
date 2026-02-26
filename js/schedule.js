@@ -438,9 +438,25 @@ async function loadMonthlyScheduleCalendar() {
         allStudents = Permissions.filterStudentsByTeacher(allStudents);
         console.log('[loadMonthlyScheduleCalendar] 권한 필터링 후 학생 수:', allStudents.length);
         
-        // 재원생만
-        const activeStudents = allStudents.filter(s => s.status === '재원');
-        console.log('[loadMonthlyScheduleCalendar] 재원생 수:', activeStudents.length);
+        // ✅ 예약 스케줄/상태 데이터 로드 (월간 스케줄에서는 각 날짜별로 적용)
+        let allStatusSchedules = [];
+        let allScheduledSchedules = [];
+        try {
+            const statusResponse = await API.getList('student_status_schedules', { limit: 1000 });
+            allStatusSchedules = Array.isArray(statusResponse) ? statusResponse : (statusResponse.data || []);
+            
+            const scheduleResponse = await API.getList('scheduled_schedules', { limit: 1000 });
+            allScheduledSchedules = Array.isArray(scheduleResponse) ? scheduleResponse : (scheduleResponse.data || []);
+            
+            console.log('[loadMonthlyScheduleCalendar] 예약 상태:', allStatusSchedules.length);
+            console.log('[loadMonthlyScheduleCalendar] 예약 스케줄:', allScheduledSchedules.length);
+        } catch (e) {
+            console.error('[loadMonthlyScheduleCalendar] 예약 데이터 로드 실패:', e);
+        }
+        
+        // 월간 스케줄에서는 기본 학생 목록 사용 (날짜별로 필터링)
+        const activeStudents = allStudents;
+        console.log('[loadMonthlyScheduleCalendar] 전체 학생 수 (날짜별 필터링 예정):', activeStudents.length);
         
         // 학생 색상 할당
         assignStudentColors(activeStudents);
@@ -490,8 +506,8 @@ async function loadMonthlyScheduleCalendar() {
             console.warn('[loadMonthlyScheduleCalendar] loadSchoolEvents 함수를 찾을 수 없습니다');
         }
         
-        // 달력 렌더링
-        renderMonthlyScheduleCalendar(activeStudents, monthAttendance);
+        // 달력 렌더링 (예약 데이터 전달)
+        renderMonthlyScheduleCalendar(activeStudents, monthAttendance, allStatusSchedules, allScheduledSchedules);
         console.log('[loadMonthlyScheduleCalendar] 달력 렌더링 완료');
         
     } catch (error) {
@@ -508,10 +524,12 @@ function getShortName(fullName) {
 }
 
 // 월간 스케줄 달력 렌더링 (거대한 단일 테이블)
-async function renderMonthlyScheduleCalendar(students, attendanceRecords) {
+async function renderMonthlyScheduleCalendar(students, attendanceRecords, allStatusSchedules = [], allScheduledSchedules = []) {
     console.log('[renderMonthlyScheduleCalendar] 렌더링 시작');
     console.log('[renderMonthlyScheduleCalendar] 학생 수:', students.length);
     console.log('[renderMonthlyScheduleCalendar] 출석 기록 수:', attendanceRecords.length);
+    console.log('[renderMonthlyScheduleCalendar] 예약 상태:', allStatusSchedules.length);
+    console.log('[renderMonthlyScheduleCalendar] 예약 스케줄:', allScheduledSchedules.length);
     
     const container = document.getElementById('monthlyScheduleCalendar');
     if (!container) {
@@ -654,7 +672,13 @@ async function renderMonthlyScheduleCalendar(students, attendanceRecords) {
         const todayString = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
         console.log('[renderMonthlyScheduleCalendar] 오늘:', todayString);
         
-        // 주간 스케줄 빌드 (buildScheduleData 활용)
+        // ✅ 각 학생의 effectiveStatus 및 effectiveSchedule 설정 (오늘 날짜 기준)
+        teacherStudents.forEach(student => {
+            student.effectiveStatus = window.getStudentStatusOnDate(student, todayString, allStatusSchedules);
+            student.effectiveSchedule = window.getStudentScheduleOnDate(student, todayString, allScheduledSchedules);
+        });
+        
+        // 주간 스케줄 빌드 (buildScheduleData 활용 - effectiveSchedule 사용)
         const weeklyScheduleResult = buildScheduleData(teacherStudents);
         const weeklySchedule = weeklyScheduleResult.scheduleData;
         
@@ -1464,8 +1488,10 @@ async function loadWeeklySchedule() {
         allStudents = Permissions.filterStudentsByTeacher(allStudents);
         console.log('[loadWeeklySchedule] 권한 필터링 후 학생 수:', allStudents.length);
         
-        let students = allStudents.filter(s => s.status === '재원');
-        console.log('[loadWeeklySchedule] 재원생 수:', students.length);
+        // ✅ 예약 상태/스케줄 반영 (오늘 날짜 기준)
+        const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
+        let students = await window.getActiveStudentsOnDate(allStudents, today);
+        console.log('[loadWeeklySchedule] 재원생 수 (예약 반영):', students.length);
         
         // 각 학생의 상태 확인
         students.forEach(s => {
@@ -1533,8 +1559,8 @@ function buildScheduleData(students) {
         const dayStudents = [];
         
         students.forEach(student => {
-            // schedule이 JSON 문자열이면 파싱
-            let schedule = student.schedule;
+            // ✅ effectiveSchedule 사용 (예약 스케줄이 적용된 스케줄)
+            let schedule = student.effectiveSchedule || student.schedule;
             
             if (typeof schedule === 'string' && schedule.trim() !== '') {
                 try {
@@ -1543,6 +1569,8 @@ function buildScheduleData(students) {
                     console.error('[buildScheduleData] 스케줄 파싱 오류:', e, 'student:', student.name);
                     schedule = null;
                 }
+            } else if (!schedule) {
+                schedule = null;
             }
             
             // 이 요일의 스케줄이 있으면 수집
