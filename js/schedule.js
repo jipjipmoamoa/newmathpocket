@@ -672,15 +672,63 @@ async function renderMonthlyScheduleCalendar(students, attendanceRecords, allSta
         const todayString = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
         console.log('[renderMonthlyScheduleCalendar] 오늘:', todayString);
         
-        // ✅ 각 학생의 effectiveStatus 및 effectiveSchedule 설정 (오늘 날짜 기준)
-        teacherStudents.forEach(student => {
-            student.effectiveStatus = window.getStudentStatusOnDate(student, todayString, allStatusSchedules);
-            student.effectiveSchedule = window.getStudentScheduleOnDate(student, todayString, allScheduledSchedules);
-        });
-        
-        // 주간 스케줄 빌드 (buildScheduleData 활용 - effectiveSchedule 사용)
-        const weeklyScheduleResult = buildScheduleData(teacherStudents);
-        const weeklySchedule = weeklyScheduleResult.scheduleData;
+        // ✅ 날짜별 스케줄 데이터 빌드 함수
+        function buildScheduleDataForDate(dateString, dayKey) {
+            // 해당 날짜에 각 학생의 상태와 스케줄 적용
+            const dateStudents = teacherStudents.map(student => {
+                const effectiveStatus = window.getStudentStatusOnDate(student, dateString, allStatusSchedules);
+                const effectiveSchedule = window.getStudentScheduleOnDate(student, dateString, allScheduledSchedules);
+                
+                return {
+                    ...student,
+                    effectiveStatus: effectiveStatus,
+                    effectiveSchedule: effectiveSchedule
+                };
+            }).filter(s => s.effectiveStatus === '재원'); // 재원생만
+            
+            console.log(`[buildScheduleDataForDate] ${dateString}: 재원생 ${dateStudents.length}명`);
+            
+            // 해당 요일의 스케줄이 있는 학생만 수집
+            const dayStudents = [];
+            dateStudents.forEach(student => {
+                let schedule = student.effectiveSchedule;
+                if (typeof schedule === 'string' && schedule.trim() !== '') {
+                    try {
+                        schedule = JSON.parse(schedule);
+                    } catch (e) {
+                        schedule = null;
+                    }
+                } else if (!schedule) {
+                    schedule = null;
+                }
+                
+                if (schedule && schedule[dayKey] && schedule[dayKey].enabled) {
+                    const daySchedule = schedule[dayKey];
+                    const checkIn = daySchedule.checkIn;
+                    const checkOut = daySchedule.checkOut;
+                    
+                    if (checkIn) {
+                        const [inHour, inMin] = checkIn.split(':').map(Number);
+                        const [outHour, outMin] = checkOut.split(':').map(Number);
+                        const startMinutes = inHour * 60 + inMin;
+                        const endMinutes = outHour * 60 + outMin;
+                        
+                        dayStudents.push({
+                            student: student,
+                            checkIn: checkIn,
+                            checkOut: checkOut,
+                            startMinutes: startMinutes,
+                            endMinutes: endMinutes
+                        });
+                    }
+                }
+            });
+            
+            // 시작 시간순 정렬
+            dayStudents.sort((a, b) => a.startMinutes - b.startMinutes);
+            
+            return dayStudents;
+        }
         
         // 날짜별 스케줄 데이터
         const dateScheduleData = {}; // { 'dateString': { columns: [[...], [...], [...], [...]] } }
@@ -699,29 +747,28 @@ async function renderMonthlyScheduleCalendar(students, attendanceRecords, allSta
                 
                 let columns = [[], [], [], []]; // 기본 4열
                 
+                // ✅ 해당 날짜의 스케줄 빌드 (예약 반영)
+                const dayStudentsSchedule = buildScheduleDataForDate(dateString, dayKey);
+                let allItems = dayStudentsSchedule.map(item => ({
+                    student: item.student,
+                    checkIn: item.checkIn,
+                    checkOut: item.checkOut
+                }));
+                
+                console.log(`  [${dateString}] 기본 스케줄 ${allItems.length}명:`, allItems.map(item => item.student.name));
+                
                 if (isToday) {
-                    // ===== 당일: 주간 스케줄 전체 표시 + 보충 스케줄만 추가 =====
+                    // ===== 당일: 기본 스케줄 + 보강/보충만 추가 =====
                     
-                    // 1) 주간 스케줄을 평탄화 (모든 학생을 배열로)
-                    const weeklyDay = weeklySchedule[dayKey];
-                    let allItems = [];
-                    
-                    if (weeklyDay && weeklyDay.columns) {
-                        weeklyDay.columns.forEach(col => {
-                            col.forEach(item => allItems.push({...item}));
-                        });
-                    }
-                    
-                    // 2) 출석 기록에서 보충만 추가
+                    // 출석 기록에서 보강/보충만 추가
                     const teacherStudentIds = teacherStudents.map(s => s.id);
                     const records = attendanceRecords.filter(r => 
                         r.date === dateString && teacherStudentIds.includes(r.student_id)
                     );
                     
-                    console.log(`  [당일] 주간 스케줄 ${allItems.length}명:`, allItems.map(item => item.student.name));
                     console.log(`  [당일] 출석 기록 ${records.length}개:`, records.map(r => `${r.student_name}(${r.status})`));
                     
-                    // 3) 보강/보충 스케줄 추가 (결석 제외)
+                    // 보강/보충 스케줄 추가
                     records.forEach(record => {
                         // 보강 또는 보충만 추가
                         if ((record.status !== '보강' && record.status !== '보충') || !record.check_in_time || !record.check_out_time) {
@@ -742,10 +789,10 @@ async function renderMonthlyScheduleCalendar(students, attendanceRecords, allSta
                     
                     console.log(`  [당일] 최종 표시할 학생 ${allItems.length}명:`, allItems.map(item => item.student.name));
                     
-                    // 4) 시작 시간 순으로 정렬
+                    // 시작 시간 순으로 정렬
                     allItems.sort((a, b) => timeToMinutes(a.checkIn) - timeToMinutes(b.checkIn));
                     
-                    // 5) 열에 배치
+                    // 열에 배치
                     allItems.forEach(item => {
                         let placed = false;
                         for (let col = 0; col < 4; col++) {
@@ -771,28 +818,17 @@ async function renderMonthlyScheduleCalendar(students, attendanceRecords, allSta
                     console.log(`  [당일] 📊 최종 열 구성:`, columns.map((col, i) => `열${i}(${col.length}명)`).join(', '));
                     
                 } else if (isPast) {
-                    // ===== 과거: 주간 스케줄 기본 + 출석 기록에서 빠진 스케줄 추가 =====
+                    // ===== 과거: 기본 스케줄 + 출석 기록 반영 =====
                     
-                    // 1) 주간 스케줄을 평탄화 (모든 학생을 배열로)
-                    const weeklyDay = weeklySchedule[dayKey];
-                    let allItems = [];
-                    
-                    if (weeklyDay && weeklyDay.columns) {
-                        weeklyDay.columns.forEach(col => {
-                            col.forEach(item => allItems.push({...item}));
-                        });
-                    }
-                    
-                    // 2) 출석 기록 확인
+                    // 출석 기록 확인
                     const teacherStudentIds = teacherStudents.map(s => s.id);
                     const records = attendanceRecords.filter(r => 
                         r.date === dateString && teacherStudentIds.includes(r.student_id)
                     );
                     
-                    console.log(`  [과거] 주간 스케줄 ${allItems.length}명:`, allItems.map(item => item.student.name));
                     console.log(`  [과거] 출석 기록 ${records.length}개:`, records.map(r => `${r.student_name}(${r.status})`));
                     
-                    // 3) 출석 기록이 있는 학생만 필터링
+                    // 출석 기록이 있는 학생만 필터링
                     const attendedStudentIds = new Set(
                         records
                             .filter(r => r.status !== '결석')
@@ -875,23 +911,12 @@ async function renderMonthlyScheduleCalendar(students, attendanceRecords, allSta
                     console.log(`  [과거] 📊 처리 완료: ${allItems.length}명`);
                     console.log(`  [과거] 📊 최종 열 구성:`, columns.map((col, i) => `열${i}(${col.length}명)`).join(', '));
                 } else {
-                    // ===== 미래: 주간 스케줄 + 출석 기록 반영 =====
+                    // ===== 미래: 기본 스케줄 + 출석 기록 반영 =====
                     
-                    // 1) 주간 스케줄을 평탄화 (모든 학생을 배열로)
-                    const weeklyDay = weeklySchedule[dayKey];
-                    let allItems = [];
-                    
-                    if (weeklyDay && weeklyDay.columns) {
-                        weeklyDay.columns.forEach(col => {
-                            col.forEach(item => allItems.push({...item}));
-                        });
-                    }
-                    
-                    // 2) 출석 기록 반영 (결석 제거, 보강/보충 추가)
+                    // 출석 기록 반영 (결석 제거, 보강/보충 추가)
                     const records = attendanceRecords.filter(r => r.date === dateString);
                     const teacherStudentIds = teacherStudents.map(s => s.id);
                     
-                    console.log(`  [미래] 주간 스케줄 ${allItems.length}명:`, allItems.map(item => item.student.name));
                     console.log(`  [미래] 출석 기록 ${records.length}개:`, records.map(r => `${r.student_name}(${r.status})`));
                     
                     records.forEach(record => {
