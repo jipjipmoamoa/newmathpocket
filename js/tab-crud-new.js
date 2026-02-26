@@ -82,9 +82,9 @@ window.addScore = async function(studentId) {
             notes: notesInput
         };
         
-        scores.push(newScore);
+        scores.unshift(newScore); // 배열 맨 앞에 추가 (최신이 위로)
         
-        console.log('[addScore] 새 점수 추가 완료:', newScore);
+        console.log('[addScore] 새 점수 추가 완료 (맨 위로):', newScore);
         
         // DB 업데이트
         console.log('[addScore] DB 업데이트 시작...');
