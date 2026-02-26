@@ -142,9 +142,11 @@ window.getActiveStudentsOnDate = async function(students, dateString, allStatusS
     // 예약 데이터 로드 (캐시되지 않은 경우)
     if (!allStatusSchedules) {
         try {
-            const statusResponse = await API.getList('student_status_schedules', { limit: 1000 });
+            console.log('[getActiveStudentsOnDate] 예약 상태 API 호출...');
+            const statusResponse = await API.getList('student_status_schedules');
+            console.log('[getActiveStudentsOnDate] 예약 상태 RAW:', statusResponse);
             allStatusSchedules = Array.isArray(statusResponse) ? statusResponse : (statusResponse.data || []);
-            console.log('[getActiveStudentsOnDate] 예약 상태 로드:', allStatusSchedules.length);
+            console.log('[getActiveStudentsOnDate] 예약 상태 최종:', allStatusSchedules.length, allStatusSchedules);
         } catch (e) {
             console.error('[getActiveStudentsOnDate] 예약 상태 로드 실패:', e);
             allStatusSchedules = [];
@@ -153,9 +155,11 @@ window.getActiveStudentsOnDate = async function(students, dateString, allStatusS
     
     if (!allScheduledSchedules) {
         try {
-            const scheduleResponse = await API.getList('scheduled_schedules', { limit: 1000 });
+            console.log('[getActiveStudentsOnDate] 예약 스케줄 API 호출...');
+            const scheduleResponse = await API.getList('scheduled_schedules');
+            console.log('[getActiveStudentsOnDate] 예약 스케줄 RAW:', scheduleResponse);
             allScheduledSchedules = Array.isArray(scheduleResponse) ? scheduleResponse : (scheduleResponse.data || []);
-            console.log('[getActiveStudentsOnDate] 예약 스케줄 로드:', allScheduledSchedules.length);
+            console.log('[getActiveStudentsOnDate] 예약 스케줄 최종:', allScheduledSchedules.length, allScheduledSchedules);
         } catch (e) {
             console.error('[getActiveStudentsOnDate] 예약 스케줄 로드 실패:', e);
             allScheduledSchedules = [];
