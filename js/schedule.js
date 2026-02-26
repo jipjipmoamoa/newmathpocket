@@ -442,14 +442,18 @@ async function loadMonthlyScheduleCalendar() {
         let allStatusSchedules = [];
         let allScheduledSchedules = [];
         try {
-            const statusResponse = await API.getList('student_status_schedules', { limit: 1000 });
+            console.log('[loadMonthlyScheduleCalendar] 예약 상태 API 호출 시작...');
+            const statusResponse = await API.getList('student_status_schedules');
+            console.log('[loadMonthlyScheduleCalendar] 예약 상태 RAW 응답:', statusResponse);
             allStatusSchedules = Array.isArray(statusResponse) ? statusResponse : (statusResponse.data || []);
             
-            const scheduleResponse = await API.getList('scheduled_schedules', { limit: 1000 });
+            console.log('[loadMonthlyScheduleCalendar] 예약 스케줄 API 호출 시작...');
+            const scheduleResponse = await API.getList('scheduled_schedules');
+            console.log('[loadMonthlyScheduleCalendar] 예약 스케줄 RAW 응답:', scheduleResponse);
             allScheduledSchedules = Array.isArray(scheduleResponse) ? scheduleResponse : (scheduleResponse.data || []);
             
-            console.log('[loadMonthlyScheduleCalendar] 예약 상태 로드:', allStatusSchedules.length, allStatusSchedules);
-            console.log('[loadMonthlyScheduleCalendar] 예약 스케줄 로드:', allScheduledSchedules.length, allScheduledSchedules);
+            console.log('[loadMonthlyScheduleCalendar] 예약 상태 최종:', allStatusSchedules.length, allStatusSchedules);
+            console.log('[loadMonthlyScheduleCalendar] 예약 스케줄 최종:', allScheduledSchedules.length, allScheduledSchedules);
         } catch (e) {
             console.error('[loadMonthlyScheduleCalendar] 예약 데이터 로드 실패:', e);
         }
