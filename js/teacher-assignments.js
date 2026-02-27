@@ -23,30 +23,54 @@ async function renderTeacherHistoryTab(student, teachers) {
     // 재직 중인 선생님 목록 (퇴사 제외)
     const activeTeachers = teachers.filter(t => t.status !== '퇴사');
     
+    // 현재 담당 선생님 정보 추가 (등록 날짜부터 ~ 미정)
+    const currentTeacher = teachers.find(t => t.id === student.teacher_id);
+    const studentEnrollDate = student.enroll_date || student.created_at || '-';
+    
+    // 현재 담당 선생님을 이력 목록 맨 위에 추가
+    const allAssignments = [];
+    
+    if (currentTeacher) {
+        allAssignments.push({
+            id: 'current',
+            teacher_id: currentTeacher.id,
+            start_date: studentEnrollDate,
+            end_date: null,
+            is_current: true,
+            isSynthetic: true // 합성된 레코드임을 표시
+        });
+    }
+    
+    // 기존 이력 추가 (current가 아닌 것만)
+    allAssignments.push(...assignments.filter(a => !a.is_current));
+    
     return `
         <div class="tab-panel">
             <table class="data-table teacher-history-table">
                 <thead>
                     <tr>
-                        <th style="width: 250px;">기간 (YYYY.MM.DD~YYYY.MM.DD)</th>
+                        <th style="width: 150px;">시작 날짜</th>
+                        <th style="width: 150px;">종료 날짜</th>
                         <th style="width: 150px;">담당 선생님</th>
                     </tr>
                 </thead>
                 <tbody>
                     <!-- 데이터 행 (2행부터, 최신순) -->
-                    ${assignments.length === 0 ? '<tr><td colspan="2" class="empty-message">담당 선생님 이력이 없습니다</td></tr>' : ''}
-                    ${assignments.map((assign, index) => {
+                    ${allAssignments.length === 0 ? '<tr><td colspan="3" class="empty-message">담당 선생님 이력이 없습니다</td></tr>' : ''}
+                    ${allAssignments.map((assign, index) => {
                         const teacher = teachers.find(t => t.id === assign.teacher_id);
                         const teacherName = teacher ? teacher.name : '(미지정)';
                         const isCurrent = assign.is_current;
                         const startDate = assign.start_date ? assign.start_date.replace(/-/g, '.') : '-';
-                        const endDate = assign.end_date ? assign.end_date.replace(/-/g, '.') : (isCurrent ? '현재' : '-');
-                        const period = `${startDate}~${endDate}`;
+                        const endDate = assign.end_date ? assign.end_date.replace(/-/g, '.') : '미정';
                         
                         return `
                         <tr id="assign-row-${assign.id}" class="data-row ${isCurrent ? 'current-assignment' : ''}">
-                            <td class="assign-period-cell" data-assign-id="${assign.id}">
-                                <span class="display-value">${period}</span>
+                            <td class="assign-start-cell" data-assign-id="${assign.id}">
+                                <span class="display-value">${startDate}</span>
+                            </td>
+                            <td class="assign-end-cell" data-assign-id="${assign.id}">
+                                <span class="display-value">${endDate}</span>
                             </td>
                             <td class="assign-teacher-cell" data-assign-id="${assign.id}">
                                 <span class="display-value">${teacherName}${isCurrent ? ' 📌' : ''}</span>
