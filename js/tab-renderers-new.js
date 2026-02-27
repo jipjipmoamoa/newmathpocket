@@ -15,11 +15,16 @@ function renderScoresTab(student) {
         scores = [];
     }
     
-    // 최신 날짜순 정렬
+    // 최신순 정렬 (날짜가 없으면 ID로 정렬)
     scores.sort((a, b) => {
-        const dateA = a.date || '';
-        const dateB = b.date || '';
-        return dateB.localeCompare(dateA);
+        // 날짜가 있으면 날짜로 정렬 (최신이 위로)
+        if (a.date && b.date) {
+            return b.date.localeCompare(a.date);
+        }
+        // 날짜가 없으면 ID로 정렬 (큰 ID가 위로 = 최신)
+        const idA = parseInt(a.id) || 0;
+        const idB = parseInt(b.id) || 0;
+        return idB - idA;
     });
     
     return `
@@ -403,7 +408,7 @@ function renderBooksTab(student) {
                 <tbody>
                     <!-- 입력 행 (2행) -->
                     <tr class="input-row">
-                        <td><input type="text" id="new-book-date-${student.id}" placeholder="2511" class="input-field" onblur="this.value = formatDateInput(this.value)"></td>
+                        <td><input type="text" id="new-book-date-${student.id}" placeholder="2511" class="input-field" onblur="formatDateInput(this)"></td>
                         <td><input type="text" id="new-book-concept-${student.id}" placeholder="선행개념 (0 입력 시 비워둠)" class="input-field"></td>
                         <td><input type="text" id="new-book-review-${student.id}" placeholder="선행복습 (0 입력 시 비워둠)" class="input-field"></td>
                         <td><input type="text" id="new-book-advanced-${student.id}" placeholder="현행심화 (0 입력 시 비워둠)" class="input-field"></td>
@@ -415,8 +420,8 @@ function renderBooksTab(student) {
                     ${books.map(book => `
                         <tr id="book-row-${book.id}" class="data-row">
                             <td class="book-date-cell" data-book-id="${book.id}">
-                                <span class="display-value">${book.date ? formatDateInput(book.date) : '-'}</span>
-                                <input type="text" class="edit-input" value="${book.date || ''}" style="display:none;" placeholder="2511" onblur="this.value = formatDateInput(this.value)">
+                                <span class="display-value">${book.date ? formatDateString(book.date) : '-'}</span>
+                                <input type="text" class="edit-input" value="${book.date || ''}" style="display:none;" placeholder="2511" onblur="formatDateInput(this)">
                             </td>
                             <td class="book-concept-cell" data-book-id="${book.id}">
                                 <span class="display-value">${book.concept || '-'}</span>
