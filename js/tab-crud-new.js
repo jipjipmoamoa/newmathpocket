@@ -12,13 +12,14 @@ window.addScore = async function(studentId) {
     console.log('[addScore] 로그인 확인 완료');
     
     // 입력값 가져오기
+    const dateInput = document.getElementById(`new-score-date-${studentId}`)?.value.trim() || '';
     const categoryInput = document.getElementById(`new-score-category-${studentId}`).value.trim();
     const typeInput = document.getElementById(`new-score-type-${studentId}`).value.trim();
     const rangeInput = document.getElementById(`new-score-range-${studentId}`).value.trim();
     const valueInput = document.getElementById(`new-score-value-${studentId}`).value.trim();
     const notesInput = document.getElementById(`new-score-notes-${studentId}`).value.trim();
     
-    console.log('[addScore] 입력값:', { categoryInput, typeInput, rangeInput, valueInput, notesInput });
+    console.log('[addScore] 입력값:', { dateInput, categoryInput, typeInput, rangeInput, valueInput, notesInput });
     
     // 필수 입력 검증
     if (!categoryInput) {
@@ -71,10 +72,11 @@ window.addScore = async function(studentId) {
         
         console.log('[addScore] 기존 점수 개수:', scores.length);
         
-        // 새 점수 추가 (최신 날짜 자동 설정)
+        // 새 점수 추가 (날짜 입력값 또는 오늘 날짜)
+        const finalDate = dateInput || new Date().toISOString().split('T')[0];
         const newScore = {
             id: Date.now().toString(),
-            date: new Date().toISOString().split('T')[0], // YYYY-MM-DD 형식
+            date: finalDate, // 입력된 날짜 또는 오늘 날짜
             category: formattedCategory,
             type: formattedType,
             range: formattedRange,
@@ -95,6 +97,8 @@ window.addScore = async function(studentId) {
         console.log('[addScore] DB 업데이트 완료');
         
         // 입력 필드 초기화
+        const dateField = document.getElementById(`new-score-date-${studentId}`);
+        if (dateField) dateField.value = '';
         document.getElementById(`new-score-category-${studentId}`).value = '';
         document.getElementById(`new-score-type-${studentId}`).value = '';
         document.getElementById(`new-score-range-${studentId}`).value = '';
