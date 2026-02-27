@@ -424,7 +424,7 @@ function renderBooksTab(student) {
                 <tbody>
                     <!-- 입력 행 (2행) -->
                     <tr class="input-row">
-                        <td><input type="text" id="new-book-date-${student.id}" placeholder="2511" class="input-field" onblur="formatDateInput(this)"></td>
+                        <td><input type="text" id="new-book-date-${student.id}" placeholder="2603" class="input-field" onblur="formatDateInput(this)"></td>
                         <td><input type="text" id="new-book-concept-${student.id}" placeholder="선행개념 (0 입력 시 비워둠)" class="input-field"></td>
                         <td><input type="text" id="new-book-review-${student.id}" placeholder="선행복습 (0 입력 시 비워둠)" class="input-field"></td>
                         <td><input type="text" id="new-book-advanced-${student.id}" placeholder="현행심화 (0 입력 시 비워둠)" class="input-field"></td>
@@ -501,7 +501,7 @@ function renderConsultationTab(student) {
                 <tbody>
                     <!-- 입력 행 (2행) -->
                     <tr class="input-row">
-                        <td><input type="text" id="new-consul-date-${student.id}" placeholder="2511" class="input-field" onblur="this.value = formatDateInput(this.value)"></td>
+                        <td><input type="text" id="new-consul-date-${student.id}" placeholder="2603" class="input-field" onblur="formatDateInput(this)"></td>
                         <td>
                             <select id="new-consul-person-${student.id}" class="input-field">
                                 <option value="모">모</option>
@@ -518,8 +518,8 @@ function renderConsultationTab(student) {
                     ${consultations.map(consul => `
                         <tr id="consul-row-${consul.id}" class="data-row">
                             <td class="consul-date-cell" data-consul-id="${consul.id}">
-                                <span class="display-value">${consul.date || '-'}</span>
-                                <input type="text" class="edit-input" value="${consul.date || ''}" style="display:none;" onblur="this.value = formatDateInput(this.value)">
+                                <span class="display-value">${consul.date ? formatDateString(consul.date) : '-'}</span>
+                                <input type="text" class="edit-input" value="${consul.date || ''}" style="display:none;" onblur="formatDateInput(this)">
                             </td>
                             <td class="consul-person-cell" data-consul-id="${consul.id}">
                                 <span class="display-value">${consul.person || '-'}</span>
