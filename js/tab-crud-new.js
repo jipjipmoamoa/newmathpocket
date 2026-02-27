@@ -22,6 +22,11 @@ window.addScore = async function(studentId) {
     console.log('[addScore] 입력값:', { dateInput, categoryInput, typeInput, rangeInput, valueInput, notesInput });
     
     // 필수 입력 검증
+    if (!dateInput) {
+        alert('날짜를 입력해주세요. (예: 2603)');
+        return;
+    }
+    
     if (!categoryInput) {
         alert('구분을 입력해주세요.');
         return;
@@ -72,11 +77,10 @@ window.addScore = async function(studentId) {
         
         console.log('[addScore] 기존 점수 개수:', scores.length);
         
-        // 새 점수 추가 (날짜 입력값 또는 오늘 날짜)
-        const finalDate = dateInput || new Date().toISOString().split('T')[0];
+        // 새 점수 추가 (날짜 필수)
         const newScore = {
             id: Date.now().toString(),
-            date: finalDate, // 입력된 날짜 또는 오늘 날짜
+            date: dateInput, // 입력된 날짜 (필수)
             category: formattedCategory,
             type: formattedType,
             range: formattedRange,
@@ -191,12 +195,12 @@ async function addBook(studentId) {
     
     // 필수 입력 검증
     if (!dateInput) {
-        alert('책 안내 날짜를 입력해주세요.');
+        alert('날짜를 입력해주세요. (예: 2603)');
         return;
     }
     
     // 날짜 포맷 변환
-    const formattedDate = formatDateInput(dateInput);
+    const formattedDate = formatDateString(dateInput);
     
     try {
         // 학생 데이터 가져오기
@@ -326,12 +330,12 @@ async function addConsultation(studentId) {
     
     // 필수 입력 검증
     if (!dateInput) {
-        alert('상담 날짜를 입력해주세요.');
+        alert('날짜를 입력해주세요. (예: 2603)');
         return;
     }
     
     // 날짜 포맷 변환
-    const formattedDate = formatDateInput(dateInput);
+    const formattedDate = formatDateString(dateInput);
     
     try {
         // 학생 데이터 가져오기
