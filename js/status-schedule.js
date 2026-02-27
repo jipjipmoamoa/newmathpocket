@@ -5,42 +5,53 @@ window.formatDateString = function(dateStr) {
     if (!dateStr) return '';
     
     let value = dateStr.toString().replace(/[^\d]/g, ''); // 숫자만 남김
+    const originalLength = value.length;
     
-    // 4자리 입력 (yymm)을 6자리 (yyyymm)로 변환
-    if (value.length === 4) {
+    // 4자리 입력 (YYMM)을 6자리 (YYYYMM)로 변환
+    if (originalLength === 4) {
         const yy = parseInt(value.slice(0, 2));
-        const fullYear = yy >= 0 && yy <= 99 ? '20' + value.slice(0, 2) : value.slice(0, 2);
-        value = fullYear + value.slice(2);
-    }
-    
-    // 6자리 입력 (yymmdd)을 8자리 (yyyymmdd)로 변환
-    if (value.length === 6) {
-        // 첫 두 자리가 YYMM 형식인지 YYMMDD 형식인지 구분
         const mm = parseInt(value.slice(2, 4));
+        
+        // 월 검증 (01-12)
         if (mm >= 1 && mm <= 12) {
-            // YYYYMM 형식으로 처리 (6자리가 년월)
-            const yy = parseInt(value.slice(0, 2));
             const fullYear = yy >= 0 && yy <= 99 ? '20' + value.slice(0, 2) : value.slice(0, 2);
             return fullYear + '.' + value.slice(2, 4);
         } else {
-            // YYMMDD 형식으로 처리 (6자리가 년월일)
-            const yy = parseInt(value.slice(0, 2));
-            const fullYear = yy >= 0 && yy <= 99 ? '20' + value.slice(0, 2) : value.slice(0, 2);
-            value = fullYear + value.slice(2);
+            // 잘못된 월 입력
+            return value;
         }
     }
     
-    if (value.length > 8) value = value.slice(0, 8);
-    
-    // yyyy.mm.dd 형식으로 변환
-    if (value.length >= 8) {
-        return value.slice(0, 4) + '.' + value.slice(4, 6) + '.' + value.slice(6, 8);
-    } else if (value.length >= 6) {
-        return value.slice(0, 4) + '.' + value.slice(4, 6);
-    } else if (value.length >= 4) {
-        return value.slice(0, 4) + '.' + value.slice(4);
+    // 6자리 입력 (YYMMDD)을 8자리 (YYYYMMDD)로 변환
+    if (originalLength === 6) {
+        const yy = parseInt(value.slice(0, 2));
+        const mm = parseInt(value.slice(2, 4));
+        const dd = parseInt(value.slice(4, 6));
+        
+        // 월과 일 검증
+        if (mm >= 1 && mm <= 12 && dd >= 1 && dd <= 31) {
+            const fullYear = yy >= 0 && yy <= 99 ? '20' + value.slice(0, 2) : value.slice(0, 2);
+            return fullYear + '.' + value.slice(2, 4) + '.' + value.slice(4, 6);
+        } else {
+            // 잘못된 날짜 입력
+            return value;
+        }
     }
     
+    // 8자리 입력 (YYYYMMDD)
+    if (originalLength === 8) {
+        const mm = parseInt(value.slice(4, 6));
+        const dd = parseInt(value.slice(6, 8));
+        
+        // 월과 일 검증
+        if (mm >= 1 && mm <= 12 && dd >= 1 && dd <= 31) {
+            return value.slice(0, 4) + '.' + value.slice(4, 6) + '.' + value.slice(6, 8);
+        } else {
+            return value;
+        }
+    }
+    
+    // 그 외 입력은 그대로 반환
     return value;
 }
 
