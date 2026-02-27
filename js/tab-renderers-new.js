@@ -32,6 +32,7 @@ function renderScoresTab(student) {
             <table class="data-table scores-table">
                 <thead>
                     <tr>
+                        <th style="width: 100px;">날짜</th>
                         <th style="width: 80px; cursor: pointer; user-select: none;" 
                             onclick="toggleScoreFilter('${student.id}')" 
                             id="score-category-header-${student.id}">구분</th>
@@ -45,6 +46,9 @@ function renderScoresTab(student) {
                 <tbody>
                     <!-- 입력 행 (2행) -->
                     <tr class="input-row">
+                        <td><input type="text" id="new-score-date-${student.id}" placeholder="2603" class="input-field" 
+                            onblur="formatDateInput(this)"
+                            onkeydown="handleScoreEnter(event, 'new', '${student.id}', 'date')"></td>
                         <td><input type="text" id="new-score-category-${student.id}" placeholder="교 또는 원" class="input-field" 
                             onblur="this.value = formatScoreCategory(this.value)" 
                             onkeydown="handleScoreEnter(event, 'new', '${student.id}', 'category')"></td>
@@ -62,9 +66,21 @@ function renderScoresTab(student) {
                     </tr>
                     
                     <!-- 데이터 행 (3행부터, 최신순) -->
-                    ${scores.length === 0 ? '<tr><td colspan="6" class="empty-message">등록된 시험점수가 없습니다</td></tr>' : ''}
+                    ${scores.length === 0 ? '<tr><td colspan="7" class="empty-message">등록된 시험점수가 없습니다</td></tr>' : ''}
                     ${scores.map(score => `
                         <tr id="score-row-${score.id}" class="score-data-row" data-category="${score.category || ''}" data-score-id="${score.id}">
+                            <td>
+                                <span class="score-display" id="display-date-${score.id}">${score.date ? formatDateString(score.date) : '-'}</span>
+                                <input type="text" class="input-field score-edit-field" 
+                                    id="edit-date-${score.id}"
+                                    data-score-id="${score.id}" 
+                                    data-student-id="${student.id}" 
+                                    data-field="date" 
+                                    value="${score.date || ''}" 
+                                    style="display: none;"
+                                    onblur="formatDateInput(this); updateScoreField('${student.id}', '${score.id}', 'date', this.value)"
+                                    onkeydown="handleScoreEnter(event, 'edit', '${student.id}', 'date', '${score.id}')">
+                            </td>
                             <td>
                                 <span class="score-display" id="display-category-${score.id}">${score.category || ''}</span>
                                 <input type="text" class="input-field score-edit-field" 
