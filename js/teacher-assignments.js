@@ -25,7 +25,19 @@ async function renderTeacherHistoryTab(student, teachers) {
     
     // 현재 담당 선생님 정보 추가 (등록 날짜부터 ~ 미정)
     const currentTeacher = teachers.find(t => t.id === student.teacher_id);
-    const studentEnrollDate = student.enroll_date || student.created_at || '-';
+    
+    // 등록 날짜 포맷팅
+    let studentEnrollDate = '-';
+    if (student.enroll_date) {
+        studentEnrollDate = typeof student.enroll_date === 'string' 
+            ? student.enroll_date 
+            : new Date(student.enroll_date).toISOString().split('T')[0];
+    } else if (student.created_at) {
+        const createdAt = typeof student.created_at === 'string' 
+            ? student.created_at 
+            : new Date(student.created_at).toISOString().split('T')[0];
+        studentEnrollDate = createdAt.split('T')[0];
+    }
     
     // 현재 담당 선생님을 이력 목록 맨 위에 추가
     const allAssignments = [];
