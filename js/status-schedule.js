@@ -1,8 +1,10 @@
 // 상태 예약 시스템
 
-// 날짜 입력 포맷팅 (yymmdd 또는 yyyymmdd → yyyy.mm.dd)
-window.formatDateInput = function(input) {
-    let value = input.value.replace(/[^\d]/g, ''); // 숫자만 남김
+// 날짜 문자열 포맷팅 (yymmdd 또는 yyyymmdd → yyyy.mm.dd)
+window.formatDateString = function(dateStr) {
+    if (!dateStr) return '';
+    
+    let value = dateStr.toString().replace(/[^\d]/g, ''); // 숫자만 남김
     
     // 6자리 입력 (yymmdd)을 8자리 (yyyymmdd)로 변환
     if (value.length === 6) {
@@ -16,14 +18,19 @@ window.formatDateInput = function(input) {
     
     // yyyy.mm.dd 형식으로 변환
     if (value.length >= 8) {
-        value = value.slice(0, 4) + '.' + value.slice(4, 6) + '.' + value.slice(6, 8);
+        return value.slice(0, 4) + '.' + value.slice(4, 6) + '.' + value.slice(6, 8);
     } else if (value.length >= 6) {
-        value = value.slice(0, 4) + '.' + value.slice(4, 6) + '.' + value.slice(6);
+        return value.slice(0, 4) + '.' + value.slice(4, 6) + '.' + value.slice(6);
     } else if (value.length >= 4) {
-        value = value.slice(0, 4) + '.' + value.slice(4);
+        return value.slice(0, 4) + '.' + value.slice(4);
     }
     
-    input.value = value;
+    return value;
+}
+
+// 날짜 입력 포맷팅 (input 요소용)
+window.formatDateInput = function(input) {
+    input.value = formatDateString(input.value);
 }
 
 // 상태 변경 예약
