@@ -235,4 +235,17 @@ if (originalUpdateScoreField) {
     };
 }
 
+// 점수 필드 수정 모드로 전환
+window.editScoreField = function(scoreId, field) {
+    const display = document.getElementById(`display-${field}-${scoreId}`);
+    const input = document.getElementById(`edit-${field}-${scoreId}`);
+    
+    if (display && input) {
+        display.style.display = 'none';
+        input.style.display = 'inline-block';
+        input.focus();
+        input.select();
+    }
+};
+
 console.log('✅ 시험점수 탭 추가 기능 로드 완료');
