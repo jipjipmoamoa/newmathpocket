@@ -205,7 +205,13 @@ window.loadAnnualCalendar = async function(scrollToToday = true) {
                                         const isSunday = date.getDay() === 0;
                                         const isSaturday = date.getDay() === 6;
                                         const bgColor = isSunday || isSaturday ? '#e8e8e8' : '#fff';
-                                        return `<th style="border: 1px solid #ddd; padding: 0.3rem; background: ${bgColor}; font-size: 0.7rem;">${day}<br/>${dayOfWeek}</th>`;
+                                        // 오늘 날짜 확인
+                                        const today = new Date();
+                                        const dateString = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+                                        const todayString = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+                                        const isToday = dateString === todayString;
+                                        const todayClass = isToday ? ' class="today-column"' : '';
+                                        return `<th${todayClass} style="border: 1px solid #ddd; padding: 0.3rem; background: ${bgColor}; font-size: 0.7rem;">${day}<br/>${dayOfWeek}</th>`;
                                     }).join('')}
                                 </tr>
                             </thead>
@@ -334,11 +340,8 @@ window.loadAnnualCalendar = async function(scrollToToday = true) {
                                                 displayEndDate = `${endMonth}/${endDay}`;
                                             }
                                             
-                                            // 오늘 날짜 테두리 (인쇄 시 제외)
-                                            const todayBorder = isToday ? ' class="today-cell"' : '';
-                                            const todayStyle = isToday ? 'border: 3px solid #ff0000 !important; box-shadow: inset 0 0 0 2px #ff0000;' : 'border: 1px solid #ddd;';
                                             rowHTML += `
-                                                <td colspan="${colspan}"${todayBorder} style="${todayStyle} padding: 0; text-align: left; background: ${bgColor}; cursor: pointer; vertical-align: middle; position: relative; overflow: visible;" 
+                                                <td colspan="${colspan}" style="border: 1px solid #ddd; padding: 0; text-align: left; background: ${bgColor}; cursor: pointer; vertical-align: middle; position: relative; overflow: visible;" 
                                                     onclick="addScheduleEvent('${eventForThisDay.id}')">
                                                     <div style="position: absolute; left: 0.5rem; top: 50%; transform: translateY(-50%); z-index: 2; white-space: nowrap; font-weight: 600;">
                                                         <span style="font-size: 0.75rem; color: #333;">${eventForThisDay.title}</span>
@@ -348,11 +351,8 @@ window.loadAnnualCalendar = async function(scrollToToday = true) {
                                             `;
                                         } else {
                                             // 일정이 없는 날짜 - 일반 셀
-                                            // 오늘 날짜 테두리 (인쇄 시 제외)
-                                            const todayClass = isToday ? ' class="today-cell"' : '';
-                                            const todayBorderStyle = isToday ? 'border: 3px solid #ff0000 !important; box-shadow: inset 0 0 0 2px #ff0000;' : 'border: 1px solid #dee2e6;';
                                             rowHTML += `
-                                                <td${todayClass} style="${todayBorderStyle} padding: 0.2rem; text-align: center; background: ${bgColor}; cursor: pointer;" 
+                                                <td style="border: 1px solid #dee2e6; padding: 0.2rem; text-align: center; background: ${bgColor}; cursor: pointer;" 
                                                     onclick="toggleHoliday(this, ${month}, '${school}', ${day})"
                                                     data-month="${month}" 
                                                     data-school="${school}" 
@@ -380,15 +380,60 @@ window.loadAnnualCalendar = async function(scrollToToday = true) {
         
         container.innerHTML = html;
         
+        // 오늘 날짜 열에 빨간 테두리 적용
+        setTimeout(() => {
+            const tables = container.querySelectorAll('table');
+            tables.forEach(table => {
+                const headers = table.querySelectorAll('thead th.today-column');
+                headers.forEach(header => {
+                    // 헤더의 열 인덱스 찾기 (첫 번째 th는 "학교"이므로 +1)
+                    const headerCells = Array.from(table.querySelectorAll('thead th'));
+                    const columnIndex = headerCells.indexOf(header);
+                    
+                    if (columnIndex > 0) {
+                        // 모든 tbody 행의 해당 열에 스타일 적용
+                        const rows = table.querySelectorAll('tbody tr');
+                        rows.forEach(row => {
+                            const cells = row.querySelectorAll('td');
+                            // 첫 번째 td는 학교명이므로 columnIndex를 그대로 사용
+                            const targetCell = cells[columnIndex];
+                            if (targetCell) {
+                                targetCell.style.borderLeft = '3px solid #ff0000';
+                                targetCell.style.borderRight = '3px solid #ff0000';
+                                targetCell.classList.add('today-column-cell');
+                            }
+                        });
+                        
+                        // 헤더에도 테두리 적용
+                        header.style.borderLeft = '3px solid #ff0000';
+                        header.style.borderRight = '3px solid #ff0000';
+                        header.style.borderTop = '3px solid #ff0000';
+                        
+                        // 마지막 행의 셀에 아래쪽 테두리 추가
+                        const lastRow = table.querySelector('tbody tr:last-child');
+                        if (lastRow) {
+                            const lastCells = lastRow.querySelectorAll('td');
+                            const lastCell = lastCells[columnIndex];
+                            if (lastCell) {
+                                lastCell.style.borderBottom = '3px solid #ff0000';
+                            }
+                        }
+                    }
+                });
+            });
+            
+            console.log('[loadAnnualCalendar] 오늘 날짜 열에 빨간 테두리 적용 완료');
+        }, 50);
+        
         // 오늘 날짜로 스크롤 (옵션)
         if (scrollToToday) {
             setTimeout(() => {
-                const todayCell = document.querySelector('.today-cell');
-                if (todayCell) {
-                    todayCell.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                const todayColumn = document.querySelector('.today-column');
+                if (todayColumn) {
+                    todayColumn.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'center' });
                     console.log('[loadAnnualCalendar] 오늘 날짜로 스크롤 완료');
                 }
-            }, 100);
+            }, 150);
         }
         
     } catch (error) {
