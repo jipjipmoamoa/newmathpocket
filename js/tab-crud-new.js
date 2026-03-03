@@ -48,8 +48,9 @@ window.addScore = async function(studentId) {
     const formattedCategory = formatScoreCategory(categoryInput);
     const formattedType = formatScoreType(typeInput);
     const formattedRange = formatScoreRange(rangeInput);
+    const formattedDate = formatDateString(dateInput); // 날짜 포맷팅 추가
     
-    console.log('[addScore] 포맷 변환 완료:', { formattedCategory, formattedType, formattedRange });
+    console.log('[addScore] 포맷 변환 완료:', { formattedDate, formattedCategory, formattedType, formattedRange });
     
     try {
         // 학생 데이터 가져오기 (allStudents에서 직접 찾기)
@@ -80,7 +81,7 @@ window.addScore = async function(studentId) {
         // 새 점수 추가 (날짜 필수)
         const newScore = {
             id: Date.now().toString(),
-            date: dateInput, // 입력된 날짜 (필수)
+            date: formattedDate, // 포맷팅된 날짜 저장
             category: formattedCategory,
             type: formattedType,
             range: formattedRange,
@@ -234,7 +235,8 @@ async function addBook(studentId) {
             advanced: advancedInput
         };
         
-        books.push(newBook);
+        // 최신순 정렬을 위해 맨 앞에 추가
+        books.unshift(newBook);
         
         // DB 업데이트
         await API.update('students', studentId, {
@@ -368,7 +370,8 @@ async function addConsultation(studentId) {
             content: contentInput
         };
         
-        consultations.push(newConsultation);
+        // 최신순 정렬을 위해 맨 앞에 추가
+        consultations.unshift(newConsultation);
         
         // DB 업데이트
         await API.update('students', studentId, {
