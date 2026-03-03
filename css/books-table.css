@@ -1,0 +1,100 @@
+/* 사용책 탭 열 폭 조정 */
+
+.books-table {
+    width: 100% !important;
+    display: table !important;
+    table-layout: fixed !important;
+}
+
+.books-table thead,
+.books-table tbody {
+    display: table-row-group !important;
+}
+
+.books-table tr {
+    display: table-row !important;
+}
+
+.books-table th,
+.books-table td {
+    display: table-cell !important;
+    padding: 0.3rem 0.4rem !important;
+    vertical-align: middle !important;
+}
+
+/* 1열: 안내 날짜 - 84px, 중앙 정렬 */
+.books-table th:nth-child(1),
+.books-table td:nth-child(1) {
+    width: 84px !important;
+    min-width: 84px !important;
+    max-width: 84px !important;
+    text-align: center !important;
+}
+
+/* 2열: 선행개념 - 자동 확장, 헤더 중앙 정렬 */
+.books-table th:nth-child(2) {
+    width: auto !important;
+    min-width: 150px !important;
+    text-align: center !important;
+}
+
+.books-table td:nth-child(2) {
+    width: auto !important;
+    min-width: 150px !important;
+}
+
+/* 3열: 선행복습 - 자동 확장, 헤더 중앙 정렬 */
+.books-table th:nth-child(3) {
+    width: auto !important;
+    min-width: 150px !important;
+    text-align: center !important;
+}
+
+.books-table td:nth-child(3) {
+    width: auto !important;
+    min-width: 150px !important;
+}
+
+/* 4열: 현행심화 - 자동 확장, 헤더 중앙 정렬 */
+.books-table th:nth-child(4) {
+    width: auto !important;
+    min-width: 150px !important;
+    text-align: center !important;
+}
+
+.books-table td:nth-child(4) {
+    width: auto !important;
+    min-width: 150px !important;
+}
+
+/* 5열: 관리 - 60px (20% 증가: 50px → 60px) */
+.books-table th:nth-child(5),
+.books-table td:nth-child(5) {
+    width: 60px !important;
+    min-width: 60px !important;
+    max-width: 60px !important;
+    text-align: center !important;
+}
+
+/* 입력 필드 */
+.books-table .input-field {
+    width: 100% !important;
+    box-sizing: border-box !important;
+}
+
+/* 버튼 크기 최소화 */
+.books-table .btn-register,
+.books-table .btn-edit,
+.books-table .btn-delete {
+    width: 18px !important;
+    height: 18px !important;
+    font-size: 0.6rem !important;
+    padding: 0 !important;
+    margin: 0 1px !important;
+    min-width: unset !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    border: none !important;
+    cursor: pointer !important;
+}
