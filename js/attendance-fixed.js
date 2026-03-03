@@ -1649,23 +1649,22 @@ async function handleAttendance(studentId, recordId = null) {
             console.log('[handleAttendance] 스케줄에서 가져온 시간 - 입실:', checkInTime, '퇴실:', checkOutTime);
             
             // ✅ 새 레코드만 생성 (기존 레코드 덮어쓰기 방지)
-                // 새 레코드 생성
-                const attendanceData = {
-                    student_id: student.id,
-                    student_name: student.name,
-                    date: getSelectedDateString(),
-                    check_in_time: checkInTime,
-                    expected_out_time: expectedOutTime,
-                    check_out_time: checkOutTime,
-                    status: '출석',
-                    absence_reason: '',
-                    makeup_date: ''
-                };
-                
-                await API.create('attendance', attendanceData);
-                // ✅ 조용히 처리 (alert 제거)
-                console.log(`✅ ${student.name} 출석 처리 완료 - 입실: ${checkInTime}, 퇴실: ${checkOutTime}`);
-            }
+            // 새 레코드 생성
+            const attendanceData = {
+                student_id: student.id,
+                student_name: student.name,
+                date: getSelectedDateString(),
+                check_in_time: checkInTime,
+                expected_out_time: expectedOutTime,
+                check_out_time: checkOutTime,
+                status: '출석',
+                absence_reason: '',
+                makeup_date: ''
+            };
+            
+            await API.create('attendance', attendanceData);
+            // ✅ 조용히 처리 (alert 제거)
+            console.log(`✅ ${student.name} 출석 처리 완료 - 입실: ${checkInTime}, 퇴실: ${checkOutTime}`);
         }
         
         await loadAttendanceData();
