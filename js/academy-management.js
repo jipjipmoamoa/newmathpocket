@@ -134,7 +134,7 @@ function generateYearOptions() {
 }
 
 // 연간 달력 로드
-window.loadAnnualCalendar = async function() {
+window.loadAnnualCalendar = async function(scrollToToday = true) {
     const container = document.getElementById('annualCalendarContainer');
     const year = document.getElementById('calendarYear').value;
     
@@ -246,6 +246,11 @@ window.loadAnnualCalendar = async function() {
                                         const isSaturday = date.getDay() === 6;
                                         let bgColor = isSunday || isSaturday ? '#e8e8e8' : '#fff';
                                         
+                                        // 오늘 날짜 확인
+                                        const today = new Date();
+                                        const todayString = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+                                        const isToday = dateString === todayString;
+                                        
                                         // 이 날짜에 시작하거나 걸쳐있는 일정 찾기
                                         let eventForThisDay = null;
                                         let isEventStart = false;
@@ -329,8 +334,10 @@ window.loadAnnualCalendar = async function() {
                                                 displayEndDate = `${endMonth}/${endDay}`;
                                             }
                                             
+                                            // 오늘 날짜 테두리 (인쇄 시 제외)
+                                            const todayBorder = isToday ? ' class="today-cell"' : '';
                                             rowHTML += `
-                                                <td colspan="${colspan}" style="border: 1px solid #ddd; padding: 0; text-align: left; background: ${bgColor}; cursor: pointer; vertical-align: middle; position: relative; overflow: visible;" 
+                                                <td colspan="${colspan}"${todayBorder} style="border: 1px solid #ddd; padding: 0; text-align: left; background: ${bgColor}; cursor: pointer; vertical-align: middle; position: relative; overflow: visible;" 
                                                     onclick="addScheduleEvent('${eventForThisDay.id}')">
                                                     <div style="position: absolute; left: 0.5rem; top: 50%; transform: translateY(-50%); z-index: 2; white-space: nowrap; font-weight: 600;">
                                                         <span style="font-size: 0.75rem; color: #333;">${eventForThisDay.title}</span>
@@ -340,8 +347,10 @@ window.loadAnnualCalendar = async function() {
                                             `;
                                         } else {
                                             // 일정이 없는 날짜 - 일반 셀
+                                            // 오늘 날짜 테두리 (인쇄 시 제외)
+                                            const todayClass = isToday ? ' class="today-cell"' : '';
                                             rowHTML += `
-                                                <td style="border: 1px solid #dee2e6; padding: 0.2rem; text-align: center; background: ${bgColor}; cursor: pointer;" 
+                                                <td${todayClass} style="border: 1px solid #dee2e6; padding: 0.2rem; text-align: center; background: ${bgColor}; cursor: pointer;" 
                                                     onclick="toggleHoliday(this, ${month}, '${school}', ${day})"
                                                     data-month="${month}" 
                                                     data-school="${school}" 
@@ -368,6 +377,17 @@ window.loadAnnualCalendar = async function() {
         }
         
         container.innerHTML = html;
+        
+        // 오늘 날짜로 스크롤 (옵션)
+        if (scrollToToday) {
+            setTimeout(() => {
+                const todayCell = document.querySelector('.today-cell');
+                if (todayCell) {
+                    todayCell.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    console.log('[loadAnnualCalendar] 오늘 날짜로 스크롤 완료');
+                }
+            }, 100);
+        }
         
     } catch (error) {
         console.error('[loadAnnualCalendar] 로드 실패:', error);
