@@ -4,7 +4,13 @@
 window.formatDateString = function(dateStr) {
     if (!dateStr) return '';
     
-    let value = dateStr.toString().replace(/[^\d]/g, ''); // 숫자만 남김
+    // 이미 포맷된 날짜는 그대로 반환 (yyyy.mm 또는 yyyy.mm.dd)
+    const originalStr = dateStr.toString().trim();
+    if (/^\d{4}\.\d{2}(\.\d{2})?$/.test(originalStr)) {
+        return originalStr;
+    }
+    
+    let value = originalStr.replace(/[^\d]/g, ''); // 숫자만 남김
     const originalLength = value.length;
     
     // 4자리 입력 (YYMM)을 6자리 (YYYYMM)로 변환
