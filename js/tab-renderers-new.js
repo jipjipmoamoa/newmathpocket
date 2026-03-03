@@ -32,15 +32,15 @@ function renderScoresTab(student) {
             <table class="data-table scores-table">
                 <thead>
                     <tr>
-                        <th style="width: 100px;">날짜</th>
-                        <th style="width: 80px; cursor: pointer; user-select: none;" 
+                        <th style="width: 50px;">날짜</th>
+                        <th style="width: 41px; cursor: pointer; user-select: none;" 
                             onclick="toggleScoreFilter('${student.id}')" 
                             id="score-category-header-${student.id}">구분</th>
-                        <th style="width: 150px;">종류</th>
-                        <th style="width: 150px;">범위</th>
-                        <th style="width: 112px;">점수</th>
+                        <th style="width: 51px;">종류</th>
+                        <th style="width: 59px;">범위</th>
+                        <th style="width: 54px;">점수</th>
                         <th style="flex: 1;">오답유형</th>
-                        <th style="width: 120px;">관리</th>
+                        <th style="width: 36px;">관리</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -58,7 +58,7 @@ function renderScoresTab(student) {
                         <td><input type="text" id="new-score-range-${student.id}" placeholder="중111 또는 초421" class="input-field" 
                             onblur="this.value = formatScoreRange(this.value)"
                             onkeydown="handleScoreEnter(event, 'new', '${student.id}', 'range')"></td>
-                        <td style="width: 112px;"><input type="text" id="new-score-value-${student.id}" placeholder="점수" class="input-field" style="width: 100%;"
+                        <td style="width: 54px;"><input type="text" id="new-score-value-${student.id}" placeholder="점수" class="input-field" style="width: 100%;"
                             onkeydown="handleScoreEnter(event, 'new', '${student.id}', 'value')"></td>
                         <td><input type="text" id="new-score-notes-${student.id}" placeholder="오답유형" class="input-field"
                             onkeydown="handleScoreEnter(event, 'new', '${student.id}', 'notes')"></td>
@@ -177,6 +177,7 @@ window.formatScoreType = function(value) {
     value = value.trim();
     
     if (value === '단원') return '단원평가';
+    if (value === '기초') return '기초학력평가';
     
     // 패턴: 숫자숫자 + 중/기 (예: "11중", "22기")
     const match = value.match(/^(\d)(\d)(중|기)$/);
@@ -416,21 +417,21 @@ function renderBooksTab(student) {
             <table class="data-table books-table">
                 <thead>
                     <tr>
-                        <th>안내 날짜</th>
-                        <th>선행개념</th>
-                        <th>선행복습</th>
-                        <th>현행심화</th>
-                        <th>관리</th>
+                        <th style="width: 84px; text-align: center;">안내 날짜</th>
+                        <th style="text-align: center;">선행개념</th>
+                        <th style="text-align: center;">선행복습</th>
+                        <th style="text-align: center;">현행심화</th>
+                        <th style="width: 60px;">관리</th>
                     </tr>
                 </thead>
                 <tbody>
                     <!-- 입력 행 (2행) -->
                     <tr class="input-row">
-                        <td><input type="text" id="new-book-date-${student.id}" placeholder="2603" class="input-field" onblur="formatDateInput(this)"></td>
-                        <td><input type="text" id="new-book-concept-${student.id}" placeholder="선행개념 (0 입력 시 비워둠)" class="input-field"></td>
-                        <td><input type="text" id="new-book-review-${student.id}" placeholder="선행복습 (0 입력 시 비워둠)" class="input-field"></td>
-                        <td><input type="text" id="new-book-advanced-${student.id}" placeholder="현행심화 (0 입력 시 비워둠)" class="input-field"></td>
-                        <td><button class="btn-register" onclick="addBook('${student.id}')">등록</button></td>
+                        <td><input type="text" id="new-book-date-${student.id}" placeholder="2603" class="input-field" onblur="formatDateInput(this)" onkeydown="handleBookEnter(event, '${student.id}', 'date')"></td>
+                        <td><input type="text" id="new-book-concept-${student.id}" placeholder="선행개념 (0 입력 시 비워둠)" class="input-field" onkeydown="handleBookEnter(event, '${student.id}', 'concept')"></td>
+                        <td><input type="text" id="new-book-review-${student.id}" placeholder="선행복습 (0 입력 시 비워둠)" class="input-field" onkeydown="handleBookEnter(event, '${student.id}', 'review')"></td>
+                        <td><input type="text" id="new-book-advanced-${student.id}" placeholder="현행심화 (0 입력 시 비워둠)" class="input-field" onkeydown="handleBookEnter(event, '${student.id}', 'advanced')"></td>
+                        <td></td>
                     </tr>
                     
                     <!-- 데이터 행 (3행부터, 최신순) -->
@@ -501,10 +502,10 @@ function renderConsultationTab(student) {
             <table class="data-table consultation-table">
                 <thead>
                     <tr>
-                        <th style="width: 120px;">상담 날짜</th>
-                        <th style="width: 100px;">상담자</th>
+                        <th style="width: 84px;">상담 날짜</th>
+                        <th style="width: 50px;">상담자</th>
                         <th>상담내용</th>
-                        <th style="width: 100px;">관리</th>
+                        <th style="width: 55px;">관리</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -519,7 +520,7 @@ function renderConsultationTab(student) {
                             </select>
                         </td>
                         <td><textarea id="new-consul-content-${student.id}" placeholder="상담 내용 (엔터로 행 구분 가능)" class="input-field" rows="3" style="resize: vertical;"></textarea></td>
-                        <td><button class="btn-register" onclick="addConsultation('${student.id}')">등록</button></td>
+                        <td><span class="btn-register-text" onclick="addConsultation('${student.id}')" style="color: #ff8c00; cursor: pointer; font-weight: bold; user-select: none;">등록</span></td>
                     </tr>
                     
                     <!-- 데이터 행 (3행부터, 최신순) -->
