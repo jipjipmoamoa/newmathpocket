@@ -336,8 +336,9 @@ window.loadAnnualCalendar = async function(scrollToToday = true) {
                                             
                                             // 오늘 날짜 테두리 (인쇄 시 제외)
                                             const todayBorder = isToday ? ' class="today-cell"' : '';
+                                            const todayStyle = isToday ? 'border: 3px solid #ff0000 !important; box-shadow: inset 0 0 0 2px #ff0000;' : 'border: 1px solid #ddd;';
                                             rowHTML += `
-                                                <td colspan="${colspan}"${todayBorder} style="border: 1px solid #ddd; padding: 0; text-align: left; background: ${bgColor}; cursor: pointer; vertical-align: middle; position: relative; overflow: visible;" 
+                                                <td colspan="${colspan}"${todayBorder} style="${todayStyle} padding: 0; text-align: left; background: ${bgColor}; cursor: pointer; vertical-align: middle; position: relative; overflow: visible;" 
                                                     onclick="addScheduleEvent('${eventForThisDay.id}')">
                                                     <div style="position: absolute; left: 0.5rem; top: 50%; transform: translateY(-50%); z-index: 2; white-space: nowrap; font-weight: 600;">
                                                         <span style="font-size: 0.75rem; color: #333;">${eventForThisDay.title}</span>
@@ -349,8 +350,9 @@ window.loadAnnualCalendar = async function(scrollToToday = true) {
                                             // 일정이 없는 날짜 - 일반 셀
                                             // 오늘 날짜 테두리 (인쇄 시 제외)
                                             const todayClass = isToday ? ' class="today-cell"' : '';
+                                            const todayBorderStyle = isToday ? 'border: 3px solid #ff0000 !important; box-shadow: inset 0 0 0 2px #ff0000;' : 'border: 1px solid #dee2e6;';
                                             rowHTML += `
-                                                <td${todayClass} style="border: 1px solid #dee2e6; padding: 0.2rem; text-align: center; background: ${bgColor}; cursor: pointer;" 
+                                                <td${todayClass} style="${todayBorderStyle} padding: 0.2rem; text-align: center; background: ${bgColor}; cursor: pointer;" 
                                                     onclick="toggleHoliday(this, ${month}, '${school}', ${day})"
                                                     data-month="${month}" 
                                                     data-school="${school}" 
