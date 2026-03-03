@@ -26,14 +26,14 @@ window.applyScheduledChanges = async function() {
         let statusUpdateCount = 0;
         let scheduleUpdateCount = 0;
         
-        // 4. 각 학생별로 예정된 변경사항 적용
+        // 4. 각 학생별로 예정된 변경사항 적용 (✅ 정확히 오늘 날짜에만 반영)
         for (const student of students) {
             let needsUpdate = false;
             let updateData = {};
             
-            // 4-1. 예정 상태 변경 확인
+            // 4-1. 예정 상태 변경 확인 (✅ 정확히 오늘 날짜만 필터링)
             const studentStatusSchedules = allStatusSchedules
-                .filter(s => s.student_id === student.id && s.is_active && s.start_date <= today)
+                .filter(s => s.student_id === student.id && s.is_active && s.start_date === today)
                 .sort((a, b) => (b.start_date || '').localeCompare(a.start_date || ''));
             
             if (studentStatusSchedules.length > 0) {
@@ -51,9 +51,9 @@ window.applyScheduledChanges = async function() {
                 }
             }
             
-            // 4-2. 예정 스케줄 변경 확인
+            // 4-2. 예정 스케줄 변경 확인 (✅ 정확히 오늘 날짜만 필터링)
             const studentScheduledSchedules = allScheduledSchedules
-                .filter(s => s.student_id === student.id && s.start_date <= today)
+                .filter(s => s.student_id === student.id && s.start_date === today)
                 .sort((a, b) => (b.start_date || '').localeCompare(a.start_date || ''));
             
             if (studentScheduledSchedules.length > 0) {
