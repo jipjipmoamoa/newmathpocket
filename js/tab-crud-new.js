@@ -189,7 +189,8 @@ async function addBook(studentId) {
     }
     
     // 입력값 가져오기
-    const dateInput = document.getElementById(`new-book-date-${studentId}`).value.trim();
+    const dateInputElement = document.getElementById(`new-book-date-${studentId}`);
+    const dateInput = dateInputElement.value.trim();
     const conceptInput = document.getElementById(`new-book-concept-${studentId}`).value.trim();
     const reviewInput = document.getElementById(`new-book-review-${studentId}`).value.trim();
     const advancedInput = document.getElementById(`new-book-advanced-${studentId}`).value.trim();
@@ -200,8 +201,11 @@ async function addBook(studentId) {
         return;
     }
     
-    // 날짜 포맷 변환
+    // 날짜 포맷 변환 (입력 필드 값도 업데이트)
     const formattedDate = formatDateString(dateInput);
+    dateInputElement.value = formattedDate; // 입력 필드 값 업데이트
+    
+    console.log('[addBook] 날짜 변환:', dateInput, '→', formattedDate);
     
     try {
         // 학생 데이터 가져오기
@@ -326,7 +330,8 @@ async function addConsultation(studentId) {
     }
     
     // 입력값 가져오기
-    const dateInput = document.getElementById(`new-consul-date-${studentId}`).value.trim();
+    const dateInputElement = document.getElementById(`new-consul-date-${studentId}`);
+    const dateInput = dateInputElement.value.trim();
     const personInput = document.getElementById(`new-consul-person-${studentId}`).value.trim();
     const contentInput = document.getElementById(`new-consul-content-${studentId}`).value.trim();
     
@@ -336,8 +341,11 @@ async function addConsultation(studentId) {
         return;
     }
     
-    // 날짜 포맷 변환
+    // 날짜 포맷 변환 (입력 필드 값도 업데이트)
     const formattedDate = formatDateString(dateInput);
+    dateInputElement.value = formattedDate; // 입력 필드 값 업데이트
+    
+    console.log('[addConsultation] 날짜 변환:', dateInput, '→', formattedDate);
     
     try {
         // 학생 데이터 가져오기
