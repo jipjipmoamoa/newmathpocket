@@ -5316,3 +5316,5 @@ window.registerSchedule = registerSchedule;
 console.log('[attendance-fixed.js] 로드 완료');
 console.log('[attendance-fixed.js] showAttendanceCheckPage:', typeof window.showAttendanceCheckPage);
 console.log('[attendance-fixed.js] showAttendanceViewPage:', typeof window.showAttendanceViewPage);
+
+// 파일 끝
