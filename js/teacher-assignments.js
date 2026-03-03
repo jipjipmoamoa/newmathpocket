@@ -63,7 +63,7 @@ async function renderTeacherHistoryTab(student, teachers) {
                     <tr>
                         <th style="width: 150px;">시작 날짜</th>
                         <th style="width: 150px;">종료 날짜</th>
-                        <th style="width: 150px;">담당 선생님</th>
+                        <th style="width: 150px; text-align: center;">담당 선생님</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -84,7 +84,7 @@ async function renderTeacherHistoryTab(student, teachers) {
                             <td class="assign-end-cell" data-assign-id="${assign.id}">
                                 <span class="display-value">${endDate}</span>
                             </td>
-                            <td class="assign-teacher-cell" data-assign-id="${assign.id}">
+                            <td class="assign-teacher-cell" data-assign-id="${assign.id}" style="text-align: center;">
                                 <span class="display-value">${teacherName}${isCurrent ? ' 📌' : ''}</span>
                             </td>
                         </tr>
