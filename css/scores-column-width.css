@@ -1,0 +1,109 @@
+/* 시험점수 탭 열 폭 조정 */
+
+/* 시험점수 테이블 */
+.scores-table {
+    width: 100% !important;
+    display: table !important;
+    table-layout: fixed !important;
+}
+
+.scores-table thead,
+.scores-table tbody {
+    display: table-row-group !important;
+}
+
+.scores-table tr {
+    display: table-row !important;
+}
+
+.scores-table th,
+.scores-table td {
+    display: table-cell !important;
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+}
+
+/* 날짜 열 - 변경 없음 (84px) */
+.scores-table th:nth-child(1),
+.scores-table td:nth-child(1) {
+    width: 84px !important;
+    min-width: 84px !important;
+    max-width: 84px !important;
+    padding: 0.3rem 0.4rem !important;
+}
+
+/* 구분 열 - 변경 없음 (70px) */
+.scores-table th:nth-child(2),
+.scores-table td:nth-child(2) {
+    width: 70px !important;
+    min-width: 70px !important;
+    max-width: 70px !important;
+    padding: 0.3rem 0.4rem !important;
+}
+
+/* 종류 열 - 20% 추가 증가 (84px → 101px) */
+.scores-table th:nth-child(3),
+.scores-table td:nth-child(3) {
+    width: 101px !important;
+    min-width: 101px !important;
+    max-width: 101px !important;
+    padding: 0.3rem 0.4rem !important;
+}
+
+/* 범위 열 - 20% 추가 증가 (84px → 101px) */
+.scores-table th:nth-child(4),
+.scores-table td:nth-child(4) {
+    width: 101px !important;
+    min-width: 101px !important;
+    max-width: 101px !important;
+    padding: 0.3rem 0.4rem !important;
+}
+
+/* 점수 열 - 변경 없음 (84px) */
+.scores-table th:nth-child(5),
+.scores-table td:nth-child(5) {
+    width: 84px !important;
+    min-width: 84px !important;
+    max-width: 84px !important;
+    padding: 0.3rem 0.4rem !important;
+}
+
+/* 오답유형 열 - 나머지 공간 모두 차지 */
+.scores-table th:nth-child(6),
+.scores-table td:nth-child(6) {
+    width: auto !important;
+    min-width: 200px !important;
+    white-space: normal !important;
+    word-wrap: break-word !important;
+    padding: 0.3rem 0.5rem !important;
+}
+
+/* 관리 열 - 50px 고정 */
+.scores-table th:nth-child(7),
+.scores-table td:nth-child(7) {
+    width: 50px !important;
+    min-width: 50px !important;
+    max-width: 50px !important;
+    padding: 0.2rem !important;
+}
+
+/* 관리 버튼 크기 더욱 축소 */
+.scores-table .btn-edit,
+.scores-table .btn-delete {
+    width: 16px !important;
+    height: 16px !important;
+    padding: 0 !important;
+    font-size: 0.6rem !important;
+    min-width: unset !important;
+    margin: 0 1px !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+}
+
+/* 입력 필드가 td 폭에 맞게 */
+.scores-table .input-field {
+    width: 100% !important;
+    box-sizing: border-box;
+}
