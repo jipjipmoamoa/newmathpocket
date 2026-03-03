@@ -1,0 +1,11 @@
+/* 담당 선생님 탭 스타일 */
+
+.teacher-history-table {
+    width: 100% !important;
+}
+
+/* 3열: 담당 선생님 - 중앙 정렬 */
+.teacher-history-table th:nth-child(3),
+.teacher-history-table td:nth-child(3) {
+    text-align: center !important;
+}
