@@ -70,7 +70,9 @@ function renderScoresTab(student) {
                     ${scores.map(score => `
                         <tr id="score-row-${score.id}" class="score-data-row" data-category="${score.category || ''}" data-score-id="${score.id}">
                             <td>
-                                <span class="score-display" id="display-date-${score.id}">${score.date ? formatDateString(score.date) : '-'}</span>
+                                <span class="score-display" id="display-date-${score.id}" 
+                                    onclick="editScoreField('${score.id}', 'date')" 
+                                    style="cursor: pointer;">${score.date ? formatDateString(score.date) : '-'}</span>
                                 <input type="text" class="input-field score-edit-field" 
                                     id="edit-date-${score.id}"
                                     data-score-id="${score.id}" 
@@ -433,10 +435,16 @@ function renderBooksTab(student) {
                     
                     <!-- 데이터 행 (3행부터, 최신순) -->
                     ${books.length === 0 ? '<tr><td colspan="5" class="empty-message">등록된 사용책 정보가 없습니다</td></tr>' : ''}
-                    ${books.map(book => `
+                    ${books.map(book => {
+                        // 디버깅: 날짜 변환 확인
+                        const displayDate = book.date ? formatDateString(book.date) : '-';
+                        if (book.date && displayDate === '') {
+                            console.warn('[renderBooksTab] 날짜 변환 실패:', book.date, '→', displayDate);
+                        }
+                        return `
                         <tr id="book-row-${book.id}" class="data-row">
                             <td class="book-date-cell" data-book-id="${book.id}">
-                                <span class="display-value">${book.date ? formatDateString(book.date) : '-'}</span>
+                                <span class="display-value">${displayDate}</span>
                                 <input type="text" class="edit-input" value="${book.date || ''}" style="display:none;" placeholder="2511" onblur="formatDateInput(this)">
                             </td>
                             <td class="book-concept-cell" data-book-id="${book.id}">
@@ -456,7 +464,8 @@ function renderBooksTab(student) {
                                 <button class="btn-delete" onclick="deleteBook('${student.id}', '${book.id}')"><i class="fas fa-times"></i></button>
                             </td>
                         </tr>
-                    `).join('')}
+                    `;
+                    }).join('')}
                 </tbody>
             </table>
         </div>
@@ -515,10 +524,16 @@ function renderConsultationTab(student) {
                     
                     <!-- 데이터 행 (3행부터, 최신순) -->
                     ${consultations.length === 0 ? '<tr><td colspan="4" class="empty-message">등록된 상담 내용이 없습니다</td></tr>' : ''}
-                    ${consultations.map(consul => `
+                    ${consultations.map(consul => {
+                        // 디버깅: 날짜 변환 확인
+                        const displayDate = consul.date ? formatDateString(consul.date) : '-';
+                        if (consul.date && displayDate === '') {
+                            console.warn('[renderConsultationTab] 날짜 변환 실패:', consul.date, '→', displayDate);
+                        }
+                        return `
                         <tr id="consul-row-${consul.id}" class="data-row">
                             <td class="consul-date-cell" data-consul-id="${consul.id}">
-                                <span class="display-value">${consul.date ? formatDateString(consul.date) : '-'}</span>
+                                <span class="display-value">${displayDate}</span>
                                 <input type="text" class="edit-input" value="${consul.date || ''}" style="display:none;" onblur="formatDateInput(this)">
                             </td>
                             <td class="consul-person-cell" data-consul-id="${consul.id}">
@@ -538,7 +553,8 @@ function renderConsultationTab(student) {
                                 <button class="btn-delete" onclick="deleteConsultation('${student.id}', '${consul.id}')"><i class="fas fa-times"></i></button>
                             </td>
                         </tr>
-                    `).join('')}
+                    `;
+                    }).join('')}
                 </tbody>
             </table>
         </div>
