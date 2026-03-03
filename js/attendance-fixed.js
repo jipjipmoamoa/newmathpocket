@@ -2612,12 +2612,6 @@ function calculateMakeupNumbers(allRecords) {
     Object.entries(groupByStudentAndAbsenceDate).forEach(([key, records]) => {
         const [studentId, makeupDate] = key.split('_');
         
-        // 같은 결석날짜에 대한 보강이 2개 이상인 경우에만 번호 부여
-        if (records.length < 2) {
-            console.log(`[calculateMakeupNumbers] ${key}: 보강 1개만 있어서 번호 부여 안 함`);
-            return;
-        }
-        
         // 원래 결석 수업의 시간(분) 확인
         const absenceRecord = allRecords.find(r => 
             r.student_id === studentId && 
@@ -2642,7 +2636,7 @@ function calculateMakeupNumbers(allRecords) {
             }
         });
         
-        console.log(`[calculateMakeupNumbers] ${key}: 원래 ${originalDuration}분, 보강 합계 ${totalMakeupDuration}분`);
+        console.log(`[calculateMakeupNumbers] ${key}: 원래 ${originalDuration}분, 보강 합계 ${totalMakeupDuration}분, 보강 개수 ${records.length}`);
         
         // 보강 시간 합계가 원래 수업 시간 이내라면 번호 부여
         if (totalMakeupDuration <= originalDuration) {
@@ -2655,15 +2649,21 @@ function calculateMakeupNumbers(allRecords) {
                 return (a.check_in_time || '').localeCompare(b.check_in_time || '');
             });
             
-            // 번호 부여
-            const numberSymbols = ['①', '②', '③', '④', '⑤', '⑥', '⑦', '⑧', '⑨', '⑩'];
-            records.forEach((record, index) => {
-                const symbol = numberSymbols[index] || `⑪`; // 10개 초과 시 ⑪로 표시
-                makeupNumberMap.set(record.id, symbol);
-                console.log(`  - ${record.date} ${record.check_in_time}: ${symbol}`);
-            });
+            // 번호 부여 (보강이 1개만 있어도 번호 부여)
+            if (records.length === 1) {
+                // 보강이 1개만 있으면 번호 없이 표시
+                console.log(`[calculateMakeupNumbers] ${key}: 보강 1개만 있어서 번호 생략`);
+            } else {
+                // 보강이 2개 이상이면 번호 부여
+                const numberSymbols = ['①', '②', '③', '④', '⑤', '⑥', '⑦', '⑧', '⑨', '⑩'];
+                records.forEach((record, index) => {
+                    const symbol = numberSymbols[index] || `⑪`; // 10개 초과 시 ⑪로 표시
+                    makeupNumberMap.set(record.id, symbol);
+                    console.log(`  - ${record.date} ${record.check_in_time}: ${symbol}`);
+                });
+            }
         } else {
-            console.log(`[calculateMakeupNumbers] ${key}: 보강 시간이 초과되어 번호 부여 안 함`);
+            console.log(`[calculateMakeupNumbers] ${key}: 보강 시간 ${totalMakeupDuration}분 > 원래 시간 ${originalDuration}분, 번호 부여 안 함`);
         }
     });
     
@@ -3102,9 +3102,8 @@ function calculateStudentStats(student, year, month) {
     // 출석 횟수
     const attendanceCount = studentRecords.filter(r => r.status === '출석').length;
     
-    // ✅ 보강 횟수 계산 (번호가 부여된 그룹은 1회로 계산)
+    // ✅ 보강 횟수 계산 (시간 합산 기준으로 그룹화)
     const makeupRecords = studentRecords.filter(r => r.status === '보강');
-    const makeupNumberMap = calculateMakeupNumbers(allMonthAttendance);
     
     // 보강을 결석날짜별로 그룹화
     const makeupGroups = {};
@@ -3118,15 +3117,41 @@ function calculateStudentStats(student, year, month) {
     
     // 각 그룹별로 횟수 계산
     let makeupCount = 0;
-    Object.values(makeupGroups).forEach(group => {
-        // 그룹 내에 번호가 부여된 보강이 있는지 확인
-        const hasNumber = group.some(r => makeupNumberMap.has(r.id));
+    Object.entries(makeupGroups).forEach(([makeupDate, group]) => {
+        if (makeupDate === 'no-date') {
+            // 결석날짜가 없는 보강은 각각 1회씩 계산
+            makeupCount += group.length;
+            return;
+        }
         
-        if (hasNumber) {
-            // 번호가 부여된 그룹 전체를 1회로 계산
+        // 원래 결석 수업의 시간(분) 확인
+        const absenceRecord = allMonthAttendance.find(r => 
+            r.student_id === student.id && 
+            r.date === makeupDate && 
+            r.status === '결석'
+        );
+        
+        let originalDuration = 0;
+        if (absenceRecord && absenceRecord.check_in_time && absenceRecord.check_out_time) {
+            originalDuration = timeToMinutes(absenceRecord.check_out_time) - timeToMinutes(absenceRecord.check_in_time);
+        } else {
+            originalDuration = 90; // 기본값
+        }
+        
+        // 보강 시간 합계 계산
+        let totalMakeupDuration = 0;
+        group.forEach(r => {
+            if (r.check_in_time && r.check_out_time) {
+                const duration = timeToMinutes(r.check_out_time) - timeToMinutes(r.check_in_time);
+                totalMakeupDuration += duration;
+            }
+        });
+        
+        // 보강 시간 합계가 원래 수업 시간 이내라면 1회로 계산
+        if (totalMakeupDuration <= originalDuration) {
             makeupCount += 1;
         } else {
-            // 번호가 없는 보강은 각각 1회씩 계산
+            // 시간이 초과하면 각각 1회씩 계산
             makeupCount += group.length;
         }
     });
