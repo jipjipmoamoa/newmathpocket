@@ -218,6 +218,14 @@ function renderScheduledScheduleList() {
             return null;
         }).filter(s => s).join(', ');
         
+        // 삭제 버튼 권한 체크
+        const canDelete = Auth.isAdmin() || Auth.isSubAdmin();
+        const deleteButton = canDelete 
+            ? `<button onclick="deleteScheduledSchedule('${schedule.id}', '${schedule.student_id}')" style="padding: 0.5rem 1rem; background: #f44336; color: white; border: none; border-radius: 6px; cursor: pointer;">
+                <i class="fas fa-trash"></i> 삭제
+               </button>`
+            : `<span style="color: #999; font-size: 0.85rem;">관리자 전용</span>`;
+        
         html += `
             <div style="border: 1px solid #ddd; border-radius: 8px; padding: 1rem; background: #f8f9fa;">
                 <div style="display: flex; justify-content: space-between; align-items: center;">
@@ -229,9 +237,7 @@ function renderScheduledScheduleList() {
                             ${scheduleSummary || '스케줄 없음'}
                         </div>
                     </div>
-                    <button onclick="deleteScheduledSchedule('${schedule.id}')" style="padding: 0.5rem 1rem; background: #f44336; color: white; border: none; border-radius: 6px; cursor: pointer;">
-                        <i class="fas fa-trash"></i> 삭제
-                    </button>
+                    ${deleteButton}
                 </div>
             </div>
         `;
@@ -405,12 +411,52 @@ window.saveNewScheduledSchedule = async function() {
 };
 
 // 예정 스케줄 삭제
-window.deleteScheduledSchedule = async function(scheduleId) {
-    if (!confirm('이 예정 스케줄을 삭제하시겠습니까?')) {
+window.deleteScheduledSchedule = async function(scheduleId, studentId) {
+    // 권한 확인
+    if (!Auth.isAdmin() && !Auth.isSubAdmin()) {
+        alert('⚠️ 권한이 없습니다.\n\n관리자만 예정 스케줄을 삭제할 수 있습니다.');
         return;
     }
     
     try {
+        // 예정 스케줄 정보 가져오기
+        const schedule = await API.getOne('scheduled_schedules', scheduleId);
+        if (!schedule) {
+            alert('예정 스케줄을 찾을 수 없습니다.');
+            return;
+        }
+        
+        // 확정된 스케줄이 있는지 확인
+        const startDate = schedule.start_date;
+        const today = new Date().toISOString().split('T')[0];
+        
+        if (startDate <= today) {
+            // 시작일이 오늘이거나 과거인 경우, 해당 기간의 출석 기록 확인
+            const attendanceRecords = await API.getList('attendance', { limit: 10000 });
+            const records = Array.isArray(attendanceRecords) ? attendanceRecords : (attendanceRecords.data || []);
+            
+            // 해당 학생의 시작일 이후 출석 기록이 있는지 확인
+            const hasConfirmedSchedule = records.some(record => 
+                record.student_id === studentId && record.date >= startDate
+            );
+            
+            if (hasConfirmedSchedule) {
+                const confirmDelete = confirm(
+                    '⚠️ 경고: 이 예정 스케줄에는 이미 확정된 출석 기록이 있습니다.\n\n' +
+                    '삭제하면 해당 기간의 출석 현황에 영향을 줄 수 있습니다.\n' +
+                    '정말 삭제하시겠습니까?'
+                );
+                
+                if (!confirmDelete) {
+                    return;
+                }
+            }
+        }
+        
+        if (!confirm('이 예정 스케줄을 삭제하시겠습니까?')) {
+            return;
+        }
+        
         await API.delete('scheduled_schedules', scheduleId);
         
         alert('예정 스케줄이 삭제되었습니다.');
