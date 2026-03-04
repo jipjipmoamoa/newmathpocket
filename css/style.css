@@ -773,12 +773,12 @@ tbody tr:hover {
 
 .all-members-table th:nth-child(2),
 .all-members-table td:nth-child(2) {
-    width: 6.4%;  /* 이름: 8% → 6.4% (20% 감소) */
+    width: 10.09645%;  /* 이름: 10.62784% → 10.09645% (5% 추가 감소) */
 }
 
 .all-members-table th:nth-child(3),
 .all-members-table td:nth-child(3) {
-    width: 7.2%;  /* 학교명: 9% → 7.2% (20% 감소) */
+    width: 8.87955%;  /* 학교명: 8.34816% → 8.87955% (+0.53139%) */
 }
 
 .all-members-table th:nth-child(4),
@@ -793,17 +793,17 @@ tbody tr:hover {
 
 .all-members-table th:nth-child(6),
 .all-members-table td:nth-child(6) {
-    width: 19.2%;  /* 선행개념: 19% → 19.2% */
+    width: 17.408%;  /* 선행개념: 20.48% → 17.408% (15% 감소) */
 }
 
 .all-members-table th:nth-child(7),
 .all-members-table td:nth-child(7) {
-    width: 19.2%;  /* 선행복습: 19% → 19.2% */
+    width: 17.408%;  /* 선행복습: 20.48% → 17.408% (15% 감소) */
 }
 
 .all-members-table th:nth-child(8),
 .all-members-table td:nth-child(8) {
-    width: 19.2%;  /* 현행심화: 19% → 19.2% */
+    width: 17.408%;  /* 현행심화: 20.48% → 17.408% (15% 감소) */
 }
 
 /* 분류 셀 스타일 */
@@ -826,10 +826,16 @@ tbody tr:hover {
 
 /* 인쇄 스타일 */
 @media print {
-    /* 페이지 설정 */
+    /* 페이지 설정 - 가로 인쇄 강제 */
     @page {
-        size: landscape;
+        size: landscape !important;
         margin: 1cm;
+    }
+    
+    /* 가로 방향 강제 */
+    body {
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
     }
     
     /* 불필요한 요소 숨기기 */
@@ -1028,30 +1034,28 @@ tbody tr:hover {
     color: #7B3F00;
 }
 
-
 .units-container {
     margin-top: 0.5rem;
-    padding-left: 0.5rem;
+    padding-left: 1.5rem;
 }
 
 /* 단원 아이템 */
 .unit-item {
-    padding: 0.25rem 0.5rem;
-    margin-bottom: 0;
-    border: none;
-    border-radius: 0;
-    background: white;
+    margin-bottom: 0.5rem;
+    border-radius: 4px;
 }
-
-
 
 .unit-header {
     display: flex;
+    justify-content: space-between;
     align-items: center;
+    padding: 0.6rem 0.75rem;
+    background: white;
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
     cursor: pointer;
-    padding: 0.25rem;
+    transition: all 0.2s;
 }
-
 
 .unit-header:hover {
     background: #FFFBF5;
@@ -1096,9 +1100,6 @@ tbody tr:hover {
     padding-top: 0.25rem;
 }
 
-
-
-
 /* 대단원 스타일 */
 .unit-major .unit-number {
     min-width: 2.5rem;
@@ -1112,17 +1113,11 @@ tbody tr:hover {
     font-size: 0.95rem;
 }
 
-
-
-
-/* 중단원 스타일 */
 /* 중단원 스타일 */
 .unit-middle {
-    padding-left: 0.8em;
+    padding-left: 1em;
     margin-left: 0;
 }
-
-
 
 .unit-middle .unit-number {
     min-width: 2.5rem;
@@ -1131,7 +1126,6 @@ tbody tr:hover {
     margin-left: 0;
 }
 
-
 .unit-middle .unit-number,
 .unit-middle .unit-name {
     color: #000000;
@@ -1139,14 +1133,11 @@ tbody tr:hover {
     font-size: 0.9rem;
 }
 
-
-/* 소단원 스타일 */
 /* 소단원 스타일 */
 .unit-minor {
     padding-left: 0;
-    margin-left: 1em;
+    margin-left: 2em;
 }
-
 
 .unit-minor .unit-number {
     min-width: 1.5rem;
@@ -1159,7 +1150,6 @@ tbody tr:hover {
     font-weight: 400;
     font-size: 0.85rem;
 }
-
 
 /* 인라인 입력 스타일 */
 .inline-input-row {
@@ -1199,6 +1189,32 @@ tbody tr:hover {
 
 .inline-input:focus {
     border-color: var(--primary-color);
+}
+
+/* 수학 공식 입력 스타일 */
+.math-input {
+    font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+}
+
+.math-symbol-panel-container {
+    margin-bottom: 0.5rem;
+}
+
+.math-preview {
+    min-height: 2rem;
+    padding: 0.5rem;
+    background: white;
+    border: 1px solid #e0e0e0;
+    border-radius: 3px;
+    font-size: 0.9rem;
+}
+
+.math-preview .katex {
+    font-size: 1.1em;
+}
+
+.math-preview .katex-display {
+    margin: 0.5em 0;
 }
 
 /* 주간 스케줄 테이블 스타일 */
@@ -1245,7 +1261,9 @@ tbody tr:hover {
     border: 1px solid #dee2e6;
     text-align: center;
     min-width: 60px;
-    height: 60px;
+    height: 56px;
+    min-height: 56px;
+    max-height: 56px;
     padding: 0.3rem;
 }
 
@@ -1278,13 +1296,37 @@ tbody tr:hover {
     vertical-align: middle;
 }
 
-.weekly-schedule-table .student-cell div:first-child {
+/* 학생 이름 스타일 */
+.weekly-schedule-table .student-cell .student-name {
+    font-size: 0.75rem !important;
+    font-weight: 700;
+    color: #000;
+    line-height: 1.2;
+}
+
+/* 학생 시간 스타일 (입실/퇴실 분리) - 완전히 동일하게 */
+.weekly-schedule-table .student-cell .student-time {
+    font-size: 0.65rem !important;
+    color: #888;
+    margin-top: 0.25rem;
+    line-height: 1.3;
+}
+
+.weekly-schedule-table .student-cell .student-time > div {
+    margin-bottom: 0.1rem;
+    color: #888;
+    font-size: 0.65rem !important;
+    font-weight: 400 !important;
+}
+
+/* 이전 스타일 호환성 유지 */
+.weekly-schedule-table .student-cell div:first-child:not(.student-name) {
     font-size: 0.8rem !important;
     font-weight: 600;
     color: #333;
 }
 
-.weekly-schedule-table .student-cell div:last-child {
+.weekly-schedule-table .student-cell div:last-child:not(.student-time) {
     font-size: 0.65rem !important;
     color: #555;
     margin-top: 0.2rem;
