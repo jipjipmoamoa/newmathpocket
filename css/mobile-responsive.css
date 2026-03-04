@@ -1,0 +1,123 @@
+/* 
+ * 모바일 반응형 CSS
+ * v20260304001
+ */
+
+/* ============================================
+   1. 모바일 헤더 레이아웃 개선
+   ============================================ */
+
+@media (max-width: 768px) {
+    /* 헤더 컨테이너 수정 */
+    .header-container {
+        padding: 0.75rem 1rem;
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+    
+    /* 로고를 상단 중앙에 배치 */
+    .logo-container {
+        order: 1;
+        width: 100%;
+        justify-content: center;
+    }
+    
+    .logo {
+        height: 50px;
+    }
+    
+    /* 날짜, 닉네임, 로그아웃 버튼을 오른쪽 상단에 배치 */
+    .login-area {
+        position: absolute;
+        right: 1rem;
+        top: 0.75rem;
+        transform: none;
+    }
+    
+    .user-info-container {
+        display: flex;
+        flex-direction: column;
+        align-items: flex-end;
+        gap: 0.25rem;
+    }
+    
+    .current-date {
+        font-size: 0.75rem;
+    }
+    
+    .welcome-text {
+        font-size: 0.75rem;
+        margin-right: 0;
+    }
+    
+    .logout-btn {
+        padding: 0.4rem 0.8rem;
+        font-size: 0.75rem;
+    }
+}
+
+/* ============================================
+   2. 출석현황 테이블 열 너비 조정
+   ============================================ */
+
+/* 출석현황 CSS는 attendance.css에서 직접 수정됨 */
+
+/* ============================================
+   3. 전체회원관리 테이블 열 너비 조정
+   ============================================ */
+
+/* 전체회원관리 테이블 (all-members-table) */
+/* 2열: 이름 (2.56% → 11.776%, +9.216%) */
+/* 6열: 선행개념 (20.48% → 17.408%, 15% 감소) */
+/* 7열: 선행복습 (20.48% → 17.408%, 15% 감소) */
+/* 8열: 현행심화 (20.48% → 17.408%, 15% 감소) */
+/* style.css에서 직접 수정됨 */
+
+/* ============================================
+   4. 학생 목록 모바일 최적화
+   ============================================ */
+
+/* 모바일에서만 학교/선생님을 이름 아래에 표시 */
+@media (max-width: 768px) {
+    /* 학생 목록 아이템 */
+    .student-list-item {
+        padding: 0.75rem !important;
+    }
+    
+    /* 학생 정보를 세로로 배치 */
+    .student-info-inline {
+        display: flex !important;
+        flex-direction: column !important;
+        align-items: flex-start !important;
+        gap: 0.25rem !important;
+    }
+    
+    /* 이름 스타일 */
+    .student-info-inline .student-name,
+    .student-info-inline .student-name.incomplete {
+        font-size: 0.95rem !important;
+        font-weight: 600 !important;
+    }
+    
+    /* 학교/선생님 정보를 이름 아래에 표시 */
+    .student-info-inline .student-school-inline {
+        display: block !important;
+        font-size: 0.8rem !important;
+        color: #7F8C8D !important;
+        font-weight: 400 !important;
+    }
+}
+
+/* 모바일에서 테이블 가로 스크롤 */
+@media (max-width: 768px) {
+    .attendance-table-container,
+    .students-section {
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+    
+    .attendance-table,
+    .students-section table {
+        min-width: 800px;
+    }
+}
