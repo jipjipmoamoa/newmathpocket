@@ -429,7 +429,7 @@ async function loadAttendanceData() {
         
         // 화면 렌더링
         renderStudentSelect();
-        renderAttendanceTable();
+        await renderAttendanceTable();
         
     } catch (error) {
         console.error('데이터 로드 실패:', error);
@@ -508,7 +508,7 @@ function renderStudentSelect() {
 // ============================================
 // 5. 출석 테이블 렌더링 (스케줄 기반)
 // ============================================
-function renderAttendanceTable() {
+async function renderAttendanceTable() {
     const tbody = document.getElementById('attendanceTableBody');
     if (!tbody) return;
     
@@ -554,27 +554,58 @@ function renderAttendanceTable() {
     renderStudentSelectForRegister();
     
     // 3행부터: 모든 출석 기록을 입실시간 빠른 순으로 정렬
-    // ✅ 수정: 확정 스케줄(출석 기록)은 항상 표시, 미확정 스케줄(주간 스케줄)은 재원생만 표시
+    // ✅ 수정: 확정 스케줄(출석 기록)은 항상 표시, 미확정 스케줄(주간 스케줄)은 해당 날짜에 재원생만 표시
     const allAttendanceRows = [];
     const selectedDate = getSelectedDateString();
     const dateObj = new Date(selectedDate);
     const dayKeys = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
     const selectedDayKey = dayKeys[dateObj.getDay()];
     
+    // ✅ 예약 데이터 로드 (해당 날짜의 상태/스케줄 확인용)
+    let allStatusSchedules = [];
+    let allScheduledSchedules = [];
+    
+    // 비동기 데이터 로드를 동기화
+    const loadPromises = [];
+    
+    loadPromises.push(
+        API.getList('student_status_schedules').then(response => {
+            allStatusSchedules = Array.isArray(response) ? response : (response.data || []);
+            console.log(`[출석현황] 예약 상태 ${allStatusSchedules.length}개 로드`);
+        }).catch(err => {
+            console.error('[출석현황] 예약 상태 로드 실패:', err);
+        })
+    );
+    
+    loadPromises.push(
+        API.getList('scheduled_schedules').then(response => {
+            allScheduledSchedules = Array.isArray(response) ? response : (response.data || []);
+            console.log(`[출석현황] 예약 스케줄 ${allScheduledSchedules.length}개 로드`);
+        }).catch(err => {
+            console.error('[출석현황] 예약 스케줄 로드 실패:', err);
+        })
+    );
+    
+    // 모든 예약 데이터 로드 대기
+    await Promise.all(loadPromises);
+    
     // ✅ 1단계: 모든 출석 기록을 먼저 수집 (학생 상태 무관, 확정 스케줄은 항상 표시)
     const processedRecordIds = new Set();
-    const studentIdToInfo = new Map(); // 학생 ID → {student, schedule} 매핑
+    const studentIdToInfo = new Map(); // 학생 ID → {student, effectiveStatus, effectiveSchedule} 매핑
     
     // attendanceStudents에 있는 학생 정보를 Map에 저장
-    // ✅ 원본 schedule만 사용 (effectiveSchedule 사용 안 함)
+    // ✅ 해당 날짜의 effectiveStatus와 effectiveSchedule 계산
     attendanceStudents.forEach(student => {
-        let schedule = student.schedule;
-        if (typeof schedule === 'string' && schedule.trim() !== '') {
-            try { schedule = JSON.parse(schedule); } catch (e) { schedule = {}; }
-        } else if (!schedule) {
-            schedule = {};
-        }
-        studentIdToInfo.set(student.id, { student, schedule });
+        const effectiveStatus = window.getStudentStatusOnDate(student, selectedDate, allStatusSchedules);
+        const effectiveSchedule = window.getStudentScheduleOnDate(student, selectedDate, allScheduledSchedules);
+        
+        console.log(`[출석현황] ${student.name} on ${selectedDate}: status=${effectiveStatus}`);
+        
+        studentIdToInfo.set(student.id, { 
+            student, 
+            effectiveStatus,
+            effectiveSchedule
+        });
     });
     
     // 모든 출석 기록을 순회하여 확정 스케줄 행 추가
@@ -583,10 +614,10 @@ function renderAttendanceTable() {
         
         if (studentInfo) {
             // attendanceStudents에 있는 학생의 출석 기록
-            const { student, schedule } = studentInfo;
-            const daySchedule = schedule[selectedDayKey] || {};
+            const { student, effectiveStatus, effectiveSchedule } = studentInfo;
+            const daySchedule = effectiveSchedule[selectedDayKey] || {};
             
-            console.log(`[확정 스케줄] ${student.name} (${record.date}): checkIn=${record.check_in_time}, status=${record.status}`);
+            console.log(`[확정 스케줄] ${student.name} (${record.date}): checkIn=${record.check_in_time}, status=${effectiveStatus}`);
             
             processedRecordIds.add(record.id);
             allAttendanceRows.push({
@@ -595,7 +626,8 @@ function renderAttendanceTable() {
                 record: record,
                 daySchedule: daySchedule.enabled ? daySchedule : null,
                 checkInTime: record.check_in_time || '23:59',
-                scheduleType: 'confirmed'
+                scheduleType: 'confirmed',
+                effectiveStatus: effectiveStatus
             });
         } else {
             // attendanceStudents에 없는 학생의 출석 기록 (휴원/퇴원 학생)
@@ -612,18 +644,21 @@ function renderAttendanceTable() {
         }
     });
     
-    // ✅ 2단계: 재원생의 주간 스케줄 빈 행 추가 (출석 기록이 없는 경우만)
-    // ⚠️ 주의: effectiveSchedule이 아닌 원본 schedule을 사용하여 과거 날짜에 미래 스케줄이 적용되지 않도록 함
+    // ✅ 2단계: 해당 날짜에 재원생의 주간 스케줄 빈 행 추가 (출석 기록이 없는 경우만)
+    // ⚠️ 주의: 해당 날짜에 effectiveStatus가 '재원'인 학생만 표시
     attendanceStudents.forEach(student => {
-        // ✅ 원본 schedule만 사용 (effectiveSchedule 사용 안 함)
-        let schedule = student.schedule;
-        if (typeof schedule === 'string' && schedule.trim() !== '') {
-            try { schedule = JSON.parse(schedule); } catch (e) { schedule = {}; }
-        } else if (!schedule) {
-            schedule = {};
+        const studentInfo = studentIdToInfo.get(student.id);
+        if (!studentInfo) return;
+        
+        const { effectiveStatus, effectiveSchedule } = studentInfo;
+        
+        // 해당 날짜에 재원생이 아니면 주간 스케줄 표시 안 함
+        if (effectiveStatus !== '재원') {
+            console.log(`[미확정 스케줄 스킨] ${student.name} (비재원: ${effectiveStatus})`);
+            return;
         }
         
-        const daySchedule = schedule[selectedDayKey] || {};
+        const daySchedule = effectiveSchedule[selectedDayKey] || {};
         
         // 해당 학생의 출석 기록이 있는지 확인
         const hasRecord = todayAttendanceRecords.some(r => r.student_id === student.id);
@@ -638,7 +673,8 @@ function renderAttendanceTable() {
                 record: null,
                 daySchedule: daySchedule,
                 checkInTime: daySchedule.checkIn || '23:59',
-                scheduleType: 'unconfirmed'
+                scheduleType: 'unconfirmed',
+                effectiveStatus: effectiveStatus
             });
         }
     });
@@ -1637,7 +1673,7 @@ async function saveAttendance(rowId, recordId) {
         
         // 데이터 다시 로드 및 테이블 재렌더링
         await loadAttendanceData();
-        renderAttendanceTable(); // 출석현황 테이블 재렌더링
+        await renderAttendanceTable(); // 출석현황 테이블 재렌더링
         await renderMonthlyCalendar();
         
     } catch (error) {
@@ -1958,7 +1994,7 @@ async function quickCheckIn(studentId, recordId = null) {
         }
         
         await loadAttendanceData();
-        renderAttendanceTable(); // 출석현황 테이블 재렌더링
+        await renderAttendanceTable(); // 출석현황 테이블 재렌더링
         await renderMonthlyCalendar();
         
     } catch (error) {
@@ -2019,7 +2055,7 @@ async function quickCheckOut(studentId, recordId = null) {
         alert(`${student.name} 퇴실 ${checkOutTime}`);
         
         await loadAttendanceData();
-        renderAttendanceTable(); // 출석현황 테이블 재렌더링
+        await renderAttendanceTable(); // 출석현황 테이블 재렌더링
         await renderMonthlyCalendar();
         
     } catch (error) {
@@ -2882,16 +2918,18 @@ async function renderAttendanceStats(year, month) {
             console.log('[renderAttendanceStats] 선생님 필터링 후 학생 수:', allStudents.length);
         }
         
-        // 재원생만 필터링 (항상 표시)
-        const activeStudents = allStudents.filter(student => student.status === '재원');
-        
-        // 해당 월의 출석 기록이 있는 학생 확인
-        let nonActiveWithAttendance = [];
+        // 해당 월에 재원 기간이 있는 학생만 표시
+        let studentsActiveInMonth = [];
         try {
             const startDate = new Date(year, month - 1, 1);
             const endDate = new Date(year, month, 0);
             const startDateStr = startDate.toISOString().split('T')[0];
             const endDateStr = endDate.toISOString().split('T')[0];
+            const lastDay = endDate.getDate();
+            
+            // 예약 데이터 로드
+            const statusResponse = await API.getList('student_status_schedules');
+            const allStatusSchedules = Array.isArray(statusResponse) ? statusResponse : (statusResponse.data || []);
             
             const attendanceRecords = await API.getList('attendance');
             
@@ -2900,14 +2938,34 @@ async function renderAttendanceStats(year, month) {
                 record.date >= startDateStr && record.date <= endDateStr
             );
             
-            // 출석 기록이 있지만 재원생이 아닌 학생 찾기
+            // 출석 기록이 있는 학생 ID
             const attendedStudentIds = new Set(filteredRecords.map(r => r.student_id));
-            nonActiveWithAttendance = allStudents.filter(student => 
-                student.status !== '재원' && attendedStudentIds.has(student.id)
-            );
+            
+            // 해당 월에 하루라도 재원 기간이 있는 학생 필터링
+            studentsActiveInMonth = allStudents.filter(student => {
+                // 출석 기록이 있으면 표시
+                if (attendedStudentIds.has(student.id)) {
+                    return true;
+                }
+                
+                // 출석 기록이 없으면 해당 월에 재원 기간이 있는지 확인
+                for (let day = 1; day <= lastDay; day++) {
+                    const dateStr = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+                    const effectiveStatus = window.getStudentStatusOnDate(student, dateStr, allStatusSchedules);
+                    if (effectiveStatus === '재원') {
+                        return true;
+                    }
+                }
+                return false;
+            });
+            
+            console.log('[renderAttendanceStats] 해당 월 재원 기간 있는 학생:', studentsActiveInMonth.length);
         } catch (err) {
-            console.warn('비재원생 출석자 조회 중 오류 (무시하고 계속):', err);
+            console.warn('예약 상태 조회 중 오류 (무시하고 계속):', err);
         }
+        
+        // 학생이 없으면 현재 재원생만 표시 (기본 동작)
+        const activeStudents = studentsActiveInMonth.length > 0 ? studentsActiveInMonth : allStudents.filter(student => student.status === '재원');
         
         // 학교 유형별로 분류 및 정렬
         const elementary = activeStudents
@@ -2939,14 +2997,11 @@ async function renderAttendanceStats(year, month) {
                 return (a.name || '').localeCompare(b.name || '', 'ko');
             });
         
-        // 재원생이 아닌 확정 스케줄 학생을 고등학생 배열 오른쪽에 추가
-        console.log('[renderAttendanceStats] 재원생 고등학생 수:', high.length);
-        console.log('[renderAttendanceStats] 비재원생 출석자 수:', nonActiveWithAttendance.length);
-        if (nonActiveWithAttendance.length > 0) {
-            console.log('[renderAttendanceStats] 비재원생 출석자:', nonActiveWithAttendance.map(s => `${s.name}(${s.status})`));
-        }
-        high = [...high, ...nonActiveWithAttendance];
-        console.log('[renderAttendanceStats] 통합 후 고등학생 수:', high.length);
+        // 통계 로그
+        console.log('[renderAttendanceStats] 초등학생 수:', elementary.length);
+        console.log('[renderAttendanceStats] 중학생 수:', middle.length);
+        console.log('[renderAttendanceStats] 고등학생 수:', high.length);
+        console.log('[renderAttendanceStats] 전체 통계 표시 학생:', activeStudents.length);
         
         // 하나의 통합 표로 렌더링
         const statsHTML = renderUnifiedStatsTable(elementary, middle, high, year, month);
@@ -3530,7 +3585,7 @@ async function registerNewAttendance() {
         
         // 데이터 다시 로드 및 테이블 재렌더링
         await loadAttendanceData();
-        renderAttendanceTable(); // 출석현황 테이블 재렌더링
+        await renderAttendanceTable(); // 출석현황 테이블 재렌더링
         await renderMonthlyCalendar();
         
     } catch (error) {
@@ -4040,11 +4095,9 @@ async function renderViewStudentList() {
             allStudents = allStudents.filter(s => s.teacher_id === currentAttendanceViewTeacherFilter);
         }
         
-        // 재원생만 필터링
-        const activeStudents = allStudents.filter(s => s.status === '재원');
-        
-        // 📊 해당 월의 출석 데이터 로드 및 각 학생별 출석/보강 횟수 계산
+        // 📊 해당 월에 재원 기간이 있는 학생만 표시
         let attendanceCountMap = {}; // { studentId: { attendance: 0, makeup: 0 } }
+        let studentsActiveInMonth = [];
         try {
             const year = displayedYear || currentYear;
             const month = displayedMonth !== undefined ? displayedMonth : currentMonth;
@@ -4052,6 +4105,11 @@ async function renderViewStudentList() {
             const endDate = new Date(year, month + 1, 0);
             const startDateStr = startDate.toISOString().split('T')[0];
             const endDateStr = endDate.toISOString().split('T')[0];
+            const lastDay = endDate.getDate();
+            
+            // 예약 데이터 로드
+            const statusResponse = await API.getList('student_status_schedules');
+            const allStatusSchedules = Array.isArray(statusResponse) ? statusResponse : (statusResponse.data || []);
             
             const attendanceRecords = await API.getList('attendance', { limit: 10000 });
             const records = Array.isArray(attendanceRecords) ? attendanceRecords : (attendanceRecords.data || []);
@@ -4062,8 +4120,11 @@ async function renderViewStudentList() {
             );
             
             // 각 학생별 출석/보강 횟수 집계
+            const attendedStudentIds = new Set();
             monthRecords.forEach(record => {
                 if (!record.student_id) return;
+                
+                attendedStudentIds.add(record.student_id);
                 
                 if (!attendanceCountMap[record.student_id]) {
                     attendanceCountMap[record.student_id] = { attendance: 0, makeup: 0 };
@@ -4077,10 +4138,32 @@ async function renderViewStudentList() {
                 }
             });
             
+            // 해당 월에 재원 기간이 있는 학생 필터링
+            studentsActiveInMonth = allStudents.filter(student => {
+                // 출석 기록이 있으면 표시
+                if (attendedStudentIds.has(student.id)) {
+                    return true;
+                }
+                
+                // 출석 기록이 없으면 해당 월에 재원 기간이 있는지 확인
+                for (let day = 1; day <= lastDay; day++) {
+                    const dateStr = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+                    const effectiveStatus = window.getStudentStatusOnDate(student, dateStr, allStatusSchedules);
+                    if (effectiveStatus === '재원') {
+                        return true;
+                    }
+                }
+                return false;
+            });
+            
             console.log('[renderViewStudentList] 출석/보강 횟수 집계 완료:', attendanceCountMap);
+            console.log('[renderViewStudentList] 해당 월 재원 기간 있는 학생:', studentsActiveInMonth.length);
         } catch (error) {
             console.error('[renderViewStudentList] 출석 데이터 로드 실패:', error);
         }
+        
+        // 학생이 없으면 현재 재원생만 표시 (기본 동작)
+        const activeStudents = studentsActiveInMonth.length > 0 ? studentsActiveInMonth : allStudents.filter(s => s.status === '재원');
         
         if (activeStudents.length === 0) {
             container.innerHTML = '<p style="text-align: center; color: #999; padding: 2rem;">조회된 학생이 없습니다.</p>';
