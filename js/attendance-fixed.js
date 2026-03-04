@@ -1,7 +1,8 @@
 // ============================================
-// 출석 관리 모듈
+// 출석 관리 모듈 v20260304003
+// 확정 스케줄이 있으면 통계표에 무조건 표시
 // ============================================
-console.log('[attendance-fixed.js] 로드 시작');
+console.log('[attendance-fixed.js] v20260304003 로드 시작');
 
 // 전역 변수
 let todayAttendanceRecords = [];
@@ -2931,15 +2932,18 @@ async function renderAttendanceStats(year, month) {
             const statusResponse = await API.getList('student_status_schedules');
             const allStatusSchedules = Array.isArray(statusResponse) ? statusResponse : (statusResponse.data || []);
             
-            const attendanceRecords = await API.getList('attendance');
+            const attendanceRecords = await API.getList('attendance', { limit: 10000 });
             
             // 날짜 필터링 (클라이언트 측)
-            const filteredRecords = (attendanceRecords.data || []).filter(record => 
+            const filteredRecords = (attendanceRecords.data || attendanceRecords || []).filter(record => 
                 record.date >= startDateStr && record.date <= endDateStr
             );
             
             // 출석 기록이 있는 학생 ID
             const attendedStudentIds = new Set(filteredRecords.map(r => r.student_id));
+            
+            console.log('[renderAttendanceStats] 해당 월 출석 기록:', filteredRecords.length, '개');
+            console.log('[renderAttendanceStats] 출석 기록 있는 학생:', attendedStudentIds.size, '명');
             
             // 해당 월에 하루라도 재원 기간이 있는 학생 필터링
             studentsActiveInMonth = allStudents.filter(student => {
@@ -3968,10 +3972,10 @@ async function renderViewAttendanceStats(year, month) {
             const startDateStr = startDate.toISOString().split('T')[0];
             const endDateStr = endDate.toISOString().split('T')[0];
             
-            const attendanceRecords = await API.getList('attendance');
+            const attendanceRecords = await API.getList('attendance', { limit: 10000 });
             
             // 날짜 필터링 (클라이언트 측)
-            const filteredRecords = (attendanceRecords.data || []).filter(record => 
+            const filteredRecords = (attendanceRecords.data || attendanceRecords || []).filter(record => 
                 record.date >= startDateStr && record.date <= endDateStr
             );
             
@@ -3980,6 +3984,9 @@ async function renderViewAttendanceStats(year, month) {
             nonActiveWithAttendance = allStudents.filter(student => 
                 student.status !== '재원' && attendedStudentIds.has(student.id)
             );
+            
+            console.log('[renderViewAttendanceStats] 해당 월 출석 기록:', filteredRecords.length, '개');
+            console.log('[renderViewAttendanceStats] 출석 기록 있는 학생:', attendedStudentIds.size, '명');
         } catch (err) {
             console.warn('비재원생 출석자 조회 중 오류 (무시하고 계속):', err);
         }
