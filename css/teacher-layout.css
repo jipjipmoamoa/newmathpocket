@@ -60,10 +60,24 @@
     margin-bottom: 1rem;
 }
 
+/* 선생님 이름 wrapper */
+.teacher-name-wrapper {
+    display: flex;
+    flex-direction: column;
+    gap: 0.15rem;
+}
+
 .teacher-card-header h4 {
-    font-size: 0.9rem;
+    font-size: 0.95rem;
     color: var(--text-dark);
     margin: 0;
+    font-weight: 600;
+}
+
+.teacher-title {
+    font-size: 0.8rem;
+    color: #7F8C8D;
+    font-weight: 400;
 }
 
 .student-count {
@@ -79,13 +93,13 @@
     gap: 0.25rem;
 }
 
-/* 학생 미니 아이템 - 칸 없이 텍스트만 가로 배치 */
+/* 학생 미니 아이템 - 세로 배치 */
 .student-mini-item {
     display: flex;
-    flex-direction: row;
-    align-items: center;
-    gap: 0.5rem;
-    padding: 0.1rem 0;
+    flex-direction: column; /* 세로 배치로 변경 */
+    align-items: flex-start; /* 왼쪽 정렬 */
+    gap: 0.15rem; /* 간격 줄임 */
+    padding: 0.25rem 0;
     background: transparent;
     border-radius: 0;
     transition: none;
@@ -103,8 +117,9 @@
 }
 
 .student-mini-item .student-info {
-    font-size: 0.8rem;
-    color: var(--text-light);
+    font-size: 0.75rem; /* 0.8rem → 0.75rem */
+    color: #7F8C8D; /* 회색 */
+    font-weight: 400;
     line-height: 1.2;
 }
 
