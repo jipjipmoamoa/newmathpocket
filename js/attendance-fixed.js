@@ -554,105 +554,91 @@ function renderAttendanceTable() {
     renderStudentSelectForRegister();
     
     // 3행부터: 모든 출석 기록을 입실시간 빠른 순으로 정렬
-    // 1. 스케줄이 있는 학생들의 출석 정보 수집
+    // ✅ 수정: 확정 스케줄(출석 기록)은 항상 표시, 미확정 스케줄(주간 스케줄)은 재원생만 표시
     const allAttendanceRows = [];
     const selectedDate = getSelectedDateString();
     const dateObj = new Date(selectedDate);
     const dayKeys = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
     const selectedDayKey = dayKeys[dateObj.getDay()];
     
+    // ✅ 1단계: 모든 출석 기록을 먼저 수집 (학생 상태 무관, 확정 스케줄은 항상 표시)
+    const processedRecordIds = new Set();
+    const studentIdToInfo = new Map(); // 학생 ID → {student, schedule} 매핑
+    
+    // attendanceStudents에 있는 학생 정보를 Map에 저장
+    // ✅ 원본 schedule만 사용 (effectiveSchedule 사용 안 함)
     attendanceStudents.forEach(student => {
-        // ✅ effectiveSchedule 사용 (예약 스케줄이 적용된 스케줄)
-        let schedule = student.effectiveSchedule || student.schedule;
+        let schedule = student.schedule;
+        if (typeof schedule === 'string' && schedule.trim() !== '') {
+            try { schedule = JSON.parse(schedule); } catch (e) { schedule = {}; }
+        } else if (!schedule) {
+            schedule = {};
+        }
+        studentIdToInfo.set(student.id, { student, schedule });
+    });
+    
+    // 모든 출석 기록을 순회하여 확정 스케줄 행 추가
+    todayAttendanceRecords.forEach(record => {
+        const studentInfo = studentIdToInfo.get(record.student_id);
+        
+        if (studentInfo) {
+            // attendanceStudents에 있는 학생의 출석 기록
+            const { student, schedule } = studentInfo;
+            const daySchedule = schedule[selectedDayKey] || {};
+            
+            console.log(`[확정 스케줄] ${student.name} (${record.date}): checkIn=${record.check_in_time}, status=${record.status}`);
+            
+            processedRecordIds.add(record.id);
+            allAttendanceRows.push({
+                type: 'confirmed',
+                student: student,
+                record: record,
+                daySchedule: daySchedule.enabled ? daySchedule : null,
+                checkInTime: record.check_in_time || '23:59',
+                scheduleType: 'confirmed'
+            });
+        } else {
+            // attendanceStudents에 없는 학생의 출석 기록 (휴원/퇴원 학생)
+            // ✅ 확정 스케줄은 항상 표시
+            console.log(`[확정 스케줄-비재원] ${record.student_name} (${record.date}): checkIn=${record.check_in_time}`);
+            
+            processedRecordIds.add(record.id);
+            allAttendanceRows.push({
+                type: 'confirmed-non-active',
+                record: record,
+                checkInTime: record.check_in_time || '23:59',
+                scheduleType: 'confirmed'
+            });
+        }
+    });
+    
+    // ✅ 2단계: 재원생의 주간 스케줄 빈 행 추가 (출석 기록이 없는 경우만)
+    // ⚠️ 주의: effectiveSchedule이 아닌 원본 schedule을 사용하여 과거 날짜에 미래 스케줄이 적용되지 않도록 함
+    attendanceStudents.forEach(student => {
+        // ✅ 원본 schedule만 사용 (effectiveSchedule 사용 안 함)
+        let schedule = student.schedule;
         if (typeof schedule === 'string' && schedule.trim() !== '') {
             try { schedule = JSON.parse(schedule); } catch (e) { schedule = {}; }
         } else if (!schedule) {
             schedule = {};
         }
         
-        // 기본 요일 스케줄
         const daySchedule = schedule[selectedDayKey] || {};
         
-        // ✅ 학생의 모든 출석 기록 가져오기 (같은 날짜에 여러 개 있을 수 있음)
-        const studentRecords = todayAttendanceRecords.filter(r => r.student_id === student.id);
+        // 해당 학생의 출석 기록이 있는지 확인
+        const hasRecord = todayAttendanceRecords.some(r => r.student_id === student.id);
         
-        // ✅ 이미 사용된 기록 ID 추적
-        const usedRecordIds = new Set();
-        
-        console.log(`[출석현황] ${student.name}: 주간스케줄=${daySchedule.enabled}, 출석기록수=${studentRecords.length}`);
-        
-        // ✅ 기본 요일 스케줄이 있으면 메인 행으로 추가
-        if (daySchedule.enabled) {
-            // 기본 스케줄의 checkIn 시간과 가장 가까운 출석 기록 찾기
-            let mainRecord = null;
-            if (studentRecords.length > 0) {
-                // ✅ 우선순위 1: 결석 레코드가 있으면 그것을 메인 레코드로 사용 (휴일 등록 등)
-                mainRecord = studentRecords.find(r => r.status === '결석');
-                
-                // ✅ 우선순위 2: 결석이 없으면 입실 시간이 스케줄과 가장 가까운 레코드
-                // ⚠️ 보강/보충 레코드는 제외 (추가 행으로 별도 렌더링)
-                if (!mainRecord && daySchedule.checkIn) {
-                    mainRecord = studentRecords.reduce((closest, record) => {
-                        // 보강/보충 레코드는 메인 레코드로 사용하지 않음
-                        if (record.status === '보강' || record.status === '보충') return closest;
-                        if (!record.check_in_time) return closest;
-                        const recordTime = record.check_in_time;
-                        const scheduleTime = daySchedule.checkIn;
-                        
-                        if (!closest) return record;
-                        
-                        const closestDiff = Math.abs(timeToMinutes(closest.check_in_time || '00:00') - timeToMinutes(scheduleTime));
-                        const recordDiff = Math.abs(timeToMinutes(recordTime) - timeToMinutes(scheduleTime));
-                        
-                        return recordDiff < closestDiff ? record : closest;
-                    }, null);
-                } else if (!mainRecord) {
-                    // 입실 시간도 없으면 첫 번째 레코드 사용 (보강/보충 제외)
-                    mainRecord = studentRecords.find(r => r.status !== '보강' && r.status !== '보충') || null;
-                }
-                
-                if (mainRecord) usedRecordIds.add(mainRecord.id); // 사용된 기록 마킹
-            }
+        // 주간 스케줄이 활성화되어 있고, 출석 기록이 없으면 빈 행 추가
+        if (daySchedule.enabled && !hasRecord) {
+            console.log(`[미확정 스케줄] ${student.name} (${selectedDate}): checkIn=${daySchedule.checkIn}`);
             
-            const checkInTime = mainRecord?.check_in_time || daySchedule.checkIn || '23:59';
-            console.log(`  → 메인행 추가: ${student.name} (checkIn=${checkInTime}, record=${mainRecord?.id || 'null'})`);
             allAttendanceRows.push({
-                type: 'scheduled',
+                type: 'unconfirmed',
                 student: student,
-                record: mainRecord,
+                record: null,
                 daySchedule: daySchedule,
-                checkInTime: checkInTime,
-                scheduleType: 'main'
-            });
-        }
-        
-        // ✅ 같은 학생의 나머지 출석 기록도 무조건 추가 (주간 스케줄 유무와 무관)
-        studentRecords.forEach(record => {
-            if (!usedRecordIds.has(record.id)) {
-                console.log(`  → 추가행 추가: ${student.name} (checkIn=${record.check_in_time}, record=${record.id})`);
-                allAttendanceRows.push({
-                    type: 'extra',
-                    student: student,
-                    record: record,
-                    checkInTime: record.check_in_time || '23:59',
-                    scheduleType: 'extra'
-                });
-            }
-        });
-    });
-    
-    // 2. 스케줄이 없지만 수동으로 등록된 출석 기록 추가
-    // ✅ 선생님 필터가 적용된 경우, 해당 선생님 학생의 기록만 표시
-    const studentsWithSchedule = new Set(attendanceStudents.map(s => s.id));
-    const allowedStudentIds = new Set(attendanceStudents.map(s => s.id));
-    
-    todayAttendanceRecords.forEach(record => {
-        // 스케줄에 없고, 필터링된 학생 목록에 포함된 경우만 추가
-        if (!studentsWithSchedule.has(record.student_id) && allowedStudentIds.has(record.student_id)) {
-            allAttendanceRows.push({
-                type: 'manual',
-                record: record,
-                checkInTime: record.check_in_time || '23:59'
+                checkInTime: daySchedule.checkIn || '23:59',
+                scheduleType: 'unconfirmed'
             });
         }
     });
@@ -662,21 +648,22 @@ function renderAttendanceTable() {
     
     // 4. 정렬된 행 렌더링
     allAttendanceRows.forEach(item => {
-        if (item.type === 'scheduled') {
-            // 스케줄이 있는 학생
+        // ✅ 타입별 처리
+        if (item.type === 'confirmed' || item.type === 'unconfirmed') {
+            // 확정 스케줄 (출석 기록 있음) 또는 미확정 스케줄 (출석 기록 없음)
             const student = item.student;
             const existingRecord = item.record;
             const daySchedule = item.daySchedule;
             
             // 기본값: 스케줄의 입실/퇴실 시간 사용
-            const scheduleCheckIn = daySchedule.checkIn || '';
-            const scheduleCheckOut = daySchedule.checkOut || '';
+            const scheduleCheckIn = daySchedule ? (daySchedule.checkIn || '') : '';
+            const scheduleCheckOut = daySchedule ? (daySchedule.checkOut || '') : '';
+            const scheduledDuration = daySchedule ? (parseInt(daySchedule.duration) || 90) : 90;
             
             let checkInTime = '';
             let checkOutTime = '';
             let status = '';
             let actualDuration = '';
-            let scheduledDuration = parseInt(daySchedule.duration) || 90;
             
             let absenceReason = '';
             let makeupDate = '';
@@ -697,7 +684,7 @@ function renderAttendanceTable() {
                     }
                 }
             } else {
-                // 출석 기록이 없으면 스케줄 시간을 표시
+                // 출석 기록이 없으면 스케줄 시간을 표시 (미확정 스케줄)
                 checkInTime = scheduleCheckIn;
                 checkOutTime = scheduleCheckOut;
             }
@@ -853,8 +840,131 @@ function renderAttendanceTable() {
         `;
         
         tbody.appendChild(row);
+        } else if (item.type === 'confirmed-non-active') {
+            // 비재원생의 확정 스케줄 (휴원/퇴원 학생의 출석 기록)
+            const record = item.record;
+            const checkInTime = record.check_in_time || '';
+            const expectedOutTime = record.expected_out_time || '';
+            const checkOutTime = record.check_out_time || '';
+            const status = record.status || '';
+            const absenceReason = record.absence_reason || '';
+            const makeupDate = record.makeup_date || '';
+            
+            let actualDuration = '';
+            if (checkInTime && checkOutTime) {
+                actualDuration = calculateDurationInMinutes(checkInTime, checkOutTime);
+            }
+            
+            let durationColor = '';
+            if (actualDuration) {
+                const scheduledDuration = 90;
+                if (actualDuration < scheduledDuration) {
+                    durationColor = 'color: red; font-weight: bold;';
+                }
+            }
+            
+            // 상태별 색상 및 텍스트
+            let statusColor = '';
+            let statusText = status || '';
+            if (status === '출석') {
+                statusColor = 'color: #4CAF50; font-weight: 600;';
+            } else if (status === '보강') {
+                // 보강 날짜 표시
+                if (makeupDate) {
+                    // "2025-01-05" → "1/5" 형식으로 변환
+                    const dateParts = makeupDate.substring(5).split('-');
+                    const month = parseInt(dateParts[0], 10);
+                    const day = parseInt(dateParts[1], 10);
+                    const formattedDate = `${month}/${day}`;
+                    statusText = `보강(${formattedDate})`;
+                }
+                statusColor = 'color: #f44336; font-weight: 600;';
+            } else if (status === '보충') {
+                statusColor = 'color: #9C27B0; font-weight: 600;';
+            } else if (status === '결석') {
+                if (absenceReason) {
+                    statusText = `<span style="text-decoration: line-through;">결석</span>(${absenceReason})`;
+                } else {
+                    statusText = `<span style="text-decoration: line-through;">결석</span>`;
+                }
+                // ✅ 보강 결석: 빨간색, 일반 결석: 검정색
+                if (makeupDate) {
+                    statusColor = 'color: #f44336; font-weight: 600;';
+                } else {
+                    statusColor = 'color: #000; font-weight: 600;';
+                }
+            } else {
+                // 상태가 비어있을 때: 입실만 있으면 체크 이모티콘 표시
+                if (checkInTime && !checkOutTime) {
+                    statusText = '✓';
+                    // 보강/보충 여부에 따라 색상 변경
+                    if (makeupDate) {
+                        // 보강: 빨간색 체크
+                        statusColor = 'color: #f44336; font-weight: 600; font-size: 1.2rem;';
+                    } else {
+                        // 일반: 초록색 체크
+                        statusColor = 'color: #4CAF50; font-weight: 600; font-size: 1.2rem;';
+                    }
+                } else {
+                    statusColor = 'color: #000;';
+                }
+            }
+            
+            const row = document.createElement('tr');
+            row.dataset.studentId = record.student_id || 'unknown';
+            row.dataset.studentName = record.student_name || '';
+            row.dataset.recordId = record.id;
+            
+            // 고유 rowId 생성 (같은 학생의 여러 행 구분)
+            const rowId = `${record.student_id}-${record.id}`;
+            
+            row.innerHTML = `
+                <td style="text-align: center;">${record.student_name || '-'} <span style="color: #999; font-size: 0.85rem;">(비재원)</span></td>
+                <td style="text-align: center;">
+                    <div class="display-mode" id="display-checkin-${rowId}">${checkInTime || '-'}</div>
+                    <input type="text" class="form-input edit-mode" id="edit-checkin-${rowId}" value="${checkInTime}" style="display: none;" 
+                        onblur="this.value = formatTimeInput(this.value)" />
+                </td>
+                <td style="text-align: center;">
+                    <div class="display-mode" id="display-checkout-${rowId}">${checkOutTime || '-'}</div>
+                    <input type="text" class="form-input edit-mode" id="edit-checkout-${rowId}" value="${checkOutTime}" style="display: none;" 
+                        onblur="this.value = formatTimeInput(this.value)" />
+                </td>
+                <td class="duration-display" style="${durationColor}">${actualDuration ? `${actualDuration}분` : '-'}</td>
+                <td style="text-align: center;">
+                    <span class="display-mode" id="display-status-${rowId}" style="${statusColor}">${statusText || '-'}</span>
+                    <div class="edit-mode" id="edit-status-container-${rowId}" style="display: none;">
+                        <select class="form-select" id="status-${rowId}" onchange="handleStatusChange('${rowId}')">
+                            <option value="" ${status === '' ? 'selected' : ''}></option>
+                            <option value="출석" ${status === '출석' ? 'selected' : ''}>출석</option>
+                            <option value="결석" ${status === '결석' ? 'selected' : ''}>결석</option>
+                            <option value="보강" ${status === '보강' ? 'selected' : ''}>보강</option>
+                            <option value="보충" ${status === '보충' ? 'selected' : ''}>보충</option>
+                        </select>
+                        <div id="absence-reason-${rowId}" style="display: ${status === '결석' ? 'block' : 'none'}; margin-top: 5px;">
+                            <input type="text" id="absence-reason-input-${rowId}" class="form-input" value="${absenceReason}" style="width: 100%;" placeholder="결석 사유" />
+                        </div>
+                        <div id="makeup-date-${rowId}" style="display: ${status === '보강' ? 'block' : 'none'}; margin-top: 5px;">
+                            <input type="text" id="makeup-date-input-${rowId}" class="form-input" value="${makeupDate ? makeupDate.substring(5).replace('-', '/') : ''}" style="width: 100%;" placeholder="결석날짜 (MM/DD)" maxlength="5" oninput="formatMakeupDateInput(this)" />
+                        </div>
+                    </div>
+                </td>
+                <td>
+                    <span style="color: #999; font-size: 0.85rem;">-</span>
+                </td>
+                <td>
+                    <button class="btn-icon btn-edit display-mode" id="btn-edit-${rowId}" onclick="enterEditMode('${rowId}')" title="수정"></button>
+                    <button class="btn-icon btn-delete display-mode" id="btn-delete-${rowId}" onclick="deleteAttendance('${rowId}', '${record.id}')" style="margin-left: 0.5rem;" title="삭제"></button>
+                    <div class="edit-mode" id="edit-buttons-${rowId}" style="display: none;">
+                        <button class="btn-save" onclick="saveAttendance('${rowId}', '${record.id}')">저장</button>
+                        <button class="btn-cancel" onclick="cancelEditMode('${rowId}')">취소</button>
+                    </div>
+                </td>
+            `;
+            
+            tbody.appendChild(row);
         } else if (item.type === 'manual') {
-            // 스케줄이 없는 수동 등록
+            // 스케줄이 없는 수동 등록 (사용되지 않음 - 제거 가능)
             const record = item.record;
             const checkInTime = record.check_in_time || '';
             const expectedOutTime = record.expected_out_time || '';
