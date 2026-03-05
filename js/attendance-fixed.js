@@ -2054,53 +2054,24 @@ function handleRegisterStatusChange() {
     const statusSelect = document.getElementById('registerStatus');
     const reasonSelect = document.getElementById('registerAbsenceReason');
     const makeupDateDiv = document.getElementById('registerMakeupDate');
-    const checkInInput = document.getElementById('registerCheckInTime');
-    const checkOutInput = document.getElementById('registerCheckOutTime');
-    const studentSelect = document.getElementById('registerStudentSelect');
     
     if (!statusSelect) return;
     
     const status = statusSelect.value;
     
+    // ✅ 상태 변경 시 입력창 표시만 제어, 시간 값은 절대 변경하지 않음
     if (status === '결석') {
         if (reasonSelect) reasonSelect.style.display = 'block';
         if (makeupDateDiv) makeupDateDiv.style.display = 'none';
     } else if (status === '보강') {
         if (reasonSelect) reasonSelect.style.display = 'none';
         if (makeupDateDiv) makeupDateDiv.style.display = 'block';
-        
-        // ✅ 보강 선택 시 시간 입력창 비우기 (기존 스케줄 시간 제거)
-        if (checkInInput) {
-            checkInInput.value = '';
-            checkInInput.placeholder = '보강 입실 시간 (예: 16:00)';
-        }
-        if (checkOutInput) {
-            checkOutInput.value = '';
-            checkOutInput.placeholder = '보강 퇴실 시간 (예: 17:30)';
-        }
-        
-        console.log('[상태 변경] 보강 모드 - 시간 입력창 초기화');
     } else if (status === '보충') {
         if (reasonSelect) reasonSelect.style.display = 'none';
         if (makeupDateDiv) makeupDateDiv.style.display = 'none';
-        
-        // ✅ 보충 선택 시 시간 입력창 비우기
-        if (checkInInput) {
-            checkInInput.value = '';
-            checkInInput.placeholder = '보충 입실 시간 (예: 16:00)';
-        }
-        if (checkOutInput) {
-            checkOutInput.value = '';
-            checkOutInput.placeholder = '보충 퇴실 시간 (예: 17:30)';
-        }
-        
-        console.log('[상태 변경] 보충 모드 - 시간 입력창 초기화');
     } else {
         if (reasonSelect) reasonSelect.style.display = 'none';
         if (makeupDateDiv) makeupDateDiv.style.display = 'none';
-        
-        // ✅ 2행 등록은 별개의 스케줄이므로 일반 출석 선택 시에도 스케줄 시간을 자동으로 채우지 않음
-        console.log('[상태 변경] 일반 출석 모드 - 사용자 직접 입력');
     }
 }
 
@@ -2114,12 +2085,7 @@ function handleStatusChange(rowId) {
     
     const status = statusSelect.value;
     
-    // rowId에서 studentId 추출 (studentId-recordId 형식)
-    const studentId = rowId.split('-').slice(0, -1).join('-'); // 마지막 부분(recordId) 제거
-    
-    // 상태를 updateAttendanceField로 업데이트
-    updateAttendanceField(studentId, 'status', status);
-    
+    // ✅ 상태 변경 시 입력창 표시만 제어, 시간 값은 절대 변경하지 않음
     if (status === '결석') {
         if (reasonSelect) reasonSelect.style.display = 'block';
         if (makeupDateDiv) makeupDateDiv.style.display = 'none';
