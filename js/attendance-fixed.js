@@ -1809,11 +1809,14 @@ async function handleAttendance(studentId, recordId = null) {
                 makeup_date: ''
             };
             
-            await API.create('attendance', attendanceData);
-            // ✅ 조용히 처리 (alert 제거)
+            const result = await API.create('attendance', attendanceData);
             console.log(`✅ ${student.name} 출석 처리 완료 - 입실: ${checkInTime}, 퇴실: ${checkOutTime}`);
+            
+            // ✅ 생성된 레코드를 즉시 로컬 배열에 추가 (중복 방지)
+            todayAttendanceRecords.push(result);
         }
         
+        // ✅ 데이터 새로고침
         await loadAttendanceData();
         await renderMonthlyCalendar();
         
@@ -2291,8 +2294,6 @@ async function registerAttendance() {
         const result = await API.create('attendance', attendanceData);
         console.log(`✅ ${status} 등록 성공:`, result);
         
-        // ✅ 조용히 등록 (알림 제거)
-        
         // 입력 폼 초기화
         document.getElementById('registerStudentSelect').value = '';
         document.getElementById('registerCheckInTime').value = '';
@@ -2308,7 +2309,7 @@ async function registerAttendance() {
         
     } catch (error) {
         console.error(`❌ ${status} 등록 실패:`, error);
-        alert(`${status} 등록에 실패했습니다.\n오류: ${error.message || '알 수 없는 오류'}`);
+        // ✅ 알람 제거 (콘솔에만 로그)
     }
 }
 
