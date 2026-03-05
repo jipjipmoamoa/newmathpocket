@@ -1468,54 +1468,7 @@ async function updateAttendanceField(studentId, field, value) {
         }
     }
     
-    // 상태를 "출석"으로 변경 시 스케줄 시간으로 자동 설정
-    if (field === 'status' && value === '출석') {
-        const student = attendanceStudents.find(s => s.id === studentId);
-        if (student) {
-            let schedule = student.schedule;
-            if (typeof schedule === 'string') {
-                try {
-                    schedule = JSON.parse(schedule);
-                } catch (e) {
-                    return;
-                }
-            }
-            
-            const selectedDate = getSelectedDateString();
-            const dateObj = new Date(selectedDate);
-            const dayKeys = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
-            const selectedDayKey = dayKeys[dateObj.getDay()];
-            
-            const daySchedule = schedule[selectedDayKey];
-            if (daySchedule) {
-                // 스케줄의 입실/퇴실 시간으로 설정
-                const checkInInput = row.querySelector('td:nth-child(2) input');
-                const checkOutInput = row.querySelector('td:nth-child(4) input');
-                const expectedOutInput = row.querySelector('td:nth-child(3) input');
-                const durationCell = row.querySelector('.duration-display');
-                
-                if (checkInInput && daySchedule.checkIn) {
-                    checkInInput.value = daySchedule.checkIn;
-                }
-                
-                if (expectedOutInput && daySchedule.checkOut) {
-                    expectedOutInput.value = daySchedule.checkOut;
-                }
-                
-                if (checkOutInput && daySchedule.checkOut) {
-                    checkOutInput.value = daySchedule.checkOut;
-                }
-                
-                // 재실시간 자동 계산 및 표시
-                if (durationCell && daySchedule.duration) {
-                    const scheduledDuration = parseInt(daySchedule.duration) || 90;
-                    durationCell.textContent = `${scheduledDuration}분`;
-                    durationCell.style.color = '';
-                    durationCell.style.fontWeight = '';
-                }
-            }
-        }
-    }
+    // 상태 변경 시 기존 입실/퇴실 시간은 유지 (자동 설정 제거)
 }
 
 // 시간에 분 추가 (HH:MM 형식)
@@ -1548,8 +1501,12 @@ async function saveAttendance(rowId, recordId) {
         // scheduled/extra 타입: 마지막 부분(scheduleType) 제거
         const parts = rowId.split('-');
         const lastPart = parts[parts.length - 1];
-        if (lastPart === 'main' || lastPart === 'extra') {
+        if (lastPart === 'main' || lastPart === 'extra' || lastPart === 'confirmed') {
+            // main, extra, confirmed 등의 접미사 제거
             studentId = parts.slice(0, -1).join('-');
+        } else if (recordId && lastPart === recordId.split('-').pop()) {
+            // recordId가 포함된 경우 (예: uuid-recordId)
+            studentId = rowId.replace(`-${recordId}`, '');
         } else {
             // 알 수 없는 형식이면 rowId 전체를 studentId로 사용
             studentId = rowId;
@@ -1665,11 +1622,11 @@ async function saveAttendance(rowId, recordId) {
         if (recordId) {
             // 기존 기록 업데이트
             await API.update('attendance', recordId, attendanceData);
-            alert('출석이 수정되었습니다.');
+            console.log('✅ 출석이 수정되었습니다:', attendanceData);
         } else {
             // 새 기록 생성
             await API.create('attendance', attendanceData);
-            alert('출석이 저장되었습니다.');
+            console.log('✅ 출석이 저장되었습니다:', attendanceData);
         }
         
         // 데이터 다시 로드 및 테이블 재렌더링
