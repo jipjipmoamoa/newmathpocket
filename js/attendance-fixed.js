@@ -2593,11 +2593,12 @@ async function renderMonthlyCalendar() {
                 
                 if (schedules.length > 0) {
                     // ✅ 특수 케이스: 해당 날짜의 모든 기록이 결석이고 사유가 모두 같으면 사유만 표시
+                    // ✅ 단, 기록이 2개 이상일 때만 (학교 휴일 등)
                     const allAbsent = schedules.every(s => s.status === '결석');
                     const allSameReason = allAbsent && schedules.every(s => s.absence_reason === schedules[0].absence_reason);
                     
-                    if (allAbsent && allSameReason && schedules[0].absence_reason) {
-                        // 사유만 표시 (취소선 없이)
+                    if (allAbsent && allSameReason && schedules[0].absence_reason && schedules.length >= 2) {
+                        // 사유만 표시 (취소선 없이) - 학교 휴일 등
                         rowHTML += '<div class="schedule-list">';
                         rowHTML += `<div class="schedule-item holiday-reason" style="color: #666; font-weight: 600; text-align: center;">${schedules[0].absence_reason}</div>`;
                         rowHTML += '</div>';
@@ -3876,11 +3877,12 @@ function renderViewMonthlyCalendar(year, month) {
                 
                 if (schedules.length > 0) {
                     // ✅ 특수 케이스: 해당 날짜의 모든 기록이 결석이고 사유가 모두 같으면 사유만 표시
+                    // ✅ 단, 기록이 2개 이상일 때만 (학교 휴일 등)
                     const allAbsent = schedules.every(s => s.status === '결석');
                     const allSameReason = allAbsent && schedules.every(s => s.absence_reason === schedules[0].absence_reason);
                     
-                    if (allAbsent && allSameReason && schedules[0].absence_reason) {
-                        // 사유만 표시 (취소선 없이)
+                    if (allAbsent && allSameReason && schedules[0].absence_reason && schedules.length >= 2) {
+                        // 사유만 표시 (취소선 없이) - 학교 휴일 등
                         rowHTML += '<div class="schedule-list">';
                         rowHTML += `<div class="schedule-item holiday-reason" style="color: #666; font-weight: 600; text-align: center;">${schedules[0].absence_reason}</div>`;
                         rowHTML += '</div>';
