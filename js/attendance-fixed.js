@@ -3032,165 +3032,133 @@ function checkStudentActiveInMonth(student, year, month) {
 
 // 통합 통계표 렌더링 (초등/중등/고등을 세로로 붙임)
 function renderUnifiedStatsTable(elementary, middle, high, year, month) {
-    const MAX_COLUMNS = 9; // 학생 열 개수 (라벨 제외)
-    
     let html = '<div class="stats-scroll-container"><table class="stats-table">';
     
-    // ===== 초등학생 섹션 (1-4행) =====
-    // 1행: 헤더 (초등학생 + 학생 이름) - 연노랑색 (더 파스텔)
-    html += '<thead><tr><th style="background-color: #fffef0; font-weight: 700;">초등학생</th>';
-    
-    for (let i = 0; i < MAX_COLUMNS; i++) {
-        if (i < elementary.length) {
-            const student = elementary[i];
+    // ===== 초등학생 섹션 =====
+    if (elementary.length > 0) {
+        // 1행: 헤더 (초등학생 + 모든 학생 이름) - 연노랑색
+        html += '<thead><tr><th style="background-color: #fffef0; font-weight: 700;">초등학생</th>';
+        
+        elementary.forEach(student => {
             const schoolName = student.school || '-';
             const grade = student.grade || '-';
             html += `<th style="background-color: #fffef0;">
                 <div class="student-name" style="cursor: pointer;" onclick="highlightStudent('${student.name}')">${student.name}</div>
                 <div class="student-info">${schoolName} ${grade}</div>
             </th>`;
-        } else {
-            html += '<th style="background-color: #fffef0;"></th>';
-        }
-    }
-    html += '</tr></thead><tbody>';
+        });
+        
+        html += '</tr></thead><tbody>';
     
-    // 초등학생 통계 계산
-    const elementaryStats = elementary.map(student => calculateStudentStats(student, year, month));
-    
-    // 2행: 출석(보강)/수업
-    html += '<tr><td class="row-label">출석(보강)/수업</td>';
-    for (let i = 0; i < MAX_COLUMNS; i++) {
-        if (i < elementaryStats.length) {
-            const attendance = elementaryStats[i].attendance;
-            const makeup = elementaryStats[i].makeup;
-            const expected = elementaryStats[i].expectedClasses;
+        // 초등학생 통계 계산
+        const elementaryStats = elementary.map(student => calculateStudentStats(student, year, month));
+        
+        // 2행: 출석(보강)/수업
+        html += '<tr><td class="row-label">출석(보강)/수업</td>';
+        elementaryStats.forEach(stats => {
+            const attendance = stats.attendance;
+            const makeup = stats.makeup;
+            const expected = stats.expectedClasses;
             html += `<td>${attendance}(${makeup})/${expected}</td>`;
-        } else {
-            html += '<td></td>';
-        }
-    }
-    html += '</tr>';
-    
-    // 3행: 보강예정
-    html += '<tr><td class="row-label">보강예정</td>';
-    for (let i = 0; i < MAX_COLUMNS; i++) {
-        if (i < elementaryStats.length) {
-            const attendance = elementaryStats[i].attendance;
-            const makeup = elementaryStats[i].makeup;
-            const expected = elementaryStats[i].expectedClasses;
+        });
+        html += '</tr>';
+        
+        // 3행: 보강예정
+        html += '<tr><td class="row-label">보강예정</td>';
+        elementaryStats.forEach(stats => {
+            const attendance = stats.attendance;
+            const makeup = stats.makeup;
+            const expected = stats.expectedClasses;
             const remaining = expected - attendance - makeup;
             const color = remaining > 0 ? '#f44336' : '#000';
             html += `<td style="color: ${color}; font-weight: ${remaining > 0 ? '600' : 'normal'};">${remaining}</td>`;
-        } else {
-            html += '<td></td>';
-        }
+        });
+        html += '</tr>';
     }
-    html += '</tr>';
     
-    // ===== 중학생 섹션 (5-8행) =====
-    // 5행: 헤더 (중학생 + 학생 이름) - 연두색 (더 파스텔)
-    html += '<tr><th style="background-color: #f0faf4; font-weight: 700;">중학생</th>';
-    
-    for (let i = 0; i < MAX_COLUMNS; i++) {
-        if (i < middle.length) {
-            const student = middle[i];
+    // ===== 중학생 섹션 =====
+    if (middle.length > 0) {
+        // 헤더 (중학생 + 모든 학생 이름) - 연두색
+        html += '<tr><th style="background-color: #f0faf4; font-weight: 700;">중학생</th>';
+        
+        middle.forEach(student => {
             const schoolName = student.school || '-';
             const grade = student.grade || '-';
             html += `<th style="background-color: #f0faf4;">
                 <div class="student-name" style="cursor: pointer;" onclick="highlightStudent('${student.name}')">${student.name}</div>
                 <div class="student-info">${schoolName} ${grade}</div>
             </th>`;
-        } else {
-            html += '<th style="background-color: #f0faf4;"></th>';
-        }
-    }
-    html += '</tr>';
-    
-    // 중학생 통계 계산
-    const middleStats = middle.map(student => calculateStudentStats(student, year, month));
-    
-    // 6행: 출석(보강)/수업
-    html += '<tr><td class="row-label">출석(보강)/수업</td>';
-    for (let i = 0; i < MAX_COLUMNS; i++) {
-        if (i < middleStats.length) {
-            const attendance = middleStats[i].attendance;
-            const makeup = middleStats[i].makeup;
-            const expected = middleStats[i].expectedClasses;
+        });
+        
+        html += '</tr>';
+        
+        // 중학생 통계 계산
+        const middleStats = middle.map(student => calculateStudentStats(student, year, month));
+        
+        // 출석(보강)/수업
+        html += '<tr><td class="row-label">출석(보강)/수업</td>';
+        middleStats.forEach(stats => {
+            const attendance = stats.attendance;
+            const makeup = stats.makeup;
+            const expected = stats.expectedClasses;
             html += `<td>${attendance}(${makeup})/${expected}</td>`;
-        } else {
-            html += '<td></td>';
-        }
-    }
-    html += '</tr>';
-    
-    // 7행: 보강예정
-    html += '<tr><td class="row-label">보강예정</td>';
-    for (let i = 0; i < MAX_COLUMNS; i++) {
-        if (i < middleStats.length) {
-            const attendance = middleStats[i].attendance;
-            const makeup = middleStats[i].makeup;
-            const expected = middleStats[i].expectedClasses;
+        });
+        html += '</tr>';
+        
+        // 보강예정
+        html += '<tr><td class="row-label">보강예정</td>';
+        middleStats.forEach(stats => {
+            const attendance = stats.attendance;
+            const makeup = stats.makeup;
+            const expected = stats.expectedClasses;
             const remaining = expected - attendance - makeup;
             const color = remaining > 0 ? '#f44336' : '#000';
             html += `<td style="color: ${color}; font-weight: ${remaining > 0 ? '600' : 'normal'};">${remaining}</td>`;
-        } else {
-            html += '<td></td>';
-        }
+        });
+        html += '</tr>';
     }
-    html += '</tr>';
     
-    // ===== 고등학생 섹션 (9-11행) =====
-    // 9행: 헤더 (고등학생 + 학생 이름) - 연하늘색 (더 파스텔)
-    html += '<tr><th style="background-color: #f0f8ff; font-weight: 700;">고등학생</th>';
-    
-    for (let i = 0; i < MAX_COLUMNS; i++) {
-        if (i < high.length) {
-            const student = high[i];
+    // ===== 고등학생 섹션 =====
+    if (high.length > 0) {
+        // 헤더 (고등학생 + 모든 학생 이름) - 연하늘색
+        html += '<tr><th style="background-color: #f0f8ff; font-weight: 700;">고등학생</th>';
+        
+        high.forEach(student => {
             const schoolName = student.school || '-';
             const grade = student.grade || '-';
             html += `<th style="background-color: #f0f8ff;">
                 <div class="student-name" style="cursor: pointer;" onclick="highlightStudent('${student.name}')">${student.name}</div>
                 <div class="student-info">${schoolName} ${grade}</div>
             </th>`;
-        } else {
-            html += '<th style="background-color: #f0f8ff;"></th>';
-        }
-    }
-    html += '</tr>';
-    
-    // 고등학생 통계 계산
-    const highStats = high.map(student => calculateStudentStats(student, year, month));
-    
-    // 10행: 출석(보강)/수업
-    html += '<tr><td class="row-label">출석(보강)/수업</td>';
-    for (let i = 0; i < MAX_COLUMNS; i++) {
-        if (i < highStats.length) {
-            const attendance = highStats[i].attendance;
-            const makeup = highStats[i].makeup;
-            const expected = highStats[i].expectedClasses;
+        });
+        
+        html += '</tr>';
+        
+        // 고등학생 통계 계산
+        const highStats = high.map(student => calculateStudentStats(student, year, month));
+        
+        // 출석(보강)/수업
+        html += '<tr><td class="row-label">출석(보강)/수업</td>';
+        highStats.forEach(stats => {
+            const attendance = stats.attendance;
+            const makeup = stats.makeup;
+            const expected = stats.expectedClasses;
             html += `<td>${attendance}(${makeup})/${expected}</td>`;
-        } else {
-            html += '<td></td>';
-        }
-    }
-    html += '</tr>';
-    
-    // 11행: 보강예정
-    html += '<tr><td class="row-label">보강예정</td>';
-    for (let i = 0; i < MAX_COLUMNS; i++) {
-        if (i < highStats.length) {
-            const attendance = highStats[i].attendance;
-            const makeup = highStats[i].makeup;
-            const expected = highStats[i].expectedClasses;
+        });
+        html += '</tr>';
+        
+        // 보강예정
+        html += '<tr><td class="row-label">보강예정</td>';
+        highStats.forEach(stats => {
+            const attendance = stats.attendance;
+            const makeup = stats.makeup;
+            const expected = stats.expectedClasses;
             const remaining = expected - attendance - makeup;
             const color = remaining > 0 ? '#f44336' : '#000';
             html += `<td style="color: ${color}; font-weight: ${remaining > 0 ? '600' : 'normal'};">${remaining}</td>`;
-        } else {
-            html += '<td></td>';
-        }
+        });
+        html += '</tr>';
     }
-    html += '</tr>';
     
     html += '</tbody></table></div>'; // 스크롤 컨테이너 닫기
     return html;
