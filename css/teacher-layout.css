@@ -93,20 +93,30 @@
     gap: 0.25rem;
 }
 
-/* 학생 미니 아이템 - 세로 배치 */
+/* 학생 미니 아이템 - 가로 배치 (이름+버튼) */
 .student-mini-item {
     display: flex;
-    flex-direction: column; /* 세로 배치로 변경 */
-    align-items: flex-start; /* 왼쪽 정렬 */
-    gap: 0.15rem; /* 간격 줄임 */
-    padding: 0.25rem 0;
+    flex-direction: row; /* 가로 배치 */
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+    padding: 0.5rem;
     background: transparent;
-    border-radius: 0;
-    transition: none;
+    border-radius: 4px;
+    transition: background 0.2s;
 }
 
 .student-mini-item:hover {
-    background: transparent;
+    background: rgba(0, 0, 0, 0.03);
+}
+
+/* 학생 정보 영역 (이름 + 학교/학년) - 세로 배치 */
+.student-mini-info {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.15rem;
+    flex: 1;
 }
 
 .student-mini-item .student-name {
@@ -123,11 +133,124 @@
     line-height: 1.2;
 }
 
+/* 담당 선생님 변경 버튼 */
+.btn-change-teacher {
+    background: transparent;
+    border: 1px solid #E0E0E0;
+    border-radius: 4px;
+    padding: 0.3rem 0.5rem;
+    cursor: pointer;
+    color: #7F8C8D;
+    font-size: 0.9rem;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 32px;
+    height: 32px;
+}
+
+.btn-change-teacher:hover {
+    background: var(--primary);
+    border-color: var(--primary);
+    color: white;
+    transform: scale(1.05);
+}
+
+.btn-change-teacher i {
+    font-size: 0.85rem;
+}
+
 .text-muted {
     color: var(--text-light);
     text-align: center;
     padding: 1rem;
     font-style: italic;
+}
+
+/* 모달 오버레이 */
+.modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 10000;
+}
+
+/* 작은 모달 컨텐츠 */
+.modal-content-small {
+    background: white;
+    border-radius: 8px;
+    width: 90%;
+    max-width: 400px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+    overflow: hidden;
+}
+
+.modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1rem 1.2rem;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.modal-header h3 {
+    margin: 0;
+    font-size: 1.1rem;
+    color: var(--text-dark);
+}
+
+.btn-close {
+    background: transparent;
+    border: none;
+    font-size: 1.8rem;
+    color: var(--text-light);
+    cursor: pointer;
+    line-height: 1;
+    padding: 0;
+    width: 30px;
+    height: 30px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.btn-close:hover {
+    color: var(--text-dark);
+}
+
+.modal-body {
+    padding: 1.2rem;
+}
+
+.modal-footer {
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.5rem;
+    padding: 1rem 1.2rem;
+    border-top: 1px solid var(--border-color);
+    background: var(--bg-light);
+}
+
+.btn-secondary {
+    background: #E0E0E0;
+    color: var(--text-dark);
+    border: none;
+    padding: 0.5rem 1rem;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 0.9rem;
+    transition: background 0.2s;
+}
+
+.btn-secondary:hover {
+    background: #D0D0D0;
 }
 
 /* 반응형은 6단 고정 유지 */
