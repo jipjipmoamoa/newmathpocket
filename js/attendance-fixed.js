@@ -2934,12 +2934,12 @@ async function renderAttendanceStats(year, month) {
             
             const attendanceRecords = await API.getList('attendance', { limit: 10000 });
             
-            // 날짜 필터링 (클라이언트 측)
+            // 날짜 필터링 (클라이언트 측) - 확정 스케줄만 (check_out이 있는 것만)
             const filteredRecords = (attendanceRecords.data || attendanceRecords || []).filter(record => 
-                record.date >= startDateStr && record.date <= endDateStr
+                record.date >= startDateStr && record.date <= endDateStr && record.check_out
             );
             
-            // 출석 기록이 있는 학생 ID
+            // 확정 출석 기록이 있는 학생 ID
             const attendedStudentIds = new Set(filteredRecords.map(r => r.student_id));
             
             console.log('[renderAttendanceStats] 해당 월 출석 기록:', filteredRecords.length, '개');
@@ -3974,12 +3974,12 @@ async function renderViewAttendanceStats(year, month) {
             
             const attendanceRecords = await API.getList('attendance', { limit: 10000 });
             
-            // 날짜 필터링 (클라이언트 측)
+            // 날짜 필터링 (클라이언트 측) - 확정 스케줄만 (check_out이 있는 것만)
             const filteredRecords = (attendanceRecords.data || attendanceRecords || []).filter(record => 
-                record.date >= startDateStr && record.date <= endDateStr
+                record.date >= startDateStr && record.date <= endDateStr && record.check_out
             );
             
-            // 출석 기록이 있지만 재원생이 아닌 학생 찾기
+            // 확정 출석 기록이 있지만 재원생이 아닌 학생 찾기
             const attendedStudentIds = new Set(filteredRecords.map(r => r.student_id));
             nonActiveWithAttendance = allStudents.filter(student => 
                 student.status !== '재원' && attendedStudentIds.has(student.id)
