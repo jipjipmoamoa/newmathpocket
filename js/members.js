@@ -32,15 +32,15 @@ async function showStudentsPage() {
                 </div>
                 <div style="display: flex; gap: 0.5rem; align-items: center;">
                     ${Auth.isAdmin() || Auth.isSubAdmin() ? `
-                    <select id="teacherFilterSelect" class="form-select" style="width: 200px;" onchange="filterStudentsByTeacher()">
+                    <select id="teacherFilterSelect" class="form-select" style="width: 140px;" onchange="filterStudentsByTeacher()">
                         <option value="all">전체 선생님</option>
                     </select>
                     ` : ''}
-                    <button class="btn btn-secondary" onclick="upgradeAllStudents()" style="background-color: #17a2b8; border-color: #17a2b8;">
-                        <i class="fas fa-arrow-up"></i> 승급
+                    <button class="btn btn-secondary" onclick="upgradeAllStudents()" style="background-color: #17a2b8; border-color: #17a2b8;" title="승급">
+                        ↑
                     </button>
-                    <button class="btn btn-primary" onclick="openStudentModal()">
-                        <i class="fas fa-plus"></i> 학생 추가
+                    <button class="btn btn-primary" onclick="openStudentModal()" title="학생 추가">
+                        +
                     </button>
                 </div>
             </div>
@@ -2790,15 +2790,25 @@ async function renderTeacherStudentsGrid(teachers) {
             return `
                 <div class="teacher-student-card" ${cardStyle}>
                     <div class="teacher-card-header">
-                        <h4>${teacher.name} 선생님</h4>
+                        <div class="teacher-name-wrapper">
+                            <h4>${teacher.name}</h4>
+                            <span class="teacher-title">선생님</span>
+                        </div>
                         <span class="student-count">${teacherStudents.length}명</span>
                     </div>
                     <div class="teacher-card-body">
                         ${sortedStudents.length > 0 ? 
                             sortedStudents.map(student => `
                                 <div class="student-mini-item">
-                                    <div class="student-name">${student.name}</div>
-                                    <div class="student-info">${formatSchoolName(student.school)} ${student.grade}</div>
+                                    <div class="student-mini-info">
+                                        <div class="student-name">${student.name}</div>
+                                        <div class="student-info">${formatSchoolName(student.school)} ${student.grade}</div>
+                                    </div>
+                                    ${Auth.isAdminOrSubAdmin() ? `
+                                        <button class="btn-change-teacher" onclick="openChangeTeacherModal('${student.id}', '${student.name}', '${teacher.id}')" title="담당 선생님 변경">
+                                            <i class="fas fa-exchange-alt"></i>
+                                        </button>
+                                    ` : ''}
                                 </div>
                             `).join('') 
                             : '<p class="text-muted">담당 학생이 없습니다</p>'
@@ -2810,6 +2820,111 @@ async function renderTeacherStudentsGrid(teachers) {
     } catch (error) {
         console.error('학생 데이터 로딩 실패:', error);
         grid.innerHTML = '<div class="empty-state"><p>데이터를 불러오는데 실패했습니다</p></div>';
+    }
+}
+
+// ===== 담당 선생님 변경 기능 (선생님관리 페이지) =====
+let changeTeacherModalState = { studentId: null, studentName: null, currentTeacherId: null };
+
+function openChangeTeacherModal(studentId, studentName, currentTeacherId) {
+    changeTeacherModalState = { studentId, studentName, currentTeacherId };
+    
+    // 모달 HTML 생성
+    const modalHtml = `
+        <div id="changeTeacherModal" class="modal-overlay" onclick="closeChangeTeacherModal(event)">
+            <div class="modal-content-small" onclick="event.stopPropagation()">
+                <div class="modal-header">
+                    <h3>담당 선생님 변경</h3>
+                    <button class="btn-close" onclick="closeChangeTeacherModal()">×</button>
+                </div>
+                <div class="modal-body">
+                    <p><strong>${studentName}</strong> 학생의 담당 선생님을 변경합니다.</p>
+                    <div style="margin-top: 1rem;">
+                        <label for="newTeacherSelect" style="display: block; margin-bottom: 0.5rem;">새 담당 선생님:</label>
+                        <select id="newTeacherSelect" class="teacher-select" style="width: 100%;">
+                            <option value="">선택하세요</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn-secondary" onclick="closeChangeTeacherModal()">취소</button>
+                    <button class="btn-primary" onclick="saveTeacherChange()">변경</button>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    // 기존 모달 제거 후 추가
+    const existingModal = document.getElementById('changeTeacherModal');
+    if (existingModal) existingModal.remove();
+    
+    document.body.insertAdjacentHTML('beforeend', modalHtml);
+    
+    // 선생님 목록 로드
+    loadTeachersToModal(currentTeacherId);
+}
+
+async function loadTeachersToModal(currentTeacherId) {
+    try {
+        const result = await API.getList('teachers', { limit: 1000 });
+        const teachers = Array.isArray(result) ? result : (result.data || []);
+        
+        // 재직 중인 선생님만 필터링
+        const activeTeachers = teachers.filter(t => t.status === '재직');
+        
+        const select = document.getElementById('newTeacherSelect');
+        if (select) {
+            select.innerHTML = '<option value="">선택하세요</option>' +
+                activeTeachers.map(t => `
+                    <option value="${t.id}" ${t.id === currentTeacherId ? 'selected' : ''}>
+                        ${t.name} 선생님
+                    </option>
+                `).join('');
+        }
+    } catch (error) {
+        console.error('선생님 목록 로드 실패:', error);
+        alert('선생님 목록을 불러오는데 실패했습니다');
+    }
+}
+
+function closeChangeTeacherModal(event) {
+    // 배경 클릭 또는 닫기 버튼 클릭 시에만 닫기
+    if (!event || event.target.classList.contains('modal-overlay') || event.target.classList.contains('btn-close')) {
+        const modal = document.getElementById('changeTeacherModal');
+        if (modal) modal.remove();
+        changeTeacherModalState = { studentId: null, studentName: null, currentTeacherId: null };
+    }
+}
+
+async function saveTeacherChange() {
+    const { studentId, studentName, currentTeacherId } = changeTeacherModalState;
+    const newTeacherId = document.getElementById('newTeacherSelect').value;
+    
+    if (!newTeacherId) {
+        alert('새 담당 선생님을 선택해주세요');
+        return;
+    }
+    
+    if (newTeacherId === currentTeacherId) {
+        alert('동일한 선생님입니다');
+        return;
+    }
+    
+    try {
+        // updateStudentTeacher 함수 재사용 (이미 구현되어 있음)
+        await updateStudentTeacher(studentId, newTeacherId);
+        
+        // 모달 닫기
+        closeChangeTeacherModal();
+        
+        // 선생님관리 페이지 새로고침
+        const activeTeachers = allTeachers.filter(t => t.status === '재직');
+        await renderTeacherStudentsGrid(activeTeachers);
+        
+        console.log(`[선생님관리] ${studentName}의 담당 선생님 변경 완료`);
+    } catch (error) {
+        console.error('담당 선생님 변경 실패:', error);
+        alert('담당 선생님 변경에 실패했습니다');
     }
 }
 
