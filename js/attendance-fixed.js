@@ -3397,17 +3397,9 @@ async function registerNewAttendance() {
                 const scheduledCheckIn = daySchedule.checkIn;
                 const scheduledCheckOut = daySchedule.checkOut;
                 
-                // 기존 스케줄과 동일한 시간이면 경고
+                // ✅ 기존 스케줄과 동일한 시간이어도 경고 없이 등록 (독립적 스케줄 생성)
                 if (checkInTime === scheduledCheckIn && checkOutTime === scheduledCheckOut) {
-                    const confirmMsg = `⚠️ 입력하신 시간(${checkInTime}-${checkOutTime})이 기존 주간 스케줄과 동일합니다.\n\n` +
-                        `${status} 스케줄은 주간 스케줄과 별개로 추가되어야 합니다.\n` +
-                        `다른 시간으로 등록하시겠습니까?\n\n` +
-                        `예: 기존 스케줄 ${scheduledCheckIn}-${scheduledCheckOut} → ${status} 16:00-17:30`;
-                    
-                    if (!confirm(confirmMsg)) {
-                        console.log(`[등록 취소] ${studentData.name} ${status} - 기존 스케줄과 동일한 시간`);
-                        return;
-                    }
+                    console.log(`[경고] ${studentData.name} ${status} - 기존 스케줄과 동일한 시간이지만 독립적으로 등록됩니다.`);
                 }
             }
         } catch (e) {
@@ -3462,9 +3454,64 @@ async function registerNewAttendance() {
     }
     
     try {
+        // ✅ 보강/보충 등록 시 주간 스케줄 레코드가 없으면 먼저 생성
+        if ((status === '보강' || status === '보충') && studentData.id && studentData.schedule) {
+            let schedule = studentData.schedule;
+            if (typeof schedule === 'string' && schedule.trim() !== '') {
+                try {
+                    schedule = JSON.parse(schedule);
+                } catch (e) {
+                    schedule = null;
+                }
+            }
+            
+            const selectedDate = getSelectedDateString();
+            const dateObj = new Date(selectedDate);
+            const dayKeys = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+            const selectedDayKey = dayKeys[dateObj.getDay()];
+            const daySchedule = schedule && schedule[selectedDayKey];
+            const hasSchedule = daySchedule && daySchedule.enabled && daySchedule.checkIn && daySchedule.checkOut;
+            
+            if (hasSchedule) {
+                // 해당 날짜에 주간 스케줄 레코드가 있는지 확인
+                const allRecords = await API.getList('attendance', { limit: 10000 });
+                const allAttendance = Array.isArray(allRecords) ? allRecords : (allRecords.data || []);
+                
+                const existingRecords = allAttendance.filter(r => 
+                    r.student_id === studentData.id && 
+                    r.date === selectedDate
+                );
+                
+                // 주간 스케줄과 가장 가까운 시간의 레코드 찾기 (메인 레코드)
+                const mainRecord = existingRecords.find(r => 
+                    r.check_in_time === daySchedule.checkIn || 
+                    (r.check_in_time && Math.abs(timeToMinutes(r.check_in_time) - timeToMinutes(daySchedule.checkIn)) < 30)
+                );
+                
+                // 주간 스케줄 레코드가 없으면 생성
+                if (!mainRecord) {
+                    const mainData = {
+                        student_id: studentData.id,
+                        student_name: studentData.name,
+                        date: selectedDate,
+                        check_in_time: daySchedule.checkIn,
+                        expected_out_time: daySchedule.checkOut,
+                        check_out_time: daySchedule.checkOut,
+                        status: '',
+                        absence_reason: '',
+                        makeup_date: ''
+                    };
+                    
+                    await API.create('attendance', mainData);
+                    console.log(`✅ 주간 스케줄 레코드 생성: ${studentData.name} (${daySchedule.checkIn}-${daySchedule.checkOut})`);
+                }
+            }
+        }
+        
+        // 보강/보충/출석 레코드 생성
         await API.create('attendance', attendanceData);
         // ✅ 조용히 등록 완료 (alert 제거)
-        console.log(`✅ ${studentData.name} 출석 등록 완료 (상태: ${status || '출석'})`);
+        console.log(`✅ ${studentData.name} ${status || '출석'} 등록 완료`);
         
         // 입력 필드 초기화
         document.getElementById('registerStudentSelect').value = '';
@@ -3489,7 +3536,7 @@ async function registerNewAttendance() {
         console.error('❌ 출석 등록 오류:', error);
         console.error('오류 상세:', error.message);
         console.error('등록하려던 데이터:', attendanceData);
-        alert('출석 등록에 실패했습니다.\n오류: ' + (error.message || '알 수 없는 오류'));
+        // ✅ 알람 제거 (콘솔에만 로그)
     }
 }
 
