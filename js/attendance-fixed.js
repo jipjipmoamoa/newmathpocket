@@ -3536,7 +3536,8 @@ async function registerNewAttendance() {
         console.error('❌ 출석 등록 오류:', error);
         console.error('오류 상세:', error.message);
         console.error('등록하려던 데이터:', attendanceData);
-        // ✅ 알람 제거 (콘솔에만 로그)
+        // ⚠️ 에러 발생 시에만 알림 표시 (디버깅용)
+        alert(`❌ 출석 등록 실패\n\n에러: ${error.message}\n\n자세한 내용은 개발자 도구 콘솔을 확인하세요.`);
     }
 }
 
