@@ -3510,7 +3510,6 @@ async function registerNewAttendance() {
         
         // 보강/보충/출석 레코드 생성
         await API.create('attendance', attendanceData);
-        // ✅ 조용히 등록 완료 (alert 제거)
         console.log(`✅ ${studentData.name} ${status || '출석'} 등록 완료`);
         
         // 입력 필드 초기화
@@ -3527,17 +3526,24 @@ async function registerNewAttendance() {
         document.getElementById('registerAbsenceReason').style.display = 'none';
         document.getElementById('registerMakeupDate').style.display = 'none';
         
-        // 데이터 다시 로드 및 테이블 재렌더링
-        await loadAttendanceData();
-        await renderAttendanceTable(); // 출석현황 테이블 재렌더링
-        await renderMonthlyCalendar();
-        
     } catch (error) {
         console.error('❌ 출석 등록 오류:', error);
         console.error('오류 상세:', error.message);
         console.error('등록하려던 데이터:', attendanceData);
-        // ⚠️ 에러 발생 시에만 알림 표시 (디버깅용)
         alert(`❌ 출석 등록 실패\n\n에러: ${error.message}\n\n자세한 내용은 개발자 도구 콘솔을 확인하세요.`);
+        return; // 에러 발생 시 화면 새로고침 건너뛰기
+    }
+    
+    // 화면 새로고침 (별도 try-catch로 에러 처리)
+    try {
+        await loadAttendanceData();
+        await renderAttendanceTable();
+        await renderMonthlyCalendar();
+    } catch (refreshError) {
+        console.error('❌ 화면 새로고침 오류:', refreshError);
+        console.error('오류 상세:', refreshError.message);
+        // 화면 새로고침 실패는 사용자에게 알리지 않음 (데이터는 이미 저장됨)
+        // 수동 새로고침으로 해결 가능
     }
 }
 
