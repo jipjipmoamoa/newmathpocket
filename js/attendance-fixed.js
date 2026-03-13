@@ -3512,19 +3512,34 @@ async function registerNewAttendance() {
         await API.create('attendance', attendanceData);
         console.log(`✅ ${studentData.name} ${status || '출석'} 등록 완료`);
         
-        // 입력 필드 초기화
-        document.getElementById('registerStudentSelect').value = '';
+        // 입력 필드 초기화 (안전하게 처리)
+        const studentSelectEl = document.getElementById('registerStudentSelect');
+        if (studentSelectEl) studentSelectEl.value = '';
         if (manualInput) manualInput.value = '';
-        document.getElementById('registerCheckInTime').value = '';
-        document.getElementById('registerExpectedOutTime').value = '';
-        document.getElementById('registerCheckOutTime').value = '';
-        document.getElementById('registerStatus').value = '';
-        document.getElementById('registerAbsenceReason').value = '';
-        document.getElementById('registerMakeupDateInput').value = '';
         
-        // 결석/보강 필드 숨기기
-        document.getElementById('registerAbsenceReason').style.display = 'none';
-        document.getElementById('registerMakeupDate').style.display = 'none';
+        const checkInEl = document.getElementById('registerCheckInTime');
+        if (checkInEl) checkInEl.value = '';
+        
+        const expectedOutEl = document.getElementById('registerExpectedOutTime');
+        if (expectedOutEl) expectedOutEl.value = '';
+        
+        const checkOutEl = document.getElementById('registerCheckOutTime');
+        if (checkOutEl) checkOutEl.value = '';
+        
+        const statusEl = document.getElementById('registerStatus');
+        if (statusEl) statusEl.value = '';
+        
+        const absenceReasonEl = document.getElementById('registerAbsenceReason');
+        if (absenceReasonEl) {
+            absenceReasonEl.value = '';
+            absenceReasonEl.style.display = 'none';
+        }
+        
+        const makeupDateInputEl = document.getElementById('registerMakeupDateInput');
+        if (makeupDateInputEl) makeupDateInputEl.value = '';
+        
+        const makeupDateDivEl = document.getElementById('registerMakeupDate');
+        if (makeupDateDivEl) makeupDateDivEl.style.display = 'none';
         
     } catch (error) {
         console.error('❌ 출석 등록 오류:', error);
