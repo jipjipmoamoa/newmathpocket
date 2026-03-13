@@ -3416,10 +3416,13 @@ async function registerNewAttendance() {
         check_out_time: checkOutTime,
         status: status || '출석',
         absence_reason: absenceReason,
-        makeup_date: makeupDate
+        makeup_date: makeupDate,
+        expected_out_time: '' // 기본값 설정
     };
     
     // 퇴실 예정시간 자동 계산 (스케줄 기반)
+    let durationMinutes = 90; // 기본값
+    
     if (studentData.id && studentData.schedule) {
         let schedule = studentData.schedule;
         if (typeof schedule === 'string' && schedule.trim() !== '') {
@@ -3437,17 +3440,14 @@ async function registerNewAttendance() {
         const daySchedule = schedule[selectedDayKey];
         
         if (daySchedule && daySchedule.duration) {
-            const duration = parseInt(daySchedule.duration) || 90;
-            const [hour, min] = checkInTime.split(':').map(Number);
-            const totalMinutes = hour * 60 + min + duration;
-            const outHour = Math.floor(totalMinutes / 60);
-            const outMin = totalMinutes % 60;
-            attendanceData.expected_out_time = `${String(outHour).padStart(2, '0')}:${String(outMin).padStart(2, '0')}`;
+            durationMinutes = parseInt(daySchedule.duration) || 90;
         }
-    } else {
-        // 스케줄 없으면 기본 90분
+    }
+    
+    // 퇴실 예정시간 계산
+    if (checkInTime) {
         const [hour, min] = checkInTime.split(':').map(Number);
-        const totalMinutes = hour * 60 + min + 90;
+        const totalMinutes = hour * 60 + min + durationMinutes;
         const outHour = Math.floor(totalMinutes / 60);
         const outMin = totalMinutes % 60;
         attendanceData.expected_out_time = `${String(outHour).padStart(2, '0')}:${String(outMin).padStart(2, '0')}`;
