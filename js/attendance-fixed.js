@@ -1490,7 +1490,7 @@ async function saveAttendance(rowId, recordId) {
     
     // rowId에서 studentId 추출
     // rowId 형식:
-    //   - scheduled/extra: "studentId-scheduleType" (예: uuid-main)
+    //   - scheduled/extra: "studentId-scheduleType" (예: uuid-main, uuid-unconfirmed)
     //   - manual: "studentId-recordId" (예: uuid-uuid)
     let studentId;
     
@@ -1501,8 +1501,9 @@ async function saveAttendance(rowId, recordId) {
         // scheduled/extra 타입: 마지막 부분(scheduleType) 제거
         const parts = rowId.split('-');
         const lastPart = parts[parts.length - 1];
-        if (lastPart === 'main' || lastPart === 'extra' || lastPart === 'confirmed') {
-            // main, extra, confirmed 등의 접미사 제거
+        // ✅ unconfirmed 추가
+        if (lastPart === 'main' || lastPart === 'extra' || lastPart === 'confirmed' || lastPart === 'unconfirmed') {
+            // main, extra, confirmed, unconfirmed 등의 접미사 제거
             studentId = parts.slice(0, -1).join('-');
         } else if (recordId && lastPart === recordId.split('-').pop()) {
             // recordId가 포함된 경우 (예: uuid-recordId)
@@ -1629,16 +1630,23 @@ async function saveAttendance(rowId, recordId) {
             console.log('✅ 출석이 저장되었습니다:', attendanceData);
         }
         
-        // 데이터 다시 로드 및 테이블 재렌더링
-        await loadAttendanceData();
-        await renderAttendanceTable(); // 출석현황 테이블 재렌더링
-        await renderMonthlyCalendar();
-        
     } catch (error) {
-        console.error('출석 저장 오류:', error);
+        console.error('❌ 출석 저장 오류:', error);
         console.error('오류 상세:', error.message);
         console.error('저장하려던 데이터:', attendanceData);
         alert('출석 저장에 실패했습니다.\n오류: ' + (error.message || '알 수 없는 오류'));
+        return; // 에러 발생 시 화면 새로고침 건너뛰기
+    }
+    
+    // 화면 새로고침 (별도 try-catch로 에러 처리)
+    try {
+        await loadAttendanceData();
+        await renderAttendanceTable();
+        await renderMonthlyCalendar();
+    } catch (refreshError) {
+        console.error('❌ 화면 새로고침 오류:', refreshError);
+        console.error('오류 상세:', refreshError.message);
+        // 화면 새로고침 실패는 사용자에게 알리지 않음 (데이터는 이미 저장됨)
     }
 }
 
